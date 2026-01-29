@@ -1,6 +1,6 @@
 import React from "react";
 import { PartyRoomCard, PartyRoom } from "./PartyRoomCard";
-import { Sparkles, Mic2, Globe } from "lucide-react";
+import { Sparkles, Mic2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface PartyRoomListProps {
@@ -9,11 +9,13 @@ interface PartyRoomListProps {
 }
 
 const regionFilters = [
-  { id: "all", label: "All", icon: Globe, flag: "🌍" },
-  { id: "us", label: "United States", flag: "🇺🇸" },
-  { id: "pk", label: "Pakistan", flag: "🇵🇰" },
-  { id: "in", label: "India", flag: "🇮🇳" },
-  { id: "uk", label: "UK", flag: "🇬🇧" },
+  { id: "all", label: "All", flag: "🌍", color: "from-blue-400 to-cyan-400" },
+  { id: "us", label: "United States", flag: "🇺🇸", color: "from-blue-500 to-red-500" },
+  { id: "pk", label: "Pakistan", flag: "🇵🇰", color: "from-green-500 to-green-600" },
+  { id: "in", label: "India", flag: "🇮🇳", color: "from-orange-400 to-green-500" },
+  { id: "af", label: "Afghanistan", flag: "🇦🇫", color: "from-black to-red-600" },
+  { id: "uk", label: "UK", flag: "🇬🇧", color: "from-blue-600 to-red-600" },
+  { id: "ae", label: "UAE", flag: "🇦🇪", color: "from-green-500 to-red-500" },
 ];
 
 export function PartyRoomList({ rooms, onRoomClick }: PartyRoomListProps) {
@@ -36,22 +38,35 @@ export function PartyRoomList({ rooms, onRoomClick }: PartyRoomListProps) {
 
   return (
     <div className="space-y-4">
-      {/* Region Filters */}
-      <div className="flex gap-2 overflow-x-auto hide-scrollbar pb-2">
-        {regionFilters.map((region) => (
+      {/* Region Filters with Flag Icons */}
+      <div className="flex gap-2 overflow-x-auto hide-scrollbar pb-2 -mx-4 px-4">
+        {regionFilters.map((region, index) => (
           <button
             key={region.id}
             onClick={() => setActiveRegion(region.id)}
             className={cn(
-              "flex items-center gap-2 whitespace-nowrap rounded-full px-4 py-2 text-sm font-medium transition-all press-effect",
-              "border shadow-sm",
+              "flex items-center gap-2 whitespace-nowrap rounded-full px-3 py-2 text-sm font-medium transition-all press-effect",
+              "border shadow-md animate-fade-in-up",
               activeRegion === region.id
-                ? "bg-gradient-to-r from-stream-purple to-stream-coral text-white border-transparent shadow-lg shadow-stream-purple/20"
-                : "bg-white/80 dark:bg-secondary border-border/50 hover:bg-secondary/80"
+                ? `bg-gradient-to-r ${region.color} text-white border-transparent shadow-lg`
+                : "bg-white dark:bg-secondary border-border/50 hover:shadow-lg hover:scale-105"
             )}
+            style={{ animationDelay: `${index * 50}ms` }}
           >
-            <span className="text-base">{region.flag}</span>
-            {region.label}
+            {/* Flag with circular background */}
+            <span className={cn(
+              "flex items-center justify-center h-6 w-6 rounded-full text-base shadow-inner",
+              activeRegion === region.id 
+                ? "bg-white/20" 
+                : "bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-800"
+            )}>
+              {region.flag}
+            </span>
+            <span className={cn(
+              activeRegion === region.id ? "text-white" : "text-foreground"
+            )}>
+              {region.label}
+            </span>
           </button>
         ))}
       </div>
