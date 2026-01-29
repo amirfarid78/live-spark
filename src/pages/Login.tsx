@@ -10,9 +10,9 @@ import {
   Mail, 
   Smartphone, 
   User, 
-  Check,
-  Sparkles
+  Check
 } from "lucide-react";
+import logo from "@/assets/logo.png";
 
 export default function Login() {
   const [showEmailLogin, setShowEmailLogin] = useState(false);
@@ -70,12 +70,14 @@ export default function Login() {
         {/* Logo Section */}
         <div className="px-6 pt-16 md:pt-20 lg:pt-24">
           <div className="flex items-center gap-3 animate-fade-in">
-            <div className="h-14 w-14 md:h-16 md:w-16 rounded-2xl bg-gradient-primary flex items-center justify-center shadow-lg">
-              <Sparkles className="h-7 w-7 md:h-8 md:w-8 text-white" />
-            </div>
+            <img 
+              src={logo} 
+              alt="Snap Live" 
+              className="h-14 w-14 md:h-16 md:w-16 rounded-2xl shadow-lg object-cover"
+            />
             <div>
               <h1 className="text-3xl md:text-4xl font-bold text-white tracking-tight">
-                StreamVerse
+                Snap Live
               </h1>
               <p className="text-white/80 text-sm md:text-base">
                 From strangers to friends
@@ -156,7 +158,7 @@ export default function Login() {
                   onClick={() => setAgreedToTerms(!agreedToTerms)}
                   className={cn(
                     "h-5 w-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 mt-0.5 transition-colors",
-                    agreedToTerms 
+                    agreedToTerms
                       ? "bg-primary border-primary" 
                       : "border-white/50 bg-white/10"
                   )}
@@ -164,7 +166,7 @@ export default function Login() {
                   {agreedToTerms && <Check className="h-3 w-3 text-white" />}
                 </button>
                 <span className="text-sm text-white/80">
-                  By using StreamVerse, you agree to the{" "}
+                  By using Snap Live, you agree to the{" "}
                   <Link to="/terms" className="text-primary underline">Terms of Service</Link>
                   {" "}and{" "}
                   <Link to="/privacy" className="text-primary underline">Privacy Policy</Link>

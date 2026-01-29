@@ -11,9 +11,9 @@ import {
   Check, 
   ChevronDown,
   ArrowLeft,
-  User,
-  Sparkles
+  User
 } from "lucide-react";
+import logo from "@/assets/logo.png";
 
 export default function Signup() {
   const [step, setStep] = useState<'initial' | 'profile'>('initial');
@@ -70,7 +70,7 @@ export default function Signup() {
     if (error) {
       toast({ title: "Signup Failed", description: error.message, variant: "destructive" });
     } else {
-      toast({ title: "Welcome to StreamVerse!", description: "Your account has been created" });
+      toast({ title: "Welcome to Snap Live!", description: "Your account has been created" });
       navigate("/");
     }
   };
@@ -93,19 +93,18 @@ export default function Signup() {
               <ArrowLeft className="h-5 w-5 text-white" />
             </button>
             
-            {/* Decorative Characters */}
+            {/* Logo Characters */}
             <div className="flex justify-center items-end gap-4 mt-4 mb-2">
-              <div className="w-24 h-32 md:w-32 md:h-40 rounded-2xl bg-gradient-to-b from-stream-coral/50 to-stream-purple/50 flex items-center justify-center">
-                <Sparkles className="h-10 w-10 text-white" />
-              </div>
-              <div className="w-28 h-36 md:w-36 md:h-44 rounded-2xl bg-gradient-to-b from-stream-cyan/50 to-primary/50 flex items-center justify-center">
-                <User className="h-12 w-12 text-white" />
-              </div>
+              <img 
+                src={logo} 
+                alt="Snap Live" 
+                className="w-32 h-32 md:w-40 md:h-40 rounded-3xl shadow-2xl object-cover"
+              />
             </div>
             
             {/* Brand Badge */}
             <div className="absolute bottom-6 right-6 text-white/60 font-medium text-sm tracking-wide rotate-[-15deg]">
-              STREAMVERSE
+              SNAP LIVE
             </div>
           </div>
         </div>
@@ -266,12 +265,14 @@ export default function Signup() {
           <div className="bg-white/95 backdrop-blur-xl rounded-3xl p-6 shadow-2xl animate-fade-in-up">
             {/* Logo */}
             <div className="flex items-center gap-3 mb-6">
-              <div className="h-12 w-12 rounded-xl bg-gradient-primary flex items-center justify-center">
-                <Sparkles className="h-6 w-6 text-white" />
-              </div>
+              <img 
+                src={logo} 
+                alt="Snap Live" 
+                className="h-12 w-12 rounded-xl shadow-lg object-cover"
+              />
               <div>
                 <h1 className="text-xl font-bold text-gray-900">Create Account</h1>
-                <p className="text-gray-500 text-sm">Join StreamVerse today</p>
+                <p className="text-gray-500 text-sm">Join Snap Live today</p>
               </div>
             </div>
 

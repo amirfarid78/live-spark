@@ -94,7 +94,7 @@ function AppContent() {
           <div className="h-20 w-20 rounded-2xl bg-gradient-primary flex items-center justify-center animate-pulse shadow-2xl shadow-primary/30">
             <Sparkles className="h-10 w-10 text-white" />
           </div>
-          <h1 className="text-xl font-bold text-gradient">StreamVerse</h1>
+          <h1 className="text-xl font-bold text-gradient">Snap Live</h1>
           <div className="h-1.5 w-32 rounded-full bg-muted overflow-hidden">
             <div className="h-full w-1/2 rounded-full bg-gradient-primary animate-pulse" />
           </div>
