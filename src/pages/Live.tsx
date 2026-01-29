@@ -1,11 +1,11 @@
-import React from "react";
-import { Radio, Search, Bell, Flame, Swords, Headphones, Users, ChevronRight, Sparkles } from "lucide-react";
+import React, { useState } from "react";
+import { Radio, Search, Bell, Flame, Swords, Headphones, Users, ChevronRight, Sparkles, Play } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
-import { useState } from "react";
-import { Link } from "react-router-dom";
+import { LiveRoomViewer } from "@/components/live/LiveRoomViewer";
+import { GoLiveSheet } from "@/components/live/GoLiveSheet";
 
 const categories = [
   { id: "all", label: "All", icon: Flame },
@@ -33,6 +33,18 @@ const mockStreams = [
 
 export default function Live() {
   const [activeCategory, setActiveCategory] = useState("all");
+  const [selectedStream, setSelectedStream] = useState<typeof mockStreams[0] | null>(null);
+  const [showGoLive, setShowGoLive] = useState(false);
+
+  const handleStreamClick = (stream: typeof mockStreams[0]) => {
+    setSelectedStream(stream);
+  };
+
+  const handleGoLive = (settings: any) => {
+    console.log("Going live with settings:", settings);
+    setShowGoLive(false);
+    // In production, this would connect to Agora.io
+  };
 
   return (
     <div className="flex flex-col min-h-screen bg-background">
@@ -125,6 +137,7 @@ export default function Live() {
         {mockStreams.map((stream, index) => (
           <div
             key={stream.id}
+            onClick={() => handleStreamClick(stream)}
             className={cn(
               "group relative aspect-[3/4] overflow-hidden rounded-2xl bg-muted cursor-pointer card-hover animate-fade-in-up",
               `stagger-${(index % 6) + 1}`
@@ -137,6 +150,13 @@ export default function Live() {
             />
             {/* Gradient overlay */}
             <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-black/30" />
+            
+            {/* Play button overlay */}
+            <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+              <div className="h-14 w-14 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center">
+                <Play className="h-7 w-7 text-white fill-white ml-1" />
+              </div>
+            </div>
             
             {/* Live badge */}
             <div className="absolute left-2 top-2 flex items-center gap-1.5">
@@ -179,13 +199,33 @@ export default function Live() {
       </div>
 
       {/* Go Live FAB */}
-      <Link
-        to="/create"
-        className="fab bottom-24 right-4 h-14 w-14 bg-gradient-live shadow-xl shadow-stream-live/30"
+      <button
+        onClick={() => setShowGoLive(true)}
+        className="fixed bottom-24 right-4 h-14 w-14 rounded-full bg-gradient-live shadow-xl shadow-stream-live/30 flex items-center justify-center press-effect z-30"
       >
         <div className="absolute inset-0 rounded-full bg-gradient-live animate-pulse opacity-50" />
         <Radio className="h-6 w-6 text-white relative z-10" />
-      </Link>
+      </button>
+
+      {/* Live Room Viewer */}
+      {selectedStream && (
+        <LiveRoomViewer
+          streamId={selectedStream.id.toString()}
+          hostName={selectedStream.host}
+          hostAvatar={featuredStreamers.find(s => s.name === selectedStream.host.split(" ")[0])?.avatar || "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100"}
+          viewerCount={selectedStream.viewers}
+          thumbnail={selectedStream.thumbnail}
+          onClose={() => setSelectedStream(null)}
+        />
+      )}
+
+      {/* Go Live Sheet */}
+      {showGoLive && (
+        <GoLiveSheet
+          onClose={() => setShowGoLive(false)}
+          onGoLive={handleGoLive}
+        />
+      )}
     </div>
   );
 }
