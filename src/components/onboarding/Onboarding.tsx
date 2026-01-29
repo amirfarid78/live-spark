@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { ChevronRight, Radio, Video, Users, Gift, Sparkles, Heart, MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import logo from "@/assets/logo.png";
 
 interface OnboardingProps {
   onComplete: () => void;
@@ -42,7 +43,7 @@ const slides = [
     id: 4,
     icon: Heart,
     title: "From Strangers to Friends",
-    description: "Start your journey today. Create unforgettable moments and find your tribe on StreamVerse.",
+    description: "Start your journey today. Create unforgettable moments and find your tribe on Snap Live.",
     gradient: "from-stream-coral via-pink-500 to-stream-purple",
     iconBg: "from-stream-coral to-pink-500",
     bgImage: "https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=800&auto=format&fit=crop&q=80",
@@ -155,13 +156,15 @@ export function Onboarding({ onComplete }: OnboardingProps) {
             "relative flex h-28 w-28 md:h-36 md:w-36 items-center justify-center rounded-[36px] md:rounded-[44px] bg-gradient-to-br shadow-2xl animate-float",
             slide.iconBg
           )}>
-            <Icon className="h-14 w-14 md:h-18 md:w-18 text-white drop-shadow-lg" strokeWidth={1.5} />
+            {currentSlide === slides.length - 1 ? (
+              <img src={logo} alt="Snap Live" className="h-full w-full rounded-[36px] md:rounded-[44px] object-cover" />
+            ) : (
+              <Icon className="h-14 w-14 md:h-18 md:w-18 text-white drop-shadow-lg" strokeWidth={1.5} />
+            )}
           </div>
           
           {/* Floating particles */}
-          <div className="absolute -top-6 -right-6 h-8 w-8 rounded-full bg-white/30 backdrop-blur-sm animate-float shadow-lg" style={{ animationDelay: '0s' }}>
-            <Sparkles className="h-4 w-4 text-white absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
-          </div>
+          <div className="absolute -top-6 -right-6 h-8 w-8 rounded-full bg-white/30 backdrop-blur-sm animate-float shadow-lg" style={{ animationDelay: '0s' }} />
           <div className="absolute -bottom-4 -left-8 h-6 w-6 rounded-full bg-white/20 backdrop-blur-sm animate-float" style={{ animationDelay: '0.5s' }} />
           <div className="absolute top-1/2 -right-10 h-4 w-4 rounded-full bg-white/25 backdrop-blur-sm animate-float" style={{ animationDelay: '1s' }} />
         </div>

@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import logo from "@/assets/logo.png";
 
 interface Video {
   id: number;
@@ -283,10 +284,12 @@ function AuthPrompt({ onClose }: { onClose: () => void }) {
         <div className="w-12 h-1.5 bg-muted rounded-full mx-auto mb-6" />
         
         <div className="text-center mb-6">
-          <div className="inline-flex items-center justify-center h-16 w-16 rounded-2xl bg-gradient-primary mb-4">
-            <Sparkles className="h-8 w-8 text-white" />
-          </div>
-          <h2 className="text-xl font-bold mb-2">Join StreamVerse</h2>
+          <img 
+            src={logo} 
+            alt="Snap Live" 
+            className="h-16 w-16 rounded-2xl mx-auto mb-4 shadow-lg"
+          />
+          <h2 className="text-xl font-bold mb-2">Join Snap Live</h2>
           <p className="text-muted-foreground">Sign up to like, comment, follow creators and more!</p>
         </div>
 
