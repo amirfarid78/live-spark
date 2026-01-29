@@ -144,7 +144,7 @@ export function LiveRoomViewer({ streamId, hostName, hostAvatar, viewerCount, th
 
   return (
     <div className={cn(
-      "fixed inset-0 z-50 bg-black overflow-hidden transition-opacity duration-500",
+      "fixed inset-0 z-[100] bg-black overflow-hidden transition-opacity duration-500",
       isLoaded ? "opacity-100" : "opacity-0"
     )}>
       {/* Video Background with Premium Overlay */}
@@ -155,11 +155,14 @@ export function LiveRoomViewer({ streamId, hostName, hostAvatar, viewerCount, th
           className="h-full w-full object-cover animate-scale-in-slow"
         />
         {/* Modern gradient overlays */}
-        <div className="absolute inset-0 bg-gradient-to-t from-[#1a1a2e] via-transparent to-[#1a1a2e]/50" />
-        <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-t from-[#0d0d1a] via-transparent to-[#0d0d1a]/60" />
+        <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-transparent to-transparent" />
         
-        {/* Purple/Blue ambient glow */}
-        <div className="absolute bottom-0 left-0 right-0 h-2/3 bg-gradient-to-t from-[#1a1a40]/90 via-[#1a1a40]/30 to-transparent pointer-events-none" />
+        {/* Premium purple/blue ambient glow */}
+        <div className="absolute bottom-0 left-0 right-0 h-3/4 bg-gradient-to-t from-[#12122a] via-[#12122a]/50 to-transparent pointer-events-none" />
+        
+        {/* Subtle vignette effect */}
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_0%,rgba(0,0,0,0.3)_100%)]" />
       </div>
 
       {/* Floating Hearts Animation */}
@@ -194,8 +197,8 @@ export function LiveRoomViewer({ streamId, hostName, hostAvatar, viewerCount, th
       {/* Bottom Section */}
       <div className="absolute bottom-0 left-0 right-0 z-10">
         {/* Room Announcement */}
-        <div className="px-4 mb-3 animate-fade-in-up stagger-1">
-          <p className="text-xs text-stream-cyan leading-relaxed">
+        <div className="px-4 mb-2 animate-fade-in-up stagger-1">
+          <p className="text-[11px] text-stream-cyan leading-relaxed">
             Room name : Welcome to join the live. Any content related to violence, gambling, illegal dealing will be banned.
           </p>
         </div>
@@ -203,8 +206,8 @@ export function LiveRoomViewer({ streamId, hostName, hostAvatar, viewerCount, th
         {/* Chat Messages */}
         <LiveChatSection messages={messages} />
 
-        {/* Bottom Input Bar */}
-        <div className="px-3 pb-safe bg-gradient-to-t from-[#1a1a40] via-[#1a1a40]/80 to-transparent pt-4">
+        {/* Premium Bottom Input Bar */}
+        <div className="px-3 pb-6 pt-4" style={{ background: 'linear-gradient(to top, rgba(13, 13, 26, 0.98) 0%, rgba(13, 13, 26, 0.85) 60%, transparent 100%)' }}>
           <div className="flex items-center gap-3">
             {/* Message Input */}
             <div className="flex-1 relative">
@@ -217,7 +220,7 @@ export function LiveRoomViewer({ streamId, hostName, hostAvatar, viewerCount, th
                 onChange={(e) => setInputMessage(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && handleSendMessage()}
                 placeholder="Type Something..."
-                className="w-full h-12 rounded-full bg-white/10 backdrop-blur-xl border border-white/10 pl-11 pr-12 text-sm text-white placeholder:text-white/40 focus:outline-none focus:border-stream-purple/50 focus:bg-white/15 transition-all"
+                className="w-full h-12 rounded-full bg-white/8 backdrop-blur-xl border border-white/15 pl-11 pr-12 text-sm text-white placeholder:text-white/40 focus:outline-none focus:border-stream-purple/60 focus:bg-white/12 transition-all shadow-inner"
               />
               <button 
                 onClick={handleSendMessage}
@@ -227,23 +230,25 @@ export function LiveRoomViewer({ streamId, hostName, hostAvatar, viewerCount, th
               </button>
             </div>
 
-            {/* Heart/Like Button */}
+            {/* Heart/Like Button - Premium */}
             <button
               onClick={handleLike}
-              className="h-12 w-12 rounded-full bg-gradient-to-br from-pink-500 to-rose-500 flex items-center justify-center shadow-lg shadow-pink-500/30 press-effect relative overflow-hidden group"
+              className="h-12 w-12 rounded-full bg-gradient-to-br from-pink-400 via-pink-500 to-rose-600 flex items-center justify-center shadow-lg shadow-pink-500/40 press-effect relative overflow-hidden group ring-2 ring-pink-400/30"
             >
-              <div className="absolute inset-0 bg-white/20 opacity-0 group-hover:opacity-100 transition-opacity" />
-              <span className="text-xl">🤟</span>
+              <div className="absolute inset-0 bg-gradient-to-t from-transparent to-white/20" />
+              <span className="text-xl relative z-10">🤟</span>
             </button>
 
-            {/* Gift Button */}
+            {/* Gift Button - Premium with Glow */}
             <button
               onClick={() => setShowGiftPanel(true)}
-              className="h-12 w-12 rounded-full bg-gradient-to-br from-red-500 via-rose-500 to-pink-500 flex items-center justify-center shadow-lg shadow-red-500/30 press-effect relative overflow-hidden group"
+              className="h-12 w-12 rounded-full bg-gradient-to-br from-red-400 via-rose-500 to-pink-600 flex items-center justify-center shadow-lg shadow-rose-500/40 press-effect relative overflow-hidden group ring-2 ring-rose-400/30"
             >
-              <div className="absolute inset-0 bg-white/20 opacity-0 group-hover:opacity-100 transition-opacity" />
-              <Gift className="h-5 w-5 text-white" />
-              <Sparkles className="absolute -top-1 -right-1 h-3.5 w-3.5 text-yellow-300 animate-pulse" />
+              <div className="absolute inset-0 bg-gradient-to-t from-transparent to-white/20" />
+              <Gift className="h-5 w-5 text-white relative z-10" />
+              <div className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-yellow-400 flex items-center justify-center animate-pulse shadow-lg shadow-yellow-400/50">
+                <Sparkles className="h-2.5 w-2.5 text-yellow-900" />
+              </div>
             </button>
           </div>
         </div>
