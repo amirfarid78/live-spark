@@ -9,13 +9,13 @@ interface PartyRoomListProps {
 }
 
 const regionFilters = [
-  { id: "all", label: "All", flag: "🌍", color: "from-blue-400 to-cyan-400" },
-  { id: "us", label: "United States", flag: "🇺🇸", color: "from-blue-500 to-red-500" },
-  { id: "pk", label: "Pakistan", flag: "🇵🇰", color: "from-green-500 to-green-600" },
-  { id: "in", label: "India", flag: "🇮🇳", color: "from-orange-400 to-green-500" },
-  { id: "af", label: "Afghanistan", flag: "🇦🇫", color: "from-black to-red-600" },
-  { id: "uk", label: "UK", flag: "🇬🇧", color: "from-blue-600 to-red-600" },
-  { id: "ae", label: "UAE", flag: "🇦🇪", color: "from-green-500 to-red-500" },
+  { id: "all", label: "All", flagUrl: "https://flagcdn.com/w40/un.png", color: "from-blue-400 to-cyan-400" },
+  { id: "us", label: "United States", flagUrl: "https://flagcdn.com/w40/us.png", color: "from-blue-500 to-red-500" },
+  { id: "pk", label: "Pakistan", flagUrl: "https://flagcdn.com/w40/pk.png", color: "from-green-500 to-green-600" },
+  { id: "in", label: "India", flagUrl: "https://flagcdn.com/w40/in.png", color: "from-orange-400 to-green-500" },
+  { id: "af", label: "Afghanistan", flagUrl: "https://flagcdn.com/w40/af.png", color: "from-black to-red-600" },
+  { id: "uk", label: "UK", flagUrl: "https://flagcdn.com/w40/gb.png", color: "from-blue-600 to-red-600" },
+  { id: "ae", label: "UAE", flagUrl: "https://flagcdn.com/w40/ae.png", color: "from-green-500 to-red-500" },
 ];
 
 export function PartyRoomList({ rooms, onRoomClick }: PartyRoomListProps) {
@@ -53,14 +53,18 @@ export function PartyRoomList({ rooms, onRoomClick }: PartyRoomListProps) {
             )}
             style={{ animationDelay: `${index * 50}ms` }}
           >
-            {/* Flag with circular background */}
+            {/* Flag image with circular background */}
             <span className={cn(
-              "flex items-center justify-center h-6 w-6 rounded-full text-base shadow-inner",
+              "flex items-center justify-center h-7 w-7 rounded-full overflow-hidden shadow-sm ring-1",
               activeRegion === region.id 
-                ? "bg-white/20" 
-                : "bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-800"
+                ? "bg-white/20 ring-white/30" 
+                : "bg-white ring-border/50"
             )}>
-              {region.flag}
+              <img 
+                src={region.flagUrl} 
+                alt={region.label}
+                className="h-5 w-5 object-cover rounded-sm"
+              />
             </span>
             <span className={cn(
               activeRegion === region.id ? "text-white" : "text-foreground"
