@@ -1,8 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
-import { X, Users, Share2, MoreHorizontal, Mic, MicOff, Gift, MessageCircle, Send, Music, Sparkles, Hand, Volume2, VolumeX } from "lucide-react";
+import { X, Users, Share2, Mic, MicOff, Gift, MessageCircle, Send, Music, Hand, Volume2, VolumeX, Sparkles, Crown } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { SpeakerSeat, Speaker, SeatStatus } from "./SpeakerSeat";
 import { GiftPanel } from "@/components/live/GiftPanel";
@@ -39,10 +38,10 @@ const mockSeats: { id: number; status: SeatStatus; speaker?: Speaker }[] = [
   { id: 3, status: "empty" },
   { id: 4, status: "locked" },
   { id: 5, status: "locked" },
-  { id: 6, status: "occupied", speaker: { id: "3", name: "Alexander Phillips", avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100", isSpeaking: false, isMuted: false, level: 28 } },
+  { id: 6, status: "occupied", speaker: { id: "3", name: "Alex P.", avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100", isSpeaking: false, isMuted: false, level: 28 } },
   { id: 7, status: "locked" },
-  { id: 8, status: "occupied", speaker: { id: "4", name: "Matthew Sanchez", avatar: "https://images.unsplash.com/photo-1517841905240-472988babdf9?w=100", isSpeaking: true, isMuted: false, level: 15 } },
-  { id: 9, status: "occupied", speaker: { id: "5", name: "Joseph Rogers", avatar: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100", isSpeaking: false, isMuted: true, level: 22 } },
+  { id: 8, status: "occupied", speaker: { id: "4", name: "Matt S.", avatar: "https://images.unsplash.com/photo-1517841905240-472988babdf9?w=100", isSpeaking: true, isMuted: false, level: 15 } },
+  { id: 9, status: "occupied", speaker: { id: "5", name: "Joseph R.", avatar: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100", isSpeaking: false, isMuted: true, level: 22 } },
   { id: 10, status: "locked" },
   { id: 11, status: "empty" },
   { id: 12, status: "empty" },
@@ -71,7 +70,6 @@ export function PartyRoomViewer({ room, onClose }: PartyRoomViewerProps) {
     if (!seat) return;
 
     if (seat.status === "empty" && !hasRequestedSeat) {
-      // Request to join as speaker
       setSeats(prev => prev.map(s => 
         s.id === seatId ? { ...s, status: "requested" as SeatStatus } : s
       ));
@@ -116,7 +114,6 @@ export function PartyRoomViewer({ room, onClose }: PartyRoomViewerProps) {
     setShowGiftPanel(false);
   };
 
-  // Simulate chat messages
   useEffect(() => {
     const interval = setInterval(() => {
       const randomMessages = [
@@ -139,112 +136,149 @@ export function PartyRoomViewer({ room, onClose }: PartyRoomViewerProps) {
   }, []);
 
   return (
-    <div 
-      className="fixed inset-0 z-[100] flex flex-col overflow-hidden"
-      style={{
-        background: `linear-gradient(180deg, 
-          rgba(88, 28, 135, 0.95) 0%, 
-          rgba(59, 7, 100, 0.98) 40%,
-          rgba(30, 10, 60, 1) 100%)`
-      }}
-    >
-      {/* Background Image Overlay */}
-      {room.coverImage && (
-        <div 
-          className="absolute inset-0 opacity-20"
-          style={{
-            backgroundImage: `url(${room.coverImage})`,
-            backgroundSize: "cover",
-            backgroundPosition: "center",
-            filter: "blur(60px)",
-          }}
-        />
-      )}
+    <div className="fixed inset-0 z-[100] flex flex-col overflow-hidden animate-fade-in">
+      {/* Animated gradient background */}
+      <div 
+        className="absolute inset-0"
+        style={{
+          background: `
+            radial-gradient(ellipse at top, rgba(139, 92, 246, 0.3) 0%, transparent 50%),
+            radial-gradient(ellipse at bottom right, rgba(236, 72, 153, 0.2) 0%, transparent 50%),
+            linear-gradient(180deg, 
+              rgba(88, 28, 135, 0.98) 0%, 
+              rgba(59, 7, 100, 0.99) 40%,
+              rgba(30, 10, 60, 1) 100%)`
+        }}
+      />
+      
+      {/* Animated particles */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        {[...Array(6)].map((_, i) => (
+          <div
+            key={i}
+            className="absolute animate-float-slow opacity-20"
+            style={{
+              left: `${15 + i * 15}%`,
+              top: `${10 + (i % 3) * 20}%`,
+              animationDelay: `${i * 0.5}s`,
+            }}
+          >
+            <Sparkles className="h-4 w-4 text-stream-gold" />
+          </div>
+        ))}
+      </div>
 
       {/* Flying Gifts */}
       {flyingGifts.map((gift) => (
         <LiveGiftAnimation key={gift.id} gift={gift} />
       ))}
 
-      {/* Header */}
-      <header className="relative z-10 flex items-center justify-between px-4 py-3">
-        <div className="flex items-center gap-3">
-          <div className="relative">
-            <Avatar className="h-11 w-11 ring-2 ring-white/30">
-              <AvatarImage src={room.hostAvatar} />
-              <AvatarFallback>{room.hostName[0]}</AvatarFallback>
-            </Avatar>
-            <span className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full bg-stream-live ring-2 ring-background" />
-          </div>
-          <div>
-            <p className="text-sm font-semibold text-white">{room.name}</p>
-            <div className="flex items-center gap-2">
-              <Badge className="bg-stream-gold/20 text-stream-gold border-0 text-[10px] h-5">
-                <Users className="mr-1 h-3 w-3" />
-                {room.viewerCount}
-              </Badge>
-              <span className="text-[10px] text-white/50">ID:{room.id.slice(0, 8)}</span>
+      {/* Header with glassmorphism */}
+      <header className="relative z-10 px-4 py-3">
+        <div className="flex items-center justify-between p-3 rounded-2xl bg-white/5 backdrop-blur-xl border border-white/10 shadow-xl">
+          <div className="flex items-center gap-3">
+            {/* Host Avatar with 3D ring */}
+            <div className="relative">
+              <div className="absolute -inset-1 rounded-full bg-gradient-to-r from-stream-purple via-stream-coral to-stream-purple animate-spin-slow opacity-50 blur-sm" />
+              <Avatar className="h-12 w-12 ring-2 ring-white/30 relative">
+                <AvatarImage src={room.hostAvatar} />
+                <AvatarFallback className="bg-gradient-to-br from-stream-purple to-stream-coral">
+                  {room.hostName[0]}
+                </AvatarFallback>
+              </Avatar>
+              <span className="absolute -bottom-0.5 -right-0.5 h-4 w-4 rounded-full bg-stream-live ring-2 ring-purple-900 flex items-center justify-center">
+                <span className="h-2 w-2 rounded-full bg-white animate-pulse" />
+              </span>
+            </div>
+            
+            <div>
+              <div className="flex items-center gap-2">
+                <p className="text-sm font-bold text-white">{room.name}</p>
+                <Crown className="h-4 w-4 text-stream-gold" />
+              </div>
+              <div className="flex items-center gap-2 mt-0.5">
+                <Badge className="bg-gradient-to-r from-stream-gold/30 to-orange-500/30 text-stream-gold border-0 text-[10px] h-5 shadow-inner">
+                  <Users className="mr-1 h-3 w-3" />
+                  {room.viewerCount.toLocaleString()}
+                </Badge>
+                <span className="text-[10px] text-white/40 font-mono">ID:{room.id.slice(0, 8)}</span>
+              </div>
             </div>
           </div>
-        </div>
 
-        <div className="flex items-center gap-2">
-          <Button variant="ghost" size="icon" className="h-9 w-9 text-white/70 hover:text-white hover:bg-white/10">
-            <Share2 className="h-5 w-5" />
-          </Button>
-          <button 
-            onClick={onClose}
-            className="h-9 w-9 rounded-full bg-white/10 flex items-center justify-center press-effect"
-          >
-            <X className="h-5 w-5 text-white" />
-          </button>
+          <div className="flex items-center gap-2">
+            <button className="h-9 w-9 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-all press-effect border border-white/10">
+              <Share2 className="h-4 w-4 text-white" />
+            </button>
+            <button 
+              onClick={onClose}
+              className="h-9 w-9 rounded-full bg-white/10 hover:bg-red-500/30 flex items-center justify-center transition-all press-effect border border-white/10"
+            >
+              <X className="h-4 w-4 text-white" />
+            </button>
+          </div>
         </div>
       </header>
 
-      {/* Coin Display */}
-      <div className="px-4 mb-2">
-        <Badge className="bg-stream-gold/20 text-stream-gold border-0">
+      {/* Coin Display with shine effect */}
+      <div className="relative z-10 px-4 mb-2">
+        <Badge className="bg-gradient-to-r from-stream-gold/20 to-orange-500/20 text-stream-gold border border-stream-gold/20 shadow-lg shadow-stream-gold/10 animate-glow-pulse">
           💰 1.5k
         </Badge>
       </div>
 
-      {/* Speaker Grid */}
+      {/* Speaker Grid with 3D container */}
       <div className="relative z-10 px-4 py-4">
-        <div className="grid grid-cols-4 gap-4 justify-items-center">
-          {seats.slice(0, room.maxSpeakers).map((seat) => (
-            <SpeakerSeat 
-              key={seat.id} 
-              seat={seat} 
-              onSeatClick={handleSeatClick}
-            />
-          ))}
+        <div className="relative p-4 rounded-3xl bg-white/5 backdrop-blur-sm border border-white/10 shadow-2xl">
+          {/* Grid glow effect */}
+          <div className="absolute inset-0 rounded-3xl bg-gradient-to-b from-stream-purple/10 to-transparent pointer-events-none" />
+          
+          <div className="grid grid-cols-4 gap-4 justify-items-center relative">
+            {seats.slice(0, room.maxSpeakers).map((seat, index) => (
+              <div 
+                key={seat.id}
+                className="animate-fade-in-up"
+                style={{ animationDelay: `${index * 50}ms` }}
+              >
+                <SpeakerSeat 
+                  seat={seat} 
+                  onSeatClick={handleSeatClick}
+                />
+              </div>
+            ))}
+          </div>
         </div>
       </div>
 
-      {/* Chat Section */}
+      {/* Chat Section with enhanced styling */}
       <div className="flex-1 relative z-10 px-4 overflow-hidden">
         <div className="h-full flex flex-col justify-end pb-2">
-          <div className="space-y-2 overflow-y-auto max-h-[40vh]">
+          <div className="space-y-2 overflow-y-auto max-h-[35vh] pr-2">
             {messages.slice(-10).map((msg, index) => {
               const opacity = 1 - (messages.slice(-10).length - 1 - index) * 0.08;
               return (
                 <div 
                   key={msg.id} 
-                  className="animate-fade-in"
-                  style={{ opacity: Math.max(opacity, 0.4) }}
+                  className="animate-fade-in-up"
+                  style={{ 
+                    opacity: Math.max(opacity, 0.4),
+                    animationDelay: `${index * 30}ms`
+                  }}
                 >
                   <div className="inline-flex items-start gap-2 max-w-[85%]">
                     {msg.avatar && (
-                      <Avatar className="h-6 w-6 flex-shrink-0">
+                      <Avatar className="h-7 w-7 flex-shrink-0 ring-1 ring-white/20">
                         <AvatarImage src={msg.avatar} />
-                        <AvatarFallback className="text-[10px]">{msg.user[0]}</AvatarFallback>
+                        <AvatarFallback className="text-[10px] bg-gradient-to-br from-stream-purple to-stream-coral">
+                          {msg.user[0]}
+                        </AvatarFallback>
                       </Avatar>
                     )}
-                    <div className="bg-white/10 rounded-xl rounded-tl-sm px-3 py-1.5 backdrop-blur-sm">
-                      <span className="text-xs font-medium text-stream-cyan">{msg.user}</span>
-                      <p className="text-xs text-white/90">
+                    <div className="bg-white/10 backdrop-blur-sm rounded-2xl rounded-tl-sm px-3 py-2 border border-white/5 shadow-lg">
+                      <span className="text-xs font-semibold text-stream-cyan">{msg.user}</span>
+                      <p className="text-xs text-white/90 mt-0.5">
                         {msg.message}
-                        {msg.giftIcon && <span className="ml-1">{msg.giftIcon}</span>}
+                        {msg.giftIcon && <span className="ml-1 text-base">{msg.giftIcon}</span>}
                       </p>
                     </div>
                   </div>
@@ -255,72 +289,87 @@ export function PartyRoomViewer({ room, onClose }: PartyRoomViewerProps) {
         </div>
       </div>
 
-      {/* Bottom Controls */}
-      <div className="relative z-10 px-4 pb-6 pt-3" style={{ background: 'linear-gradient(to top, rgba(30, 10, 60, 0.98), transparent)' }}>
-        <div className="flex items-center gap-3">
-          {/* Message Input */}
-          <div className="flex-1 h-11 rounded-full bg-white/10 border border-white/20 flex items-center px-4 gap-2">
-            <MessageCircle className="h-4 w-4 text-white/50" />
-            <input
-              type="text"
-              value={inputMessage}
-              onChange={(e) => setInputMessage(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && handleSendMessage()}
-              placeholder="Say Something..."
-              className="flex-1 bg-transparent text-sm text-white placeholder:text-white/40 focus:outline-none"
-            />
-            <button onClick={handleSendMessage} className="text-stream-cyan">
-              <Send className="h-4 w-4" />
-            </button>
+      {/* Bottom Controls with frosted glass */}
+      <div 
+        className="relative z-10 px-4 pb-6 pt-4"
+        style={{ 
+          background: 'linear-gradient(to top, rgba(20, 5, 40, 0.98) 0%, rgba(20, 5, 40, 0.8) 70%, transparent 100%)'
+        }}
+      >
+        <div className="flex items-center gap-2">
+          {/* Message Input with glow */}
+          <div className="flex-1 relative group">
+            <div className="absolute -inset-0.5 bg-gradient-to-r from-stream-purple to-stream-coral rounded-full opacity-0 group-focus-within:opacity-30 blur transition-opacity" />
+            <div className="relative h-12 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 flex items-center px-4 gap-2 transition-all focus-within:border-stream-purple/50">
+              <MessageCircle className="h-4 w-4 text-white/40" />
+              <input
+                type="text"
+                value={inputMessage}
+                onChange={(e) => setInputMessage(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handleSendMessage()}
+                placeholder="Say Something..."
+                className="flex-1 bg-transparent text-sm text-white placeholder:text-white/40 focus:outline-none"
+              />
+              <button 
+                onClick={handleSendMessage}
+                className="h-8 w-8 rounded-full bg-gradient-to-r from-stream-cyan to-teal-400 flex items-center justify-center shadow-lg shadow-stream-cyan/30 press-effect"
+              >
+                <Send className="h-3.5 w-3.5 text-white" />
+              </button>
+            </div>
           </div>
 
-          {/* Music Button */}
-          <button className="h-11 w-11 rounded-full bg-gradient-to-br from-orange-400 to-pink-500 flex items-center justify-center press-effect shadow-lg">
+          {/* Action Buttons with 3D effect */}
+          <button className="h-12 w-12 rounded-full bg-gradient-to-br from-orange-400 to-pink-500 flex items-center justify-center press-effect shadow-lg shadow-orange-500/30 border border-white/20">
             <Music className="h-5 w-5 text-white" />
           </button>
 
-          {/* Emoji Button */}
-          <button className="h-11 w-11 rounded-full bg-gradient-to-br from-yellow-400 to-orange-500 flex items-center justify-center press-effect shadow-lg">
-            <span className="text-lg">😊</span>
+          <button className="h-12 w-12 rounded-full bg-gradient-to-br from-yellow-400 to-orange-500 flex items-center justify-center press-effect shadow-lg shadow-yellow-500/30 border border-white/20">
+            <span className="text-xl">😊</span>
           </button>
 
-          {/* Gift Button */}
           <button 
             onClick={() => setShowGiftPanel(true)}
-            className="h-11 w-11 rounded-full bg-gradient-to-br from-red-400 to-pink-500 flex items-center justify-center press-effect shadow-lg"
+            className="relative h-12 w-12 rounded-full bg-gradient-to-br from-red-400 via-pink-500 to-rose-600 flex items-center justify-center press-effect shadow-lg shadow-rose-500/30 border border-white/20"
           >
             <Gift className="h-5 w-5 text-white" />
+            {/* Gift notification badge */}
+            <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-stream-gold flex items-center justify-center animate-bounce">
+              <Sparkles className="h-2.5 w-2.5 text-black" />
+            </span>
           </button>
         </div>
 
-        {/* Mic Controls (shown if user is speaker) */}
-        <div className="flex justify-center gap-4 mt-4">
+        {/* Mic Controls */}
+        <div className="flex justify-center gap-3 mt-4">
           <button 
             onClick={() => setIsMuted(!isMuted)}
             className={cn(
-              "h-12 px-6 rounded-full flex items-center gap-2 press-effect transition-all",
+              "h-11 px-5 rounded-full flex items-center gap-2 press-effect transition-all border",
               isMuted 
-                ? "bg-destructive/20 text-destructive" 
-                : "bg-stream-cyan/20 text-stream-cyan"
+                ? "bg-red-500/20 border-red-500/30 text-red-400" 
+                : "bg-stream-cyan/20 border-stream-cyan/30 text-stream-cyan shadow-lg shadow-stream-cyan/20"
             )}
           >
-            {isMuted ? <MicOff className="h-5 w-5" /> : <Mic className="h-5 w-5" />}
+            {isMuted ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
             <span className="text-sm font-medium">{isMuted ? "Muted" : "Speaking"}</span>
           </button>
 
           <button
             onClick={() => setIsAudioMuted(!isAudioMuted)}
             className={cn(
-              "h-12 w-12 rounded-full flex items-center justify-center press-effect",
-              isAudioMuted ? "bg-white/10" : "bg-white/20"
+              "h-11 w-11 rounded-full flex items-center justify-center press-effect border transition-all",
+              isAudioMuted 
+                ? "bg-white/5 border-white/10 text-white/40" 
+                : "bg-white/10 border-white/20 text-white"
             )}
           >
-            {isAudioMuted ? <VolumeX className="h-5 w-5 text-white/50" /> : <Volume2 className="h-5 w-5 text-white" />}
+            {isAudioMuted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
           </button>
 
           {!hasRequestedSeat && (
-            <button className="h-12 px-6 rounded-full bg-stream-purple/20 text-stream-purple flex items-center gap-2 press-effect">
-              <Hand className="h-5 w-5" />
+            <button className="h-11 px-5 rounded-full bg-gradient-to-r from-stream-purple/30 to-stream-coral/30 border border-stream-purple/30 text-white flex items-center gap-2 press-effect shadow-lg">
+              <Hand className="h-4 w-4" />
               <span className="text-sm font-medium">Raise Hand</span>
             </button>
           )}

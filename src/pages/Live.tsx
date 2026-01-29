@@ -37,11 +37,90 @@ const mockStreams = [
 ];
 
 const mockPartyRooms: PartyRoom[] = [
-  { id: "party-1", name: "Late Night Chill 🌙", hostName: "Miss Aanya Khan", hostAvatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100", viewerCount: 1523, speakerCount: 5, maxSpeakers: 8, isPrivate: false, isLive: true, category: "Chat", tags: ["chill", "vibes", "midnight"] },
-  { id: "party-2", name: "Music Lovers Only 🎵", hostName: "DJ Party Pandey", hostAvatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100", viewerCount: 892, speakerCount: 6, maxSpeakers: 8, isPrivate: false, isLive: true, category: "Music", tags: ["music", "dj", "party"] },
-  { id: "party-3", name: "VIP Lounge ✨", hostName: "Manish Rao", hostAvatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100", viewerCount: 567, speakerCount: 4, maxSpeakers: 6, isPrivate: true, isLive: true, category: "Dating", tags: ["vip", "exclusive"] },
-  { id: "party-4", name: "Gaming Squad 🎮", hostName: "Miss Ninja Girl", hostAvatar: "https://images.unsplash.com/photo-1517841905240-472988babdf9?w=100", viewerCount: 2341, speakerCount: 8, maxSpeakers: 12, isPrivate: false, isLive: true, category: "Gaming", tags: ["gaming", "squad"] },
-  { id: "party-5", name: "Talent Show ⭐", hostName: "Dusty Andrew", hostAvatar: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100", viewerCount: 1890, speakerCount: 3, maxSpeakers: 8, isPrivate: false, isLive: true, category: "Talent", tags: ["talent", "singing", "performance"] },
+  { 
+    id: "party-1", 
+    name: "🎭 Miss Anaya Khan 🎭", 
+    hostName: "Miss Anaya Khan", 
+    hostAvatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100", 
+    viewerCount: 168, 
+    speakerCount: 5, 
+    maxSpeakers: 8, 
+    isPrivate: false, 
+    isLive: true, 
+    category: "Chat", 
+    tags: ["chatting", "fun"],
+    topViewers: ["https://i.pravatar.cc/40?u=1", "https://i.pravatar.cc/40?u=2", "https://i.pravatar.cc/40?u=3", "https://i.pravatar.cc/40?u=4"]
+  },
+  { 
+    id: "party-2", 
+    name: "👻 Saniya lieo Love 👻🌟", 
+    hostName: "Saniya lieo", 
+    hostAvatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100", 
+    viewerCount: 148, 
+    speakerCount: 6, 
+    maxSpeakers: 8, 
+    isPrivate: false, 
+    isLive: true, 
+    category: "Dating", 
+    tags: ["couple", "dating"],
+    topViewers: ["https://i.pravatar.cc/40?u=5", "https://i.pravatar.cc/40?u=6", "https://i.pravatar.cc/40?u=7"]
+  },
+  { 
+    id: "party-3", 
+    name: "💃 Mandeli Rao 🥳💃", 
+    hostName: "Mandeli Rao", 
+    hostAvatar: "https://images.unsplash.com/photo-1517841905240-472988babdf9?w=100", 
+    viewerCount: 263, 
+    speakerCount: 4, 
+    maxSpeakers: 6, 
+    isPrivate: false, 
+    isLive: true, 
+    category: "Music", 
+    tags: ["music", "party"],
+    topViewers: ["https://i.pravatar.cc/40?u=8", "https://i.pravatar.cc/40?u=9", "https://i.pravatar.cc/40?u=10", "https://i.pravatar.cc/40?u=11"]
+  },
+  { 
+    id: "party-4", 
+    name: "🥳 Miss Pinky Pandey 🥳🥳", 
+    hostName: "Miss Pinky Pandey", 
+    hostAvatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100", 
+    viewerCount: 426, 
+    speakerCount: 8, 
+    maxSpeakers: 12, 
+    isPrivate: false, 
+    isLive: true, 
+    category: "Chat", 
+    tags: ["new friends"],
+    topViewers: ["https://i.pravatar.cc/40?u=12", "https://i.pravatar.cc/40?u=13", "https://i.pravatar.cc/40?u=14"]
+  },
+  { 
+    id: "party-5", 
+    name: "🥳 Miss Ninja Girl 🥳🥳🥳", 
+    hostName: "Miss Ninja Girl", 
+    hostAvatar: "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=100", 
+    viewerCount: 298, 
+    speakerCount: 3, 
+    maxSpeakers: 8, 
+    isPrivate: false, 
+    isLive: true, 
+    category: "Music", 
+    tags: ["music", "dance"],
+    topViewers: ["https://i.pravatar.cc/40?u=15", "https://i.pravatar.cc/40?u=16", "https://i.pravatar.cc/40?u=17", "https://i.pravatar.cc/40?u=18"]
+  },
+  { 
+    id: "party-6", 
+    name: "🎤 Lady Andrew 🎤🎤", 
+    hostName: "Lady Andrew", 
+    hostAvatar: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100", 
+    viewerCount: 368, 
+    speakerCount: 5, 
+    maxSpeakers: 8, 
+    isPrivate: false, 
+    isLive: true, 
+    category: "Talent", 
+    tags: ["local", "party"],
+    topViewers: ["https://i.pravatar.cc/40?u=19", "https://i.pravatar.cc/40?u=20", "https://i.pravatar.cc/40?u=21"]
+  },
 ];
 
 export default function Live() {
