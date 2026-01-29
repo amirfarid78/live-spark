@@ -14,11 +14,12 @@ export function BottomNav() {
   const location = useLocation();
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-border bg-background/95 backdrop-blur-lg pb-safe">
+    <nav className="fixed bottom-0 left-0 right-0 z-50 glass border-t border-border/50 pb-safe">
       <div className="mx-auto flex h-16 max-w-lg items-center justify-around px-2">
         {navItems.map((item) => {
           const isActive = location.pathname === item.path || 
-            (item.path === "/discover" && location.pathname === "/");
+            (item.path === "/discover" && location.pathname === "/") ||
+            (item.path === "/discover" && location.pathname === "/feed");
           const Icon = item.icon;
 
           if (item.isCreate) {
@@ -26,10 +27,10 @@ export function BottomNav() {
               <NavLink
                 key={item.path}
                 to={item.path}
-                className="flex flex-col items-center justify-center -mt-4"
+                className="flex flex-col items-center justify-center -mt-5"
               >
-                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-primary shadow-lg shadow-primary/30 transition-transform hover:scale-105 active:scale-95">
-                  <Icon className="h-6 w-6 text-white" strokeWidth={2.5} />
+                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-primary shadow-lg shadow-primary/40 transition-all hover:scale-105 hover:shadow-xl hover:shadow-primary/50 active:scale-95 press-effect">
+                  <Icon className="h-7 w-7 text-white" strokeWidth={2.5} />
                 </div>
               </NavLink>
             );
@@ -40,19 +41,26 @@ export function BottomNav() {
               key={item.path}
               to={item.path}
               className={cn(
-                "flex flex-col items-center justify-center gap-1 px-3 py-2 transition-colors",
+                "flex flex-col items-center justify-center gap-0.5 px-4 py-2 transition-all press-effect",
                 isActive ? "text-primary" : "text-muted-foreground hover:text-foreground"
               )}
             >
-              <Icon 
-                className={cn(
-                  "h-6 w-6 transition-all",
-                  isActive && "scale-110"
-                )} 
-                strokeWidth={isActive ? 2.5 : 2} 
-              />
+              <div className="relative">
+                <Icon 
+                  className={cn(
+                    "h-6 w-6 transition-all",
+                    isActive && "scale-110"
+                  )} 
+                  strokeWidth={isActive ? 2.5 : 2} 
+                />
+                {item.path === "/messages" && (
+                  <span className="absolute -right-1.5 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-stream-coral text-[10px] font-bold text-white">
+                    3
+                  </span>
+                )}
+              </div>
               <span className={cn(
-                "text-2xs font-medium",
+                "text-[10px] font-medium",
                 isActive && "font-semibold"
               )}>
                 {item.label}

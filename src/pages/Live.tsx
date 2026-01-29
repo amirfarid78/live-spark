@@ -1,47 +1,60 @@
-import { Radio, Search, Bell, Flame, Swords, Headphones, Users } from "lucide-react";
+import React from "react";
+import { Radio, Search, Bell, Flame, Swords, Headphones, Users, ChevronRight, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
+import { Link } from "react-router-dom";
 
 const categories = [
   { id: "all", label: "All", icon: Flame },
   { id: "pk", label: "PK Battles", icon: Swords },
-  { id: "audio", label: "Audio Rooms", icon: Headphones },
+  { id: "audio", label: "Audio", icon: Headphones },
   { id: "following", label: "Following", icon: Users },
 ];
 
+const featuredStreamers = [
+  { id: 1, name: "Sarah M.", avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100", isLive: true, viewers: 1243 },
+  { id: 2, name: "Alex", avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100", isLive: true, viewers: 892 },
+  { id: 3, name: "Luna", avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100", isLive: false, viewers: 0 },
+  { id: 4, name: "Mike", avatar: "https://images.unsplash.com/photo-1556910103-1c02745aae4d?w=100", isLive: true, viewers: 567 },
+  { id: 5, name: "Jade", avatar: "https://images.unsplash.com/photo-1517841905240-472988babdf9?w=100", isLive: true, viewers: 2341 },
+];
+
 const mockStreams = [
-  { id: 1, title: "Late Night Vibes 🌙", host: "Sarah M.", viewers: 1243, thumbnail: "https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?w=400&h=600&fit=crop", isLive: true, isPK: false },
-  { id: 2, title: "Music & Chill", host: "DJ Alex", viewers: 892, thumbnail: "https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=400&h=600&fit=crop", isLive: true, isPK: true },
-  { id: 3, title: "Cooking Stream 🍳", host: "Chef Mike", viewers: 567, thumbnail: "https://images.unsplash.com/photo-1556910103-1c02745aae4d?w=400&h=600&fit=crop", isLive: true, isPK: false },
-  { id: 4, title: "Gaming Night", host: "ProGamer", viewers: 2341, thumbnail: "https://images.unsplash.com/photo-1542751371-adc38448a05e?w=400&h=600&fit=crop", isLive: true, isPK: false },
-  { id: 5, title: "Dance Party 💃", host: "Luna Dance", viewers: 1567, thumbnail: "https://images.unsplash.com/photo-1504609773096-104ff2c73ba4?w=400&h=600&fit=crop", isLive: true, isPK: true },
-  { id: 6, title: "Art Stream", host: "Creative K", viewers: 432, thumbnail: "https://images.unsplash.com/photo-1460661419201-fd4cecdf8a8b?w=400&h=600&fit=crop", isLive: true, isPK: false },
+  { id: 1, title: "Late Night Vibes 🌙", host: "Sarah M.", viewers: 1243, thumbnail: "https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?w=400&h=600&fit=crop", isLive: true, isPK: false, category: "Music" },
+  { id: 2, title: "Music & Chill", host: "DJ Alex", viewers: 892, thumbnail: "https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=400&h=600&fit=crop", isLive: true, isPK: true, category: "DJ" },
+  { id: 3, title: "Cooking Stream 🍳", host: "Chef Mike", viewers: 567, thumbnail: "https://images.unsplash.com/photo-1556910103-1c02745aae4d?w=400&h=600&fit=crop", isLive: true, isPK: false, category: "Food" },
+  { id: 4, title: "Gaming Night", host: "ProGamer", viewers: 2341, thumbnail: "https://images.unsplash.com/photo-1542751371-adc38448a05e?w=400&h=600&fit=crop", isLive: true, isPK: false, category: "Gaming" },
+  { id: 5, title: "Dance Party 💃", host: "Luna Dance", viewers: 1567, thumbnail: "https://images.unsplash.com/photo-1504609773096-104ff2c73ba4?w=400&h=600&fit=crop", isLive: true, isPK: true, category: "Dance" },
+  { id: 6, title: "Art Stream", host: "Creative K", viewers: 432, thumbnail: "https://images.unsplash.com/photo-1460661419201-fd4cecdf8a8b?w=400&h=600&fit=crop", isLive: true, isPK: false, category: "Art" },
 ];
 
 export default function Live() {
   const [activeCategory, setActiveCategory] = useState("all");
 
   return (
-    <div className="flex flex-col">
+    <div className="flex flex-col min-h-screen bg-background">
       {/* Header */}
-      <header className="sticky top-0 z-40 border-b border-border bg-background/95 backdrop-blur-lg">
+      <header className="sticky top-0 z-40 glass border-b border-border/50">
         <div className="flex items-center justify-between px-4 py-3">
-          <div className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-primary">
-              <Radio className="h-4 w-4 text-white" />
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-primary shadow-lg shadow-primary/30">
+              <Radio className="h-5 w-5 text-white" />
             </div>
-            <h1 className="text-xl font-bold">Live</h1>
+            <div>
+              <h1 className="text-xl font-bold">Live</h1>
+              <p className="text-xs text-muted-foreground">1,234 streaming now</p>
+            </div>
           </div>
-          <div className="flex items-center gap-2">
-            <Button variant="ghost" size="icon" className="h-9 w-9">
+          <div className="flex items-center gap-1">
+            <Button variant="ghost" size="icon" className="h-10 w-10 rounded-xl press-effect">
               <Search className="h-5 w-5" />
             </Button>
-            <Button variant="ghost" size="icon" className="relative h-9 w-9">
+            <Button variant="ghost" size="icon" className="relative h-10 w-10 rounded-xl press-effect">
               <Bell className="h-5 w-5" />
-              <span className="absolute right-1 top-1 h-2 w-2 rounded-full bg-stream-coral" />
+              <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-stream-coral ring-2 ring-background" />
             </Button>
           </div>
         </div>
@@ -56,9 +69,9 @@ export default function Live() {
                 key={cat.id}
                 onClick={() => setActiveCategory(cat.id)}
                 className={cn(
-                  "flex items-center gap-2 whitespace-nowrap rounded-full px-4 py-2 text-sm font-medium transition-all",
+                  "flex items-center gap-2 whitespace-nowrap rounded-full px-4 py-2.5 text-sm font-medium transition-all press-effect",
                   isActive
-                    ? "bg-primary text-primary-foreground"
+                    ? "bg-gradient-primary text-white shadow-lg shadow-primary/30"
                     : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
                 )}
               >
@@ -70,38 +83,85 @@ export default function Live() {
         </div>
       </header>
 
+      {/* Featured Streamers */}
+      <section className="px-4 py-4">
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Featured</h2>
+          <button className="text-xs text-primary font-medium flex items-center gap-1 press-effect">
+            See all <ChevronRight className="h-3 w-3" />
+          </button>
+        </div>
+        <div className="flex gap-4 overflow-x-auto hide-scrollbar pb-2">
+          {featuredStreamers.map((streamer, index) => (
+            <div 
+              key={streamer.id} 
+              className={cn(
+                "flex flex-col items-center gap-2 animate-fade-in-up",
+                `stagger-${index + 1}`
+              )}
+            >
+              <div className="relative">
+                <Avatar className={cn(
+                  "h-16 w-16 ring-2 ring-offset-2 ring-offset-background transition-all",
+                  streamer.isLive ? "ring-stream-live ring-pulse" : "ring-border"
+                )}>
+                  <AvatarImage src={streamer.avatar} />
+                  <AvatarFallback>{streamer.name[0]}</AvatarFallback>
+                </Avatar>
+                {streamer.isLive && (
+                  <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 rounded-full bg-stream-live px-2 py-0.5 text-[10px] font-bold text-white shadow-lg">
+                    LIVE
+                  </span>
+                )}
+              </div>
+              <span className="text-xs font-medium truncate max-w-[64px]">{streamer.name}</span>
+            </div>
+          ))}
+        </div>
+      </section>
+
       {/* Stream Grid */}
-      <div className="grid grid-cols-2 gap-2 p-2 sm:grid-cols-3 lg:grid-cols-4">
-        {mockStreams.map((stream) => (
+      <div className="grid grid-cols-2 gap-3 px-4 pb-24">
+        {mockStreams.map((stream, index) => (
           <div
             key={stream.id}
-            className="group relative aspect-[3/4] overflow-hidden rounded-xl bg-muted cursor-pointer"
+            className={cn(
+              "group relative aspect-[3/4] overflow-hidden rounded-2xl bg-muted cursor-pointer card-hover animate-fade-in-up",
+              `stagger-${(index % 6) + 1}`
+            )}
           >
             <img
               src={stream.thumbnail}
               alt={stream.title}
-              className="h-full w-full object-cover transition-transform group-hover:scale-105"
+              className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
             />
             {/* Gradient overlay */}
-            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-black/30" />
             
             {/* Live badge */}
-            <div className="absolute left-2 top-2 flex items-center gap-1">
-              <Badge className="bg-stream-live text-white border-0 px-2 py-0.5 text-2xs font-semibold">
+            <div className="absolute left-2 top-2 flex items-center gap-1.5">
+              <Badge className="bg-stream-live text-white border-0 px-2 py-0.5 text-[10px] font-bold shadow-lg">
                 <span className="mr-1 h-1.5 w-1.5 rounded-full bg-white animate-pulse" />
                 LIVE
               </Badge>
               {stream.isPK && (
-                <Badge className="bg-stream-gold text-black border-0 px-2 py-0.5 text-2xs font-semibold">
+                <Badge className="bg-gradient-gold text-black border-0 px-2 py-0.5 text-[10px] font-bold shadow-lg">
                   <Swords className="mr-1 h-3 w-3" />
                   PK
                 </Badge>
               )}
             </div>
 
-            {/* Viewer count */}
+            {/* Category tag */}
             <div className="absolute right-2 top-2">
-              <Badge variant="secondary" className="bg-black/50 text-white border-0 text-2xs">
+              <Badge variant="secondary" className="bg-black/50 text-white border-0 text-[10px] backdrop-blur-sm">
+                {stream.category}
+              </Badge>
+            </div>
+
+            {/* Viewer count */}
+            <div className="absolute left-2 bottom-14">
+              <Badge variant="secondary" className="bg-black/50 text-white border-0 text-[10px] backdrop-blur-sm">
                 <Users className="mr-1 h-3 w-3" />
                 {stream.viewers.toLocaleString()}
               </Badge>
@@ -109,7 +169,7 @@ export default function Live() {
 
             {/* Stream info */}
             <div className="absolute bottom-0 left-0 right-0 p-3">
-              <p className="line-clamp-1 text-sm font-semibold text-white">
+              <p className="line-clamp-1 text-sm font-semibold text-white mb-0.5">
                 {stream.title}
               </p>
               <p className="text-xs text-white/70">{stream.host}</p>
@@ -119,12 +179,13 @@ export default function Live() {
       </div>
 
       {/* Go Live FAB */}
-      <Button
-        className="fixed bottom-24 right-4 h-14 w-14 rounded-full bg-gradient-primary shadow-lg shadow-primary/30 hover:shadow-xl hover:shadow-primary/40 transition-all"
-        size="icon"
+      <Link
+        to="/create"
+        className="fab bottom-24 right-4 h-14 w-14 bg-gradient-live shadow-xl shadow-stream-live/30"
       >
-        <Radio className="h-6 w-6" />
-      </Button>
+        <div className="absolute inset-0 rounded-full bg-gradient-live animate-pulse opacity-50" />
+        <Radio className="h-6 w-6 text-white relative z-10" />
+      </Link>
     </div>
   );
 }

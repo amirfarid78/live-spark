@@ -57,15 +57,19 @@ export default {
           border: "hsl(var(--sidebar-border))",
           ring: "hsl(var(--sidebar-ring))",
         },
-        // StreamVerse custom colors
+        // StreamVerse brand colors
         stream: {
           purple: "hsl(var(--stream-purple))",
+          "purple-light": "hsl(var(--stream-purple-light))",
           "purple-dark": "hsl(var(--stream-purple-dark))",
           coral: "hsl(var(--stream-coral))",
+          "coral-light": "hsl(var(--stream-coral-light))",
           "coral-dark": "hsl(var(--stream-coral-dark))",
           gold: "hsl(var(--stream-gold))",
           success: "hsl(var(--stream-success))",
           live: "hsl(var(--stream-live))",
+          pink: "hsl(var(--stream-pink))",
+          cyan: "hsl(var(--stream-cyan))",
         },
       },
       borderRadius: {
@@ -74,15 +78,17 @@ export default {
         sm: "calc(var(--radius) - 4px)",
         xl: "calc(var(--radius) + 4px)",
         "2xl": "calc(var(--radius) + 8px)",
+        "3xl": "1.5rem",
       },
       fontFamily: {
-        sans: ["Inter", "system-ui", "sans-serif"],
+        sans: ["Inter", "-apple-system", "BlinkMacSystemFont", "Segoe UI", "Roboto", "sans-serif"],
       },
       fontSize: {
         "2xs": ["0.625rem", { lineHeight: "0.875rem" }],
       },
       spacing: {
         "safe-bottom": "env(safe-area-inset-bottom)",
+        "18": "4.5rem",
       },
       keyframes: {
         "accordion-down": {
@@ -93,20 +99,20 @@ export default {
           from: { height: "var(--radix-accordion-content-height)" },
           to: { height: "0" },
         },
-        "pulse-ring": {
-          "0%": { transform: "scale(0.95)", opacity: "1" },
-          "75%, 100%": { transform: "scale(1.3)", opacity: "0" },
+        "spin-slow": {
+          from: { transform: "rotate(0deg)" },
+          to: { transform: "rotate(360deg)" },
         },
-        shimmer: {
-          "0%": { transform: "translateX(-100%)" },
-          "100%": { transform: "translateX(100%)" },
+        marquee: {
+          "0%": { transform: "translateX(0%)" },
+          "100%": { transform: "translateX(-100%)" },
         },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
-        "pulse-ring": "pulse-ring 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite",
-        shimmer: "shimmer 2s infinite",
+        "spin-slow": "spin-slow 3s linear infinite",
+        marquee: "marquee 8s linear infinite",
       },
     },
   },
