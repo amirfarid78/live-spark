@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from "react";
-import { Toaster } from "@/components/ui/toaster"; // App entry
+import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Onboarding } from "@/components/onboarding/Onboarding";
-import { AuthProvider } from "@/contexts/AuthContext";
+import { AuthProvider, useAuth } from "@/contexts/AuthContext";
+import { Sparkles } from "lucide-react";
 import Live from "./pages/Live";
 import Discover from "./pages/Discover";
 import Feed from "./pages/Feed";
@@ -19,9 +20,58 @@ import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
-function App() {
+// Protected Route wrapper
+function ProtectedRoute({ children }: { children: React.ReactNode }) {
+  const { user, loading } = useAuth();
+  
+  if (loading) {
+    return (
+      <div className="fixed inset-0 flex items-center justify-center bg-background">
+        <div className="flex flex-col items-center gap-4">
+          <div className="h-16 w-16 rounded-2xl bg-gradient-primary flex items-center justify-center animate-pulse">
+            <Sparkles className="h-8 w-8 text-white" />
+          </div>
+          <div className="h-2 w-24 rounded-full bg-muted animate-pulse" />
+        </div>
+      </div>
+    );
+  }
+  
+  if (!user) {
+    return <Navigate to="/login" replace />;
+  }
+  
+  return <>{children}</>;
+}
+
+// Auth Route wrapper (redirect to app if already logged in)
+function AuthRoute({ children }: { children: React.ReactNode }) {
+  const { user, loading } = useAuth();
+  
+  if (loading) {
+    return (
+      <div className="fixed inset-0 flex items-center justify-center bg-background">
+        <div className="flex flex-col items-center gap-4">
+          <div className="h-16 w-16 rounded-2xl bg-gradient-primary flex items-center justify-center animate-pulse">
+            <Sparkles className="h-8 w-8 text-white" />
+          </div>
+          <div className="h-2 w-24 rounded-full bg-muted animate-pulse" />
+        </div>
+      </div>
+    );
+  }
+  
+  if (user) {
+    return <Navigate to="/" replace />;
+  }
+  
+  return <>{children}</>;
+}
+
+function AppContent() {
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const { user, loading: authLoading } = useAuth();
 
   useEffect(() => {
     const hasCompletedOnboarding = localStorage.getItem("streamverse_onboarding_complete");
@@ -36,46 +86,80 @@ function App() {
     setShowOnboarding(false);
   };
 
+  // Show loading while checking initial state
   if (isLoading) {
     return (
       <div className="fixed inset-0 flex items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-4">
-          <div className="h-16 w-16 rounded-2xl bg-gradient-primary animate-pulse" />
-          <div className="h-2 w-24 rounded-full bg-muted animate-pulse" />
+          <div className="h-20 w-20 rounded-2xl bg-gradient-primary flex items-center justify-center animate-pulse shadow-2xl shadow-primary/30">
+            <Sparkles className="h-10 w-10 text-white" />
+          </div>
+          <h1 className="text-xl font-bold text-gradient">StreamVerse</h1>
+          <div className="h-1.5 w-32 rounded-full bg-muted overflow-hidden">
+            <div className="h-full w-1/2 rounded-full bg-gradient-primary animate-pulse" />
+          </div>
         </div>
       </div>
     );
   }
 
+  // Show onboarding for first-time users
+  if (showOnboarding) {
+    return <Onboarding onComplete={handleOnboardingComplete} />;
+  }
+
+  return (
+    <BrowserRouter>
+      <Routes>
+        {/* Auth routes - redirect to app if logged in */}
+        <Route path="/login" element={
+          <AuthRoute>
+            <Login />
+          </AuthRoute>
+        } />
+        <Route path="/signup" element={
+          <AuthRoute>
+            <Signup />
+          </AuthRoute>
+        } />
+        
+        {/* Public Feed - accessible without login but with limited features */}
+        <Route path="/" element={<Feed />} />
+        <Route path="/feed" element={<Feed />} />
+        
+        {/* Protected routes - require authentication */}
+        <Route path="/create" element={
+          <ProtectedRoute>
+            <Create />
+          </ProtectedRoute>
+        } />
+        
+        {/* Pages with bottom navigation */}
+        <Route element={<MainLayout />}>
+          <Route path="/live" element={<Live />} />
+          <Route path="/discover" element={<Discover />} />
+          <Route path="/messages" element={
+            <ProtectedRoute>
+              <Messages />
+            </ProtectedRoute>
+          } />
+          <Route path="/profile" element={<Profile />} />
+        </Route>
+        
+        <Route path="*" element={<NotFound />} />
+      </Routes>
+    </BrowserRouter>
+  );
+}
+
+function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <TooltipProvider>
           <Toaster />
           <Sonner />
-          {showOnboarding && <Onboarding onComplete={handleOnboardingComplete} />}
-          <BrowserRouter>
-            <Routes>
-              {/* Auth routes */}
-              <Route path="/login" element={<Login />} />
-              <Route path="/signup" element={<Signup />} />
-              
-              {/* Feed is the default home - full screen like TikTok */}
-              <Route path="/" element={<Feed />} />
-              <Route path="/feed" element={<Feed />} />
-              <Route path="/create" element={<Create />} />
-              
-              {/* Pages with bottom navigation */}
-              <Route element={<MainLayout />}>
-                <Route path="/live" element={<Live />} />
-                <Route path="/discover" element={<Discover />} />
-                <Route path="/messages" element={<Messages />} />
-                <Route path="/profile" element={<Profile />} />
-              </Route>
-              
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </BrowserRouter>
+          <AppContent />
         </TooltipProvider>
       </AuthProvider>
     </QueryClientProvider>

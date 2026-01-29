@@ -1,8 +1,10 @@
 import React, { useState, useRef, useEffect } from "react";
-import { Heart, MessageCircle, Share2, Bookmark, Music2, Plus, Search, Radio, Users, MapPin, Sparkles, Play, Volume2, VolumeX, MoreHorizontal, Home, User } from "lucide-react";
+import { Heart, MessageCircle, Share2, Bookmark, Music2, Plus, Search, Radio, Users, MapPin, Sparkles, Play, Volume2, VolumeX, MoreHorizontal, Home, User, LogIn } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { Link, useNavigate } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface Video {
   id: number;
@@ -84,9 +86,11 @@ const feedTabs = [
 interface VideoCardProps {
   video: Video;
   isActive: boolean;
+  onAuthRequired: () => void;
+  isAuthenticated: boolean;
 }
 
-function VideoCard({ video, isActive }: VideoCardProps) {
+function VideoCard({ video, isActive, onAuthRequired, isAuthenticated }: VideoCardProps) {
   const [isLiked, setIsLiked] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
   const [isFollowing, setIsFollowing] = useState(false);
@@ -94,7 +98,19 @@ function VideoCard({ video, isActive }: VideoCardProps) {
   const [isMuted, setIsMuted] = useState(true);
   const [showHeart, setShowHeart] = useState(false);
 
+  const handleAuthAction = (action: () => void) => {
+    if (!isAuthenticated) {
+      onAuthRequired();
+    } else {
+      action();
+    }
+  };
+
   const handleDoubleTap = () => {
+    if (!isAuthenticated) {
+      onAuthRequired();
+      return;
+    }
     if (!isLiked) {
       setIsLiked(true);
       setShowHeart(true);
@@ -159,7 +175,7 @@ function VideoCard({ video, isActive }: VideoCardProps) {
             <AvatarFallback>{video.user.name[0]}</AvatarFallback>
           </Avatar>
           <button
-            onClick={() => setIsFollowing(!isFollowing)}
+            onClick={() => handleAuthAction(() => setIsFollowing(!isFollowing))}
             className={cn(
               "absolute -bottom-2.5 left-1/2 -translate-x-1/2 flex h-5 w-5 items-center justify-center rounded-full transition-all shadow-lg",
               isFollowing ? "bg-white/20 backdrop-blur-sm" : "bg-stream-coral"
@@ -170,7 +186,7 @@ function VideoCard({ video, isActive }: VideoCardProps) {
         </div>
 
         {/* Like */}
-        <button onClick={() => setIsLiked(!isLiked)} className="flex flex-col items-center gap-0.5 press-effect">
+        <button onClick={() => handleAuthAction(() => setIsLiked(!isLiked))} className="flex flex-col items-center gap-0.5 press-effect">
           <div className="flex h-11 w-11 items-center justify-center">
             <Heart className={cn("h-8 w-8 transition-all", isLiked ? "text-stream-coral fill-stream-coral scale-110" : "text-white drop-shadow-lg")} />
           </div>
@@ -178,7 +194,7 @@ function VideoCard({ video, isActive }: VideoCardProps) {
         </button>
 
         {/* Comment */}
-        <button className="flex flex-col items-center gap-0.5 press-effect">
+        <button onClick={() => handleAuthAction(() => {})} className="flex flex-col items-center gap-0.5 press-effect">
           <div className="flex h-11 w-11 items-center justify-center">
             <MessageCircle className="h-8 w-8 text-white drop-shadow-lg" />
           </div>
@@ -186,7 +202,7 @@ function VideoCard({ video, isActive }: VideoCardProps) {
         </button>
 
         {/* Bookmark */}
-        <button onClick={() => setIsSaved(!isSaved)} className="flex flex-col items-center gap-0.5 press-effect">
+        <button onClick={() => handleAuthAction(() => setIsSaved(!isSaved))} className="flex flex-col items-center gap-0.5 press-effect">
           <div className="flex h-11 w-11 items-center justify-center">
             <Bookmark className={cn("h-7 w-7 transition-all", isSaved ? "text-stream-gold fill-stream-gold" : "text-white drop-shadow-lg")} />
           </div>
@@ -254,11 +270,61 @@ function VideoCard({ video, isActive }: VideoCardProps) {
   );
 }
 
+// Auth Prompt Modal
+function AuthPrompt({ onClose }: { onClose: () => void }) {
+  const navigate = useNavigate();
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 backdrop-blur-sm animate-fade-in" onClick={onClose}>
+      <div 
+        className="w-full max-w-lg bg-background rounded-t-3xl p-6 pb-safe animate-slide-up"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="w-12 h-1.5 bg-muted rounded-full mx-auto mb-6" />
+        
+        <div className="text-center mb-6">
+          <div className="inline-flex items-center justify-center h-16 w-16 rounded-2xl bg-gradient-primary mb-4">
+            <Sparkles className="h-8 w-8 text-white" />
+          </div>
+          <h2 className="text-xl font-bold mb-2">Join StreamVerse</h2>
+          <p className="text-muted-foreground">Sign up to like, comment, follow creators and more!</p>
+        </div>
+
+        <div className="space-y-3">
+          <Button 
+            onClick={() => navigate('/signup')}
+            className="w-full h-14 rounded-2xl bg-gradient-primary hover:opacity-90 text-white font-semibold text-lg"
+          >
+            Create Account
+          </Button>
+          <Button 
+            variant="outline"
+            onClick={() => navigate('/login')}
+            className="w-full h-14 rounded-2xl font-semibold text-lg"
+          >
+            <LogIn className="h-5 w-5 mr-2" />
+            Sign In
+          </Button>
+        </div>
+
+        <button 
+          onClick={onClose}
+          className="w-full mt-4 py-3 text-muted-foreground text-sm"
+        >
+          Maybe later
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export default function Feed() {
   const [activeIndex, setActiveIndex] = useState(0);
   const [activeTab, setActiveTab] = useState("foryou");
+  const [showAuthPrompt, setShowAuthPrompt] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
+  const { user } = useAuth();
 
   useEffect(() => {
     const container = containerRef.current;
@@ -275,6 +341,9 @@ export default function Feed() {
 
   return (
     <div className="relative h-screen w-full bg-black">
+      {/* Auth Prompt Modal */}
+      {showAuthPrompt && <AuthPrompt onClose={() => setShowAuthPrompt(false)} />}
+
       {/* Top Navigation Tabs */}
       <div className="absolute top-0 left-0 right-0 z-30 pt-safe">
         <div className="flex items-center justify-center gap-5 py-3">
@@ -284,6 +353,8 @@ export default function Feed() {
               onClick={() => {
                 if (tab.id === "live") {
                   navigate("/live");
+                } else if (tab.id === "following" && !user) {
+                  setShowAuthPrompt(true);
                 } else {
                   setActiveTab(tab.id);
                 }
@@ -309,7 +380,12 @@ export default function Feed() {
       <div ref={containerRef} className="h-full w-full overflow-y-scroll snap-y snap-mandatory hide-scrollbar" style={{ scrollSnapType: 'y mandatory' }}>
         {mockVideos.map((video, index) => (
           <div key={video.id} className="h-screen w-full">
-            <VideoCard video={video} isActive={index === activeIndex} />
+            <VideoCard 
+              video={video} 
+              isActive={index === activeIndex}
+              onAuthRequired={() => setShowAuthPrompt(true)}
+              isAuthenticated={!!user}
+            />
           </div>
         ))}
       </div>
@@ -329,7 +405,10 @@ export default function Feed() {
             </Link>
             
             {/* Create Button - TikTok Style */}
-            <Link to="/create" className="flex-1 flex items-center justify-center py-2">
+            <button 
+              onClick={() => user ? navigate('/create') : setShowAuthPrompt(true)}
+              className="flex-1 flex items-center justify-center py-2"
+            >
               <div className="relative">
                 {/* Colored sides */}
                 <div className="absolute inset-0 flex">
@@ -341,22 +420,34 @@ export default function Feed() {
                   <Plus className="h-5 w-5 text-black" strokeWidth={2.5} />
                 </div>
               </div>
-            </Link>
+            </button>
             
-            <Link to="/messages" className="flex-1 flex flex-col items-center justify-center gap-0.5 py-2 press-effect relative">
+            <button 
+              onClick={() => user ? navigate('/messages') : setShowAuthPrompt(true)}
+              className="flex-1 flex flex-col items-center justify-center gap-0.5 py-2 press-effect relative"
+            >
               <MessageCircle className="h-6 w-6 text-white/60" />
               <span className="text-[10px] font-medium text-white/60">Inbox</span>
-              <span className="absolute top-1 right-1/4 flex h-4 min-w-4 items-center justify-center rounded-full bg-stream-coral text-[9px] font-bold text-white px-1">
-                3
-              </span>
-            </Link>
+              {user && (
+                <span className="absolute top-1 right-1/4 flex h-4 min-w-4 items-center justify-center rounded-full bg-stream-coral text-[9px] font-bold text-white px-1">
+                  3
+                </span>
+              )}
+            </button>
             
-            <Link to="/profile" className="flex-1 flex flex-col items-center justify-center gap-0.5 py-2 press-effect">
-              <div className="h-6 w-6 rounded-full overflow-hidden ring-1 ring-white/30">
-                <img src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=50" alt="" className="h-full w-full object-cover" />
-              </div>
+            <button 
+              onClick={() => navigate('/profile')}
+              className="flex-1 flex flex-col items-center justify-center gap-0.5 py-2 press-effect"
+            >
+              {user ? (
+                <div className="h-6 w-6 rounded-full overflow-hidden ring-1 ring-white/30">
+                  <img src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=50" alt="" className="h-full w-full object-cover" />
+                </div>
+              ) : (
+                <User className="h-6 w-6 text-white/60" />
+              )}
               <span className="text-[10px] font-medium text-white/60">Profile</span>
-            </Link>
+            </button>
           </div>
         </div>
       </div>
