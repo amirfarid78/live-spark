@@ -12,6 +12,7 @@ import { PartyRoomList } from "@/components/party/PartyRoomList";
 import { PartyRoomViewer } from "@/components/party/PartyRoomViewer";
 import { CreatePartySheet, PartySettings } from "@/components/party/CreatePartySheet";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { PKBattleList, PKBattleLiveRoom, PKBattle } from "@/components/pk";
 
 const categories = [
   { id: "all", label: "All", icon: Flame },
@@ -65,6 +66,7 @@ export default function Live() {
   const [activeSidebarItem, setActiveSidebarItem] = useState("home");
   const [selectedStream, setSelectedStream] = useState<typeof mockStreams[0] | null>(null);
   const [selectedPartyRoom, setSelectedPartyRoom] = useState<PartyRoom | null>(null);
+  const [selectedPKBattle, setSelectedPKBattle] = useState<PKBattle | null>(null);
   const [showGoLive, setShowGoLive] = useState(false);
   const [showCreateParty, setShowCreateParty] = useState(false);
 
@@ -86,7 +88,12 @@ export default function Live() {
     setShowCreateParty(false);
   };
 
+  const handlePKBattleClick = (battle: PKBattle) => {
+    setSelectedPKBattle(battle);
+  };
+
   const showPartyRooms = activeCategory === "party" || activeCategory === "audio";
+  const showPKBattles = activeCategory === "pk";
 
   // Desktop Layout
   if (!isMobile) {
@@ -179,7 +186,35 @@ export default function Live() {
 
           {/* Content Area */}
           <div className="p-6">
-            {showPartyRooms ? (
+            {showPKBattles ? (
+              <>
+                {/* PK Battles Header */}
+                <div className="flex items-center justify-between mb-6">
+                  <div>
+                    <h2 className="text-2xl font-bold flex items-center gap-2">
+                      <Swords className="h-6 w-6 text-stream-gold" />
+                      PK Battles
+                    </h2>
+                    <p className="text-sm text-muted-foreground">Watch live battles or join one!</p>
+                  </div>
+                  <Button
+                    onClick={() => setShowGoLive(true)}
+                    className="bg-gradient-to-r from-stream-coral to-stream-live text-white h-11 px-6 gap-2"
+                  >
+                    <Swords className="h-5 w-5" />
+                    Start Battle
+                  </Button>
+                </div>
+
+                {/* PK Battle List */}
+                <div className="relative">
+                  <PKBattleList 
+                    onBattleClick={handlePKBattleClick}
+                    onJoinBattle={() => setShowGoLive(true)}
+                  />
+                </div>
+              </>
+            ) : showPartyRooms ? (
               <>
                 {/* Party Header */}
                 <div className="flex items-center justify-between mb-6">
@@ -200,7 +235,7 @@ export default function Live() {
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                   <PartyRoomList 
                     rooms={mockPartyRooms} 
-                    onRoomClick={handlePartyRoomClick} 
+                    onRoomClick={handlePartyRoomClick}
                   />
                 </div>
               </>
@@ -351,6 +386,13 @@ export default function Live() {
           />
         )}
 
+        {selectedPKBattle && (
+          <PKBattleLiveRoom
+            battle={selectedPKBattle}
+            onClose={() => setSelectedPKBattle(null)}
+          />
+        )}
+
         {showGoLive && (
           <GoLiveSheet
             onClose={() => setShowGoLive(false)}
@@ -418,8 +460,15 @@ export default function Live() {
         </div>
       </header>
 
-      {/* Party Rooms Section */}
-      {showPartyRooms ? (
+      {/* PK Battles Section */}
+      {showPKBattles ? (
+        <div className="relative flex-1 pb-24">
+          <PKBattleList 
+            onBattleClick={handlePKBattleClick}
+            onJoinBattle={() => setShowGoLive(true)}
+          />
+        </div>
+      ) : showPartyRooms ? (
         <div className="px-4 py-4 pb-24">
           <div className="flex items-center justify-between mb-4">
             <div>
@@ -508,13 +557,15 @@ export default function Live() {
       )}
 
       {/* Go Live FAB */}
-      <button
-        onClick={() => showPartyRooms ? setShowCreateParty(true) : setShowGoLive(true)}
-        className="fixed bottom-24 right-4 h-14 w-14 rounded-full bg-gradient-live shadow-xl shadow-stream-live/30 flex items-center justify-center press-effect z-30"
-      >
-        <div className="absolute inset-0 rounded-full bg-gradient-live animate-pulse opacity-50" />
-        {showPartyRooms ? <Mic2 className="h-6 w-6 text-white relative z-10" /> : <Radio className="h-6 w-6 text-white relative z-10" />}
-      </button>
+      {!showPKBattles && (
+        <button
+          onClick={() => showPartyRooms ? setShowCreateParty(true) : setShowGoLive(true)}
+          className="fixed bottom-24 right-4 h-14 w-14 rounded-full bg-gradient-live shadow-xl shadow-stream-live/30 flex items-center justify-center press-effect z-30"
+        >
+          <div className="absolute inset-0 rounded-full bg-gradient-live animate-pulse opacity-50" />
+          {showPartyRooms ? <Mic2 className="h-6 w-6 text-white relative z-10" /> : <Radio className="h-6 w-6 text-white relative z-10" />}
+        </button>
+      )}
 
       {/* Modals */}
       {selectedStream && (
@@ -530,6 +581,13 @@ export default function Live() {
 
       {selectedPartyRoom && (
         <PartyRoomViewer room={selectedPartyRoom} onClose={() => setSelectedPartyRoom(null)} />
+      )}
+
+      {selectedPKBattle && (
+        <PKBattleLiveRoom
+          battle={selectedPKBattle}
+          onClose={() => setSelectedPKBattle(null)}
+        />
       )}
 
       {showGoLive && (
