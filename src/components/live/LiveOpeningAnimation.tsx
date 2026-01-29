@@ -23,7 +23,7 @@ export function LiveOpeningAnimation({ hostName, hostAvatar, thumbnail }: LiveOp
   }, []);
 
   return (
-    <div className="fixed inset-0 z-50 bg-black overflow-hidden">
+    <div className="fixed inset-0 z-[100] bg-black overflow-hidden">
       {/* Background with blur effect */}
       <div className="absolute inset-0">
         <img
