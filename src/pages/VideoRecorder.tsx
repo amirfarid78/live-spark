@@ -1,72 +1,109 @@
 import React, { useState, useRef, useCallback } from "react";
-import { 
-  Camera, 
-  X, 
-  RotateCcw, 
-  Zap, 
-  Clock, 
-  Gauge,
-  Music2,
-  Sparkles,
-  Check,
-  ChevronLeft,
-  ChevronRight,
-  Type,
-  Sticker,
-  Wand2,
-  Volume2,
-  Scissors,
-  Send
-} from "lucide-react";
+import { Camera, X, RotateCcw, Check, ChevronLeft, ChevronRight, Type, Sticker, Wand2, Volume2, Scissors, Send, Music2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { useNavigate } from "react-router-dom";
 import { toast } from "@/hooks/use-toast";
 
+// Components
+import RecordingControls from "@/components/video/RecordingControls";
+import SideToolbar from "@/components/video/SideToolbar";
+import BeautyPanel, { BeautySettings } from "@/components/video/BeautyPanel";
+import EffectsPanel from "@/components/video/EffectsPanel";
+import FiltersPanel, { filters } from "@/components/video/FiltersPanel";
+import AdjustmentsPanel, { AdjustmentSettings } from "@/components/video/AdjustmentsPanel";
+import TextOverlayTool, { TextOverlay } from "@/components/video/TextOverlayTool";
+
 type RecordingState = 'idle' | 'recording' | 'preview' | 'editing';
-
-const speedOptions = [
-  { value: 0.5, label: '0.5x' },
-  { value: 1, label: '1x' },
-  { value: 2, label: '2x' },
-  { value: 3, label: '3x' },
-];
-
-const timerOptions = [
-  { value: 0, label: 'Off' },
-  { value: 3, label: '3s' },
-  { value: 10, label: '10s' },
-];
-
-const filters = [
-  { id: 'none', name: 'Original', style: {} },
-  { id: 'warm', name: 'Warm', style: { filter: 'sepia(30%) saturate(140%)' } },
-  { id: 'cool', name: 'Cool', style: { filter: 'hue-rotate(20deg) saturate(110%)' } },
-  { id: 'vintage', name: 'Vintage', style: { filter: 'sepia(50%) contrast(90%)' } },
-  { id: 'bw', name: 'B&W', style: { filter: 'grayscale(100%)' } },
-  { id: 'vivid', name: 'Vivid', style: { filter: 'saturate(150%) contrast(110%)' } },
-];
 
 export default function VideoRecorder() {
   const navigate = useNavigate();
+  
+  // Recording state
   const [recordingState, setRecordingState] = useState<RecordingState>('idle');
+  const [recordingProgress, setRecordingProgress] = useState(0);
+  const [countdown, setCountdown] = useState<number | null>(null);
+  const [segments, setSegments] = useState<number[]>([]);
+  const [currentDuration, setCurrentDuration] = useState(15);
+  
+  // Camera controls
   const [isFlashOn, setIsFlashOn] = useState(false);
   const [isFrontCamera, setIsFrontCamera] = useState(true);
   const [selectedSpeed, setSelectedSpeed] = useState(1);
   const [selectedTimer, setSelectedTimer] = useState(0);
+  const [showGrid, setShowGrid] = useState(false);
+  
+  // Effects & filters
   const [selectedFilter, setSelectedFilter] = useState('none');
-  const [showSpeedMenu, setShowSpeedMenu] = useState(false);
-  const [showTimerMenu, setShowTimerMenu] = useState(false);
-  const [recordingProgress, setRecordingProgress] = useState(0);
-  const [countdown, setCountdown] = useState<number | null>(null);
+  const [filterIntensity, setFilterIntensity] = useState(100);
+  const [selectedEffect, setSelectedEffect] = useState('none');
+  
+  // Panels visibility
+  const [showFilters, setShowFilters] = useState(false);
+  const [showBeauty, setShowBeauty] = useState(false);
+  const [showEffects, setShowEffects] = useState(false);
+  const [showAdjustments, setShowAdjustments] = useState(false);
+  const [showTextTool, setShowTextTool] = useState(false);
+  
+  // Settings
+  const [beautySettings, setBeautySettings] = useState<BeautySettings>({
+    smooth: 50,
+    brighten: 30,
+    contrast: 50,
+    sharpen: 20,
+    eyeEnlarge: 0,
+    faceThin: 0,
+  });
+  
+  const [adjustmentSettings, setAdjustmentSettings] = useState<AdjustmentSettings>({
+    brightness: 0,
+    contrast: 0,
+    saturation: 0,
+    temperature: 0,
+    vignette: 0,
+    grain: 0,
+  });
+  
+  // Text overlays
+  const [textOverlays, setTextOverlays] = useState<TextOverlay[]>([]);
   
   // Editing state
   const [caption, setCaption] = useState('');
-  const [showFilters, setShowFilters] = useState(false);
   
   const recordingInterval = useRef<NodeJS.Timeout | null>(null);
   const countdownInterval = useRef<NodeJS.Timeout | null>(null);
+
+  // Close all panels
+  const closeAllPanels = () => {
+    setShowFilters(false);
+    setShowBeauty(false);
+    setShowEffects(false);
+    setShowAdjustments(false);
+    setShowTextTool(false);
+  };
+
+  const togglePanel = (panel: 'filters' | 'beauty' | 'effects' | 'adjustments' | 'text') => {
+    const isCurrentlyOpen = {
+      filters: showFilters,
+      beauty: showBeauty,
+      effects: showEffects,
+      adjustments: showAdjustments,
+      text: showTextTool,
+    }[panel];
+    
+    closeAllPanels();
+    
+    if (!isCurrentlyOpen) {
+      switch (panel) {
+        case 'filters': setShowFilters(true); break;
+        case 'beauty': setShowBeauty(true); break;
+        case 'effects': setShowEffects(true); break;
+        case 'adjustments': setShowAdjustments(true); break;
+        case 'text': setShowTextTool(true); break;
+      }
+    }
+  };
 
   const startRecording = useCallback(() => {
     if (selectedTimer > 0) {
@@ -89,13 +126,14 @@ export default function VideoRecorder() {
   const beginActualRecording = () => {
     setRecordingState('recording');
     setRecordingProgress(0);
+    const maxDuration = currentDuration * 10; // 100ms intervals
     recordingInterval.current = setInterval(() => {
       setRecordingProgress(prev => {
         if (prev >= 100) {
           stopRecording();
           return 100;
         }
-        return prev + (100 / 600); // 60 seconds max
+        return prev + (100 / maxDuration);
       });
     }, 100);
   };
@@ -104,19 +142,20 @@ export default function VideoRecorder() {
     if (recordingInterval.current) {
       clearInterval(recordingInterval.current);
     }
+    // Save current segment
+    if (recordingProgress > 0) {
+      setSegments(prev => [...prev, recordingProgress]);
+    }
     setRecordingState('preview');
   };
 
   const cancelRecording = () => {
-    if (recordingInterval.current) {
-      clearInterval(recordingInterval.current);
-    }
-    if (countdownInterval.current) {
-      clearInterval(countdownInterval.current);
-    }
+    if (recordingInterval.current) clearInterval(recordingInterval.current);
+    if (countdownInterval.current) clearInterval(countdownInterval.current);
     setCountdown(null);
     setRecordingState('idle');
     setRecordingProgress(0);
+    setSegments([]);
   };
 
   const proceedToEditing = () => {
@@ -137,6 +176,37 @@ export default function VideoRecorder() {
       description: "You can continue editing later.",
     });
     navigate('/');
+  };
+
+  // Get combined filter style
+  const getFilterStyle = () => {
+    const filter = filters.find(f => f.id === selectedFilter);
+    if (!filter || filter.id === 'none') return {};
+    
+    const intensity = filterIntensity / 100;
+    const filterValue = filter.style.filter;
+    
+    // Apply intensity to filter
+    const adjustedFilter = filterValue.replace(/(\d+)(%|deg|px)/g, (match, value, unit) => {
+      const adjustedValue = parseFloat(value) * intensity;
+      return `${adjustedValue}${unit}`;
+    });
+    
+    // Add beauty and adjustment effects
+    let combinedFilter = adjustedFilter;
+    
+    // Add brightness/contrast adjustments
+    if (adjustmentSettings.brightness !== 0) {
+      combinedFilter += ` brightness(${100 + adjustmentSettings.brightness}%)`;
+    }
+    if (adjustmentSettings.contrast !== 0) {
+      combinedFilter += ` contrast(${100 + adjustmentSettings.contrast}%)`;
+    }
+    if (adjustmentSettings.saturation !== 0) {
+      combinedFilter += ` saturate(${100 + adjustmentSettings.saturation}%)`;
+    }
+    
+    return { filter: combinedFilter || undefined };
   };
 
   const currentFilter = filters.find(f => f.id === selectedFilter) || filters[0];
@@ -166,7 +236,7 @@ export default function VideoRecorder() {
         <div className="flex-1 relative mx-4 rounded-2xl overflow-hidden">
           <div 
             className="absolute inset-0 bg-gradient-to-br from-purple-900/50 to-pink-900/50"
-            style={currentFilter.style}
+            style={getFilterStyle()}
           >
             <div className="absolute inset-0 flex items-center justify-center">
               <div className="text-center text-white/60">
@@ -174,6 +244,28 @@ export default function VideoRecorder() {
                 <p className="text-sm">Video Preview</p>
               </div>
             </div>
+            
+            {/* Text overlays preview */}
+            {textOverlays.map((overlay) => (
+              <div
+                key={overlay.id}
+                className="absolute px-2 py-1 rounded"
+                style={{
+                  left: `${overlay.x}%`,
+                  top: `${overlay.y}%`,
+                  transform: 'translate(-50%, -50%)',
+                  fontSize: overlay.fontSize,
+                  fontFamily: overlay.fontFamily,
+                  color: overlay.color,
+                  backgroundColor: overlay.backgroundColor,
+                  fontWeight: overlay.isBold ? 'bold' : 'normal',
+                  fontStyle: overlay.isItalic ? 'italic' : 'normal',
+                  textAlign: overlay.align,
+                }}
+              >
+                {overlay.text}
+              </div>
+            ))}
           </div>
           
           {/* Edit tools overlay */}
@@ -185,7 +277,7 @@ export default function VideoRecorder() {
               <span className="text-white text-xs">Trim</span>
             </button>
             <button 
-              onClick={() => setShowFilters(!showFilters)}
+              onClick={() => togglePanel('filters')}
               className="flex flex-col items-center gap-1 press-effect"
             >
               <div className={cn(
@@ -196,8 +288,14 @@ export default function VideoRecorder() {
               </div>
               <span className="text-white text-xs">Filters</span>
             </button>
-            <button className="flex flex-col items-center gap-1 press-effect">
-              <div className="h-12 w-12 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center">
+            <button 
+              onClick={() => togglePanel('text')}
+              className="flex flex-col items-center gap-1 press-effect"
+            >
+              <div className={cn(
+                "h-12 w-12 rounded-full backdrop-blur-md flex items-center justify-center",
+                showTextTool ? "bg-primary" : "bg-white/20"
+              )}>
                 <Type className="h-5 w-5 text-white" />
               </div>
               <span className="text-white text-xs">Text</span>
@@ -217,69 +315,63 @@ export default function VideoRecorder() {
           </div>
         </div>
 
-        {/* Filters Panel */}
+        {/* Filters Panel in editing */}
         {showFilters && (
-          <div className="px-4 py-3">
-            <div className="flex gap-3 overflow-x-auto hide-scrollbar pb-2">
-              {filters.map((filter) => (
-                <button
-                  key={filter.id}
-                  onClick={() => setSelectedFilter(filter.id)}
-                  className={cn(
-                    "flex-shrink-0 flex flex-col items-center gap-1 press-effect",
-                  )}
-                >
-                  <div 
-                    className={cn(
-                      "h-16 w-16 rounded-xl border-2 overflow-hidden",
-                      selectedFilter === filter.id ? "border-primary" : "border-transparent"
-                    )}
-                    style={filter.style}
-                  >
-                    <div className="h-full w-full bg-gradient-to-br from-purple-500/50 to-pink-500/50" />
-                  </div>
-                  <span className={cn(
-                    "text-xs",
-                    selectedFilter === filter.id ? "text-primary" : "text-white/70"
-                  )}>{filter.name}</span>
-                </button>
-              ))}
-            </div>
-          </div>
+          <FiltersPanel
+            selectedFilter={selectedFilter}
+            onSelectFilter={setSelectedFilter}
+            intensity={filterIntensity}
+            onIntensityChange={setFilterIntensity}
+          />
+        )}
+
+        {/* Text Tool in editing */}
+        {showTextTool && (
+          <TextOverlayTool
+            overlays={textOverlays}
+            onAddOverlay={(overlay) => setTextOverlays(prev => [...prev, overlay])}
+            onUpdateOverlay={(id, updates) => 
+              setTextOverlays(prev => prev.map(o => o.id === id ? { ...o, ...updates } : o))
+            }
+            onRemoveOverlay={(id) => setTextOverlays(prev => prev.filter(o => o.id !== id))}
+            onClose={() => setShowTextTool(false)}
+          />
         )}
 
         {/* Caption & Music */}
-        <div className="px-4 py-4 pb-safe space-y-3">
-          <div className="flex items-center gap-3 bg-white/10 rounded-xl px-4 py-3">
-            <Music2 className="h-5 w-5 text-white/60" />
-            <span className="text-white/60 text-sm">Add music...</span>
-            <ChevronRight className="h-5 w-5 text-white/40 ml-auto" />
-          </div>
-          
-          <Input
-            value={caption}
-            onChange={(e) => setCaption(e.target.value)}
-            placeholder="Write a caption... #hashtags @mentions"
-            className="bg-white/10 border-0 text-white placeholder:text-white/50 h-12 rounded-xl"
-          />
+        {!showFilters && !showTextTool && (
+          <div className="px-4 py-4 pb-safe space-y-3">
+            <div className="flex items-center gap-3 bg-white/10 rounded-xl px-4 py-3">
+              <Music2 className="h-5 w-5 text-white/60" />
+              <span className="text-white/60 text-sm">Add music...</span>
+              <ChevronRight className="h-5 w-5 text-white/40 ml-auto" />
+            </div>
+            
+            <Input
+              value={caption}
+              onChange={(e) => setCaption(e.target.value)}
+              placeholder="Write a caption... #hashtags @mentions"
+              className="bg-white/10 border-0 text-white placeholder:text-white/50 h-12 rounded-xl"
+            />
 
-          <div className="flex gap-3">
-            <Button 
-              variant="outline" 
-              onClick={handleSaveDraft}
-              className="flex-1 h-12 rounded-xl border-white/20 text-white hover:bg-white/10"
-            >
-              Save Draft
-            </Button>
-            <Button 
-              onClick={handlePost}
-              className="flex-1 h-12 rounded-xl bg-gradient-primary hover:opacity-90"
-            >
-              <Send className="h-5 w-5 mr-2" />
-              Post
-            </Button>
+            <div className="flex gap-3">
+              <Button 
+                variant="outline" 
+                onClick={handleSaveDraft}
+                className="flex-1 h-12 rounded-xl border-white/20 text-white hover:bg-white/10"
+              >
+                Save Draft
+              </Button>
+              <Button 
+                onClick={handlePost}
+                className="flex-1 h-12 rounded-xl bg-gradient-primary hover:opacity-90"
+              >
+                <Send className="h-5 w-5 mr-2" />
+                Post
+              </Button>
+            </div>
           </div>
-        </div>
+        )}
       </div>
     );
   }
@@ -304,7 +396,7 @@ export default function VideoRecorder() {
         <div className="flex-1 relative mx-4 rounded-2xl overflow-hidden">
           <div 
             className="absolute inset-0 bg-gradient-to-br from-purple-900/50 to-pink-900/50"
-            style={currentFilter.style}
+            style={getFilterStyle()}
           >
             <div className="absolute inset-0 flex items-center justify-center">
               <div className="text-center text-white/60">
@@ -343,12 +435,43 @@ export default function VideoRecorder() {
       {/* Camera Preview */}
       <div 
         className="absolute inset-0"
-        style={currentFilter.style}
+        style={getFilterStyle()}
       >
         <div className="absolute inset-0 bg-gradient-to-br from-gray-900 to-black">
           <div className="absolute inset-0 flex items-center justify-center">
             <Camera className="h-24 w-24 text-white/20" />
           </div>
+          
+          {/* Grid overlay */}
+          {showGrid && (
+            <div className="absolute inset-0 grid grid-cols-3 grid-rows-3">
+              {[...Array(9)].map((_, i) => (
+                <div key={i} className="border border-white/20" />
+              ))}
+            </div>
+          )}
+          
+          {/* Text overlays live preview */}
+          {textOverlays.map((overlay) => (
+            <div
+              key={overlay.id}
+              className="absolute px-2 py-1 rounded cursor-move"
+              style={{
+                left: `${overlay.x}%`,
+                top: `${overlay.y}%`,
+                transform: 'translate(-50%, -50%)',
+                fontSize: overlay.fontSize,
+                fontFamily: overlay.fontFamily,
+                color: overlay.color,
+                backgroundColor: overlay.backgroundColor,
+                fontWeight: overlay.isBold ? 'bold' : 'normal',
+                fontStyle: overlay.isItalic ? 'italic' : 'normal',
+                textAlign: overlay.align,
+              }}
+            >
+              {overlay.text}
+            </div>
+          ))}
         </div>
       </div>
 
@@ -371,214 +494,113 @@ export default function VideoRecorder() {
             <X className="h-6 w-6 text-white" />
           </button>
           
-          <div className="flex items-center gap-2">
-            <button 
-              onClick={() => setIsFlashOn(!isFlashOn)}
-              className={cn(
-                "h-10 w-10 rounded-full backdrop-blur-md flex items-center justify-center press-effect",
-                isFlashOn ? "bg-yellow-500" : "bg-black/30"
-              )}
-            >
-              <Zap className={cn("h-5 w-5", isFlashOn ? "text-black" : "text-white")} />
-            </button>
-            
-            <button 
-              onClick={() => setIsFrontCamera(!isFrontCamera)}
-              className="h-10 w-10 rounded-full bg-black/30 backdrop-blur-md flex items-center justify-center press-effect"
-            >
-              <RotateCcw className="h-5 w-5 text-white" />
-            </button>
+          <div className="flex items-center gap-2 bg-black/30 backdrop-blur-md rounded-full px-3 py-1.5">
+            <div className="h-2 w-2 rounded-full bg-red-500 animate-pulse" />
+            <span className="text-white text-xs font-medium">
+              {currentDuration}s
+            </span>
           </div>
+          
+          <div className="w-10" />
         </div>
 
         {/* Recording Progress Bar */}
         {recordingState === 'recording' && (
-          <div className="mx-4 h-1 bg-white/20 rounded-full overflow-hidden">
+          <div className="mx-4 h-1.5 bg-white/20 rounded-full overflow-hidden">
             <div 
-              className="h-full bg-gradient-primary transition-all"
+              className="h-full bg-gradient-to-r from-primary to-stream-coral transition-all"
               style={{ width: `${recordingProgress}%` }}
             />
           </div>
         )}
       </div>
 
-      {/* Right Side Controls */}
-      <div className="absolute right-4 top-1/2 -translate-y-1/2 z-20 flex flex-col gap-4">
-        {/* Speed */}
-        <div className="relative">
-          <button 
-            onClick={() => {
-              setShowSpeedMenu(!showSpeedMenu);
-              setShowTimerMenu(false);
-            }}
-            className="flex flex-col items-center gap-1 press-effect"
-          >
-            <div className="h-12 w-12 rounded-full bg-black/30 backdrop-blur-md flex items-center justify-center">
-              <Gauge className="h-5 w-5 text-white" />
-            </div>
-            <span className="text-white text-xs">{selectedSpeed}x</span>
-          </button>
-          
-          {showSpeedMenu && (
-            <div className="absolute right-14 top-0 bg-black/80 backdrop-blur-xl rounded-xl p-2 animate-scale-in">
-              {speedOptions.map((speed) => (
-                <button
-                  key={speed.value}
-                  onClick={() => {
-                    setSelectedSpeed(speed.value);
-                    setShowSpeedMenu(false);
-                  }}
-                  className={cn(
-                    "block w-full px-4 py-2 text-sm rounded-lg text-left transition-colors",
-                    selectedSpeed === speed.value 
-                      ? "bg-primary text-white" 
-                      : "text-white/80 hover:bg-white/10"
-                  )}
-                >
-                  {speed.label}
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
+      {/* Side Toolbar */}
+      <SideToolbar
+        isFlashOn={isFlashOn}
+        onToggleFlash={() => setIsFlashOn(!isFlashOn)}
+        onFlipCamera={() => setIsFrontCamera(!isFrontCamera)}
+        selectedSpeed={selectedSpeed}
+        onSelectSpeed={setSelectedSpeed}
+        selectedTimer={selectedTimer}
+        onSelectTimer={setSelectedTimer}
+        onOpenFilters={() => togglePanel('filters')}
+        showFilters={showFilters}
+        onOpenMusic={() => toast({ title: "Music", description: "Coming soon!" })}
+        onOpenBeauty={() => togglePanel('beauty')}
+        showBeauty={showBeauty}
+        onOpenEffects={() => togglePanel('effects')}
+        showEffects={showEffects}
+        onOpenAdjustments={() => togglePanel('adjustments')}
+        showAdjustments={showAdjustments}
+        onToggleGrid={() => setShowGrid(!showGrid)}
+        showGrid={showGrid}
+      />
 
-        {/* Timer */}
-        <div className="relative">
-          <button 
-            onClick={() => {
-              setShowTimerMenu(!showTimerMenu);
-              setShowSpeedMenu(false);
-            }}
-            className="flex flex-col items-center gap-1 press-effect"
-          >
-            <div className="h-12 w-12 rounded-full bg-black/30 backdrop-blur-md flex items-center justify-center">
-              <Clock className="h-5 w-5 text-white" />
-            </div>
-            <span className="text-white text-xs">{selectedTimer === 0 ? 'Off' : `${selectedTimer}s`}</span>
-          </button>
-          
-          {showTimerMenu && (
-            <div className="absolute right-14 top-0 bg-black/80 backdrop-blur-xl rounded-xl p-2 animate-scale-in">
-              {timerOptions.map((timer) => (
-                <button
-                  key={timer.value}
-                  onClick={() => {
-                    setSelectedTimer(timer.value);
-                    setShowTimerMenu(false);
-                  }}
-                  className={cn(
-                    "block w-full px-4 py-2 text-sm rounded-lg text-left transition-colors",
-                    selectedTimer === timer.value 
-                      ? "bg-primary text-white" 
-                      : "text-white/80 hover:bg-white/10"
-                  )}
-                >
-                  {timer.label}
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
+      {/* Beauty Panel */}
+      {showBeauty && recordingState === 'idle' && (
+        <BeautyPanel
+          settings={beautySettings}
+          onSettingsChange={setBeautySettings}
+          onClose={() => setShowBeauty(false)}
+        />
+      )}
 
-        {/* Filters */}
-        <button 
-          onClick={() => setShowFilters(!showFilters)}
-          className="flex flex-col items-center gap-1 press-effect"
-        >
-          <div className={cn(
-            "h-12 w-12 rounded-full backdrop-blur-md flex items-center justify-center",
-            showFilters ? "bg-primary" : "bg-black/30"
-          )}>
-            <Sparkles className="h-5 w-5 text-white" />
-          </div>
-          <span className="text-white text-xs">Filters</span>
-        </button>
+      {/* Effects Panel */}
+      {showEffects && recordingState === 'idle' && (
+        <EffectsPanel
+          selectedEffect={selectedEffect}
+          onSelectEffect={setSelectedEffect}
+          onClose={() => setShowEffects(false)}
+        />
+      )}
 
-        {/* Music */}
-        <button className="flex flex-col items-center gap-1 press-effect">
-          <div className="h-12 w-12 rounded-full bg-black/30 backdrop-blur-md flex items-center justify-center">
-            <Music2 className="h-5 w-5 text-white" />
-          </div>
-          <span className="text-white text-xs">Music</span>
-        </button>
-      </div>
+      {/* Adjustments Panel */}
+      {showAdjustments && recordingState === 'idle' && (
+        <AdjustmentsPanel
+          settings={adjustmentSettings}
+          onSettingsChange={setAdjustmentSettings}
+          onClose={() => setShowAdjustments(false)}
+        />
+      )}
+
+      {/* Text Overlay Tool */}
+      {showTextTool && recordingState === 'idle' && (
+        <TextOverlayTool
+          overlays={textOverlays}
+          onAddOverlay={(overlay) => setTextOverlays(prev => [...prev, overlay])}
+          onUpdateOverlay={(id, updates) => 
+            setTextOverlays(prev => prev.map(o => o.id === id ? { ...o, ...updates } : o))
+          }
+          onRemoveOverlay={(id) => setTextOverlays(prev => prev.filter(o => o.id !== id))}
+          onClose={() => setShowTextTool(false)}
+        />
+      )}
 
       {/* Filters Panel */}
       {showFilters && recordingState === 'idle' && (
-        <div className="absolute bottom-40 left-0 right-0 z-20 px-4">
-          <div className="flex gap-3 overflow-x-auto hide-scrollbar pb-2">
-            {filters.map((filter) => (
-              <button
-                key={filter.id}
-                onClick={() => setSelectedFilter(filter.id)}
-                className="flex-shrink-0 flex flex-col items-center gap-1 press-effect"
-              >
-                <div 
-                  className={cn(
-                    "h-14 w-14 rounded-xl border-2 overflow-hidden",
-                    selectedFilter === filter.id ? "border-primary" : "border-white/20"
-                  )}
-                  style={filter.style}
-                >
-                  <div className="h-full w-full bg-gradient-to-br from-purple-500/50 to-pink-500/50" />
-                </div>
-                <span className={cn(
-                  "text-xs",
-                  selectedFilter === filter.id ? "text-primary" : "text-white/70"
-                )}>{filter.name}</span>
-              </button>
-            ))}
-          </div>
+        <div className="absolute bottom-40 left-0 right-0 z-20">
+          <FiltersPanel
+            selectedFilter={selectedFilter}
+            onSelectFilter={setSelectedFilter}
+            intensity={filterIntensity}
+            onIntensityChange={setFilterIntensity}
+          />
         </div>
       )}
 
       {/* Bottom Controls */}
-      <div className="absolute bottom-0 left-0 right-0 z-20 pb-safe">
-        <div className="flex items-center justify-center gap-8 py-8">
-          {/* Gallery */}
-          <button className="h-12 w-12 rounded-xl bg-white/20 backdrop-blur-md flex items-center justify-center overflow-hidden press-effect">
-            <div className="h-full w-full bg-gradient-to-br from-purple-500 to-pink-500" />
-          </button>
-
-          {/* Record Button */}
-          <button
-            onMouseDown={recordingState === 'idle' ? startRecording : undefined}
-            onMouseUp={recordingState === 'recording' ? stopRecording : undefined}
-            onTouchStart={recordingState === 'idle' ? startRecording : undefined}
-            onTouchEnd={recordingState === 'recording' ? stopRecording : undefined}
-            className="relative press-effect"
-          >
-            <div className={cn(
-              "h-20 w-20 rounded-full border-4 border-white flex items-center justify-center transition-all",
-              recordingState === 'recording' && "scale-110"
-            )}>
-              <div className={cn(
-                "rounded-full bg-stream-coral transition-all",
-                recordingState === 'recording' 
-                  ? "h-8 w-8 rounded-lg" 
-                  : "h-16 w-16"
-              )} />
-            </div>
-          </button>
-
-          {/* Effects */}
-          <button className="h-12 w-12 rounded-xl bg-white/20 backdrop-blur-md flex items-center justify-center press-effect">
-            <Wand2 className="h-6 w-6 text-white" />
-          </button>
-        </div>
-
-        {/* Mode Tabs */}
-        {recordingState === 'idle' && (
-          <div className="flex justify-center gap-6 pb-4">
-            <button className="text-white/50 text-sm font-medium press-effect">60s</button>
-            <button className="text-white text-sm font-medium press-effect relative">
-              15s
-              <div className="absolute -bottom-1 left-0 right-0 h-0.5 bg-white rounded-full" />
-            </button>
-            <button className="text-white/50 text-sm font-medium press-effect">Photo</button>
-          </div>
-        )}
-      </div>
+      <RecordingControls
+        recordingState={recordingState}
+        recordingProgress={recordingProgress}
+        segments={segments}
+        currentDuration={currentDuration}
+        onStartRecording={startRecording}
+        onStopRecording={stopRecording}
+        onOpenGallery={() => toast({ title: "Gallery", description: "Coming soon!" })}
+        onOpenEffects={() => togglePanel('effects')}
+        onChangeDuration={setCurrentDuration}
+      />
     </div>
   );
 }
