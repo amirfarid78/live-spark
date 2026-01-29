@@ -1,7 +1,8 @@
 import React, { useState, useRef, useEffect } from "react";
-import { Heart, MessageCircle, Share2, Bookmark, Music2, Plus, Search, Radio, Users, MapPin, Sparkles, Play, Volume2, VolumeX, MoreHorizontal, Home, User, LogIn, TrendingUp, ChevronRight } from "lucide-react";
+import { Heart, MessageCircle, Share2, Bookmark, Music2, Plus, Search, Radio, Users, MapPin, Sparkles, Play, Volume2, VolumeX, MoreHorizontal, Home, User, LogIn, TrendingUp, ChevronRight, ChevronUp, ChevronDown, Gift } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -25,59 +26,65 @@ interface Video {
   shares: string;
   thumbnail: string;
   isLive?: boolean;
+  hashtags?: string[];
 }
 
 const mockVideos: Video[] = [
   {
     id: 1,
     user: { name: "Sarah M.", username: "@sarahm", avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100", isVerified: true },
-    description: "Late night vibes only 🌙✨ Follow for more! #nightlife #vibes #trending",
+    description: "Late night vibes only 🌙✨ Follow for more!",
     song: "Original Sound - Sarah M.",
     likes: "124.5K",
     comments: "2,341",
     shares: "892",
     thumbnail: "https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?w=600&h=1000&fit=crop",
+    hashtags: ["nightlife", "vibes"],
   },
   {
     id: 2,
     user: { name: "Alex Chen", username: "@alexchen", avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100", isVerified: true },
-    description: "This beat is 🔥🔥🔥 #music #producer #fyp",
+    description: "This beat is 🔥🔥🔥",
     song: "Midnight Groove - DJ Alex",
     likes: "89.2K",
     comments: "1,567",
     shares: "445",
     thumbnail: "https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=600&h=1000&fit=crop",
+    hashtags: ["music", "producer"],
   },
   {
     id: 3,
     user: { name: "Luna Dance", username: "@lunadance", avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100", isVerified: false },
-    description: "New choreography just dropped 💃 What do you think? #dance #tutorial #foryou",
+    description: "New choreography just dropped 💃 What do you think?",
     song: "Dance With Me - Luna",
     likes: "256.8K",
     comments: "5,892",
     shares: "1,234",
     thumbnail: "https://images.unsplash.com/photo-1504609773096-104ff2c73ba4?w=600&h=1000&fit=crop",
+    hashtags: ["dance", "tutorial"],
   },
   {
     id: 4,
     user: { name: "Chef Mike", username: "@chefmike", avatar: "https://images.unsplash.com/photo-1556910103-1c02745aae4d?w=100", isVerified: true },
-    description: "5-minute pasta recipe that will blow your mind 🍝 #cooking #recipe #foodtok",
+    description: "5-minute pasta recipe that will blow your mind 🍝",
     song: "Cooking Vibes - Lofi Beats",
     likes: "67.3K",
     comments: "3,421",
     shares: "2,156",
     thumbnail: "https://images.unsplash.com/photo-1556910103-1c02745aae4d?w=600&h=1000&fit=crop",
+    hashtags: ["cooking", "recipe"],
   },
   {
     id: 5,
     user: { name: "ProGamer", username: "@progamer", avatar: "https://images.unsplash.com/photo-1542751371-adc38448a05e?w=100", isVerified: true },
-    description: "Insane clutch in ranked! 🎮🔥 #gaming #esports #clutch",
+    description: "Insane clutch in ranked! 🎮🔥",
     song: "Gaming Anthem - Beat Drop",
     likes: "342.1K",
     comments: "8,234",
     shares: "3,567",
     thumbnail: "https://images.unsplash.com/photo-1542751371-adc38448a05e?w=600&h=1000&fit=crop",
     isLive: true,
+    hashtags: ["gaming", "esports"],
   },
 ];
 
@@ -281,12 +288,12 @@ function AuthPrompt({ onClose }: { onClose: () => void }) {
   const navigate = useNavigate();
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 backdrop-blur-sm animate-fade-in" onClick={onClose}>
+    <div className="fixed inset-0 z-50 flex items-end lg:items-center justify-center bg-black/60 backdrop-blur-sm animate-fade-in" onClick={onClose}>
       <div 
-        className="w-full max-w-lg bg-background rounded-t-3xl p-6 pb-safe animate-slide-up"
+        className="w-full max-w-lg bg-background rounded-t-3xl lg:rounded-3xl p-6 pb-safe animate-slide-up"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="w-12 h-1.5 bg-muted rounded-full mx-auto mb-6" />
+        <div className="w-12 h-1.5 bg-muted rounded-full mx-auto mb-6 lg:hidden" />
         
         <div className="text-center mb-6">
           <img 
@@ -326,16 +333,31 @@ function AuthPrompt({ onClose }: { onClose: () => void }) {
   );
 }
 
-// Desktop Video Card Component
-function DesktopVideoCard({ video, onOpenComments, onOpenShare, onAuthRequired, isAuthenticated }: {
+// Desktop Video Player Component - Centered vertical video with side actions
+function DesktopVideoPlayer({ 
+  video, 
+  onPrev, 
+  onNext, 
+  hasPrev, 
+  hasNext,
+  onOpenComments,
+  onOpenShare,
+  onAuthRequired,
+  isAuthenticated 
+}: {
   video: Video;
+  onPrev: () => void;
+  onNext: () => void;
+  hasPrev: boolean;
+  hasNext: boolean;
   onOpenComments: (videoId: number, commentCount: string) => void;
   onOpenShare: (videoId: number) => void;
   onAuthRequired: () => void;
   isAuthenticated: boolean;
 }) {
   const [isLiked, setIsLiked] = useState(false);
-  const [isSaved, setIsSaved] = useState(false);
+  const [isMuted, setIsMuted] = useState(true);
+  const [isPaused, setIsPaused] = useState(false);
 
   const handleAuthAction = (action: () => void) => {
     if (!isAuthenticated) {
@@ -346,101 +368,170 @@ function DesktopVideoCard({ video, onOpenComments, onOpenShare, onAuthRequired, 
   };
 
   return (
-    <div className="flex gap-4 p-4 border-b border-border/50 hover:bg-secondary/30 transition-colors animate-fade-in-up">
-      {/* Video Thumbnail */}
-      <div className="relative w-[280px] aspect-[9/16] rounded-xl overflow-hidden bg-muted flex-shrink-0 group cursor-pointer">
-        <img
-          src={video.thumbnail}
-          alt={video.description}
-          className="h-full w-full object-cover transition-transform group-hover:scale-105"
-        />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
-        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-          <div className="h-14 w-14 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center">
-            <Play className="h-7 w-7 text-white ml-1" fill="white" />
-          </div>
+    <div className="flex items-center justify-center gap-6 h-full">
+      {/* Video Container - Phone-like aspect ratio */}
+      <div className="relative w-[380px] h-[680px] rounded-3xl overflow-hidden bg-black shadow-2xl shadow-black/50 ring-1 ring-white/10">
+        {/* Mute button */}
+        <button 
+          onClick={() => setIsMuted(!isMuted)}
+          className="absolute top-4 right-4 z-20 flex h-10 w-10 items-center justify-center rounded-full bg-black/30 backdrop-blur-sm hover:bg-black/50 transition-colors"
+        >
+          {isMuted ? <VolumeX className="h-5 w-5 text-white" /> : <Volume2 className="h-5 w-5 text-white" />}
+        </button>
+
+        {/* Video Content */}
+        <div 
+          className="absolute inset-0 cursor-pointer"
+          onClick={() => setIsPaused(!isPaused)}
+        >
+          <img
+            src={video.thumbnail}
+            alt={video.description}
+            className="h-full w-full object-cover"
+          />
+          
+          {/* Pause indicator */}
+          {isPaused && (
+            <div className="absolute inset-0 flex items-center justify-center bg-black/20">
+              <div className="flex h-20 w-20 items-center justify-center rounded-full bg-black/40 backdrop-blur-sm">
+                <Play className="h-10 w-10 text-white ml-1" fill="white" />
+              </div>
+            </div>
+          )}
         </div>
+
+        {/* Gradient Overlay */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent pointer-events-none" />
+
+        {/* Live Badge */}
         {video.isLive && (
-          <div className="absolute top-3 left-3">
-            <div className="flex items-center gap-1.5 rounded-full bg-stream-live px-2.5 py-1 shadow-lg">
-              <span className="h-1.5 w-1.5 rounded-full bg-white animate-pulse" />
-              <span className="text-[10px] font-bold text-white">LIVE</span>
+          <div className="absolute left-4 top-4 z-20">
+            <div className="flex items-center gap-2 rounded-lg bg-stream-live px-3 py-1.5 shadow-lg">
+              <span className="h-2 w-2 rounded-full bg-white animate-pulse" />
+              <span className="text-xs font-bold text-white">LIVE</span>
             </div>
           </div>
         )}
-        {/* Music info */}
-        <div className="absolute bottom-3 left-3 right-3">
-          <div className="flex items-center gap-1.5 bg-black/30 backdrop-blur-sm rounded-full py-1 px-2.5 w-fit">
-            <Music2 className="h-3 w-3 text-white" />
-            <span className="text-white text-[10px] font-medium truncate max-w-[150px]">{video.song}</span>
+
+        {/* Bottom Info */}
+        <div className="absolute bottom-0 left-0 right-0 p-4 z-10">
+          {/* User Info */}
+          <div className="flex items-center gap-3 mb-3">
+            <Avatar className="h-11 w-11 ring-2 ring-white/50">
+              <AvatarImage src={video.user.avatar} />
+              <AvatarFallback>{video.user.name[0]}</AvatarFallback>
+            </Avatar>
+            <div>
+              <div className="flex items-center gap-1.5">
+                <span className="font-bold text-white">{video.user.name}</span>
+                {video.user.isVerified && (
+                  <div className="flex h-4 w-4 items-center justify-center rounded-full bg-primary">
+                    <svg className="h-2.5 w-2.5 text-white" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                    </svg>
+                  </div>
+                )}
+              </div>
+              <span className="text-sm text-white/70">{video.user.username}</span>
+            </div>
           </div>
+
+          {/* Description */}
+          <p className="text-white text-sm mb-3 line-clamp-2">{video.description}</p>
+
+          {/* Hashtags */}
+          {video.hashtags && video.hashtags.length > 0 && (
+            <div className="flex gap-2">
+              {video.hashtags.map((tag) => (
+                <Badge key={tag} variant="secondary" className="bg-white/10 text-white border-0 backdrop-blur-sm">
+                  #{tag}
+                </Badge>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 
-      {/* Video Info */}
-      <div className="flex-1 py-2">
-        {/* User Info */}
-        <div className="flex items-center gap-3 mb-3">
-          <Avatar className="h-11 w-11 ring-2 ring-primary/20">
-            <AvatarImage src={video.user.avatar} />
-            <AvatarFallback>{video.user.name[0]}</AvatarFallback>
-          </Avatar>
-          <div className="flex-1">
-            <div className="flex items-center gap-1.5">
-              <span className="font-bold text-[15px]">{video.user.name}</span>
-              {video.user.isVerified && (
-                <div className="flex h-4 w-4 items-center justify-center rounded-full bg-primary">
-                  <svg className="h-2.5 w-2.5 text-white" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                  </svg>
-                </div>
-              )}
-            </div>
-            <span className="text-sm text-muted-foreground">{video.user.username}</span>
+      {/* Right Side Actions */}
+      <div className="flex flex-col items-center gap-4">
+        {/* Gift */}
+        <button 
+          onClick={() => handleAuthAction(() => {})}
+          className="flex flex-col items-center gap-1 group"
+        >
+          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-r from-pink-500 to-orange-400 shadow-lg transition-transform group-hover:scale-110">
+            <Gift className="h-6 w-6 text-white" />
           </div>
-          <Button 
-            size="sm" 
-            className="bg-stream-coral hover:bg-stream-coral/90 text-white rounded-lg font-semibold h-9 px-5"
-            onClick={() => handleAuthAction(() => {})}
-          >
-            Follow
-          </Button>
-        </div>
+        </button>
 
-        {/* Description */}
-        <p className="text-[15px] mb-4 leading-relaxed">{video.description}</p>
+        {/* Like */}
+        <button 
+          onClick={() => handleAuthAction(() => setIsLiked(!isLiked))}
+          className="flex flex-col items-center gap-1 group"
+        >
+          <div className={cn(
+            "flex h-12 w-12 items-center justify-center rounded-full transition-all group-hover:scale-110",
+            isLiked ? "bg-stream-coral" : "bg-secondary"
+          )}>
+            <Heart className={cn("h-6 w-6", isLiked ? "text-white fill-white" : "text-muted-foreground")} />
+          </div>
+          <span className="text-xs text-muted-foreground">{video.likes}</span>
+        </button>
 
-        {/* Actions */}
-        <div className="flex items-center gap-6">
-          <button 
-            onClick={() => handleAuthAction(() => setIsLiked(!isLiked))}
-            className="flex items-center gap-2 text-sm font-medium hover:text-stream-coral transition-colors"
-          >
-            <Heart className={cn("h-5 w-5", isLiked && "fill-stream-coral text-stream-coral")} />
-            {video.likes}
-          </button>
-          <button 
-            onClick={() => onOpenComments(video.id, video.comments)}
-            className="flex items-center gap-2 text-sm font-medium hover:text-primary transition-colors"
-          >
-            <MessageCircle className="h-5 w-5" />
-            {video.comments}
-          </button>
-          <button 
-            onClick={() => handleAuthAction(() => setIsSaved(!isSaved))}
-            className="flex items-center gap-2 text-sm font-medium hover:text-stream-gold transition-colors"
-          >
-            <Bookmark className={cn("h-5 w-5", isSaved && "fill-stream-gold text-stream-gold")} />
-            Save
-          </button>
-          <button 
-            onClick={() => onOpenShare(video.id)}
-            className="flex items-center gap-2 text-sm font-medium hover:text-primary transition-colors"
-          >
-            <Share2 className="h-5 w-5" />
-            {video.shares}
-          </button>
-        </div>
+        {/* Comment */}
+        <button 
+          onClick={() => onOpenComments(video.id, video.comments)}
+          className="flex flex-col items-center gap-1 group"
+        >
+          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-secondary transition-transform group-hover:scale-110">
+            <MessageCircle className="h-6 w-6 text-muted-foreground" />
+          </div>
+          <span className="text-xs text-muted-foreground">{video.comments}</span>
+        </button>
+
+        {/* Share */}
+        <button 
+          onClick={() => onOpenShare(video.id)}
+          className="flex flex-col items-center gap-1 group"
+        >
+          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-secondary transition-transform group-hover:scale-110">
+            <Share2 className="h-6 w-6 text-muted-foreground" />
+          </div>
+        </button>
+
+        {/* User Avatar */}
+        <Avatar className="h-12 w-12 ring-2 ring-primary/50 cursor-pointer hover:scale-110 transition-transform">
+          <AvatarImage src={video.user.avatar} />
+          <AvatarFallback>{video.user.name[0]}</AvatarFallback>
+        </Avatar>
+      </div>
+
+      {/* Navigation Arrows */}
+      <div className="flex flex-col gap-3 ml-4">
+        <button
+          onClick={onPrev}
+          disabled={!hasPrev}
+          className={cn(
+            "flex h-12 w-12 items-center justify-center rounded-full transition-all",
+            hasPrev 
+              ? "bg-secondary hover:bg-secondary/80 cursor-pointer" 
+              : "bg-secondary/30 cursor-not-allowed"
+          )}
+        >
+          <ChevronUp className={cn("h-6 w-6", hasPrev ? "text-foreground" : "text-muted-foreground/50")} />
+        </button>
+        <button
+          onClick={onNext}
+          disabled={!hasNext}
+          className={cn(
+            "flex h-12 w-12 items-center justify-center rounded-full transition-all",
+            hasNext 
+              ? "bg-secondary hover:bg-secondary/80 cursor-pointer" 
+              : "bg-secondary/30 cursor-not-allowed"
+          )}
+        >
+          <ChevronDown className={cn("h-6 w-6", hasNext ? "text-foreground" : "text-muted-foreground/50")} />
+        </button>
       </div>
     </div>
   );
@@ -470,6 +561,36 @@ export default function Feed() {
     setShareOpen(true);
   };
 
+  const handlePrevVideo = () => {
+    if (activeIndex > 0) {
+      setActiveIndex(activeIndex - 1);
+    }
+  };
+
+  const handleNextVideo = () => {
+    if (activeIndex < mockVideos.length - 1) {
+      setActiveIndex(activeIndex + 1);
+    }
+  };
+
+  // Keyboard navigation for desktop
+  useEffect(() => {
+    if (isMobile) return;
+    
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "ArrowUp") {
+        e.preventDefault();
+        handlePrevVideo();
+      } else if (e.key === "ArrowDown") {
+        e.preventDefault();
+        handleNextVideo();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isMobile, activeIndex]);
+
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
@@ -485,8 +606,10 @@ export default function Feed() {
 
   // Desktop Layout
   if (!isMobile) {
+    const currentVideo = mockVideos[activeIndex];
+
     return (
-      <div className="min-h-screen bg-background">
+      <div className="h-screen bg-background flex flex-col overflow-hidden">
         {/* Comments Sheet */}
         <CommentsSheet 
           isOpen={commentsOpen} 
@@ -505,56 +628,33 @@ export default function Feed() {
         {/* Auth Prompt Modal */}
         {showAuthPrompt && <AuthPrompt onClose={() => setShowAuthPrompt(false)} />}
 
-        {/* Desktop Header */}
-        <header className="sticky top-0 z-40 glass border-b border-border/50">
-          <div className="flex items-center justify-between px-6 py-4">
-            <div>
-              <h1 className="text-2xl font-bold">For You</h1>
-              <p className="text-sm text-muted-foreground">Discover trending content</p>
-            </div>
-            <div className="flex gap-2">
-              {feedTabs.map((tab) => (
-                <button
-                  key={tab.id}
-                  onClick={() => {
-                    if (tab.id === "live") {
-                      navigate("/live");
-                    } else if (tab.id === "following" && !user) {
-                      setShowAuthPrompt(true);
-                    } else {
-                      setActiveTab(tab.id);
-                    }
-                  }}
-                  className={cn(
-                    "px-5 py-2.5 rounded-xl text-sm font-medium transition-all",
-                    activeTab === tab.id
-                      ? "bg-gradient-primary text-white shadow-lg shadow-primary/20"
-                      : "bg-secondary/50 text-muted-foreground hover:bg-secondary hover:text-foreground"
-                  )}
-                >
-                  <span className="flex items-center gap-1.5">
-                    {tab.label}
-                    {tab.isLive && <span className="h-1.5 w-1.5 rounded-full bg-stream-live animate-pulse" />}
-                  </span>
-                </button>
-              ))}
-            </div>
-          </div>
-        </header>
-
-        {/* Desktop Video Feed */}
-        <div className="max-w-4xl mx-auto">
-          {mockVideos.map((video, index) => (
-            <DesktopVideoCard
-              key={video.id}
-              video={video}
-              onOpenComments={handleOpenComments}
-              onOpenShare={handleOpenShare}
-              onAuthRequired={() => setShowAuthPrompt(true)}
-              isAuthenticated={!!user}
-            />
-          ))}
+        {/* Main Content */}
+        <div className="flex-1 flex items-center justify-center py-6">
+          <DesktopVideoPlayer
+            video={currentVideo}
+            onPrev={handlePrevVideo}
+            onNext={handleNextVideo}
+            hasPrev={activeIndex > 0}
+            hasNext={activeIndex < mockVideos.length - 1}
+            onOpenComments={handleOpenComments}
+            onOpenShare={handleOpenShare}
+            onAuthRequired={() => setShowAuthPrompt(true)}
+            isAuthenticated={!!user}
+          />
         </div>
+
+        {/* Login Button - Fixed bottom right */}
+        {!user && (
+          <div className="fixed bottom-6 right-6 z-40">
+            <Button
+              onClick={() => navigate('/login')}
+              className="bg-gradient-primary text-white rounded-full h-12 px-6 gap-2 shadow-lg shadow-primary/30"
+            >
+              <LogIn className="h-5 w-5" />
+              Login
+            </Button>
+          </div>
+        )}
       </div>
     );
   }

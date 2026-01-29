@@ -125,10 +125,14 @@ function AppContent() {
           </AuthRoute>
         } />
         
-        {/* Pages with AppShell (desktop sidebar + mobile bottom nav) */}
-        <Route element={<AppShell />}>
+        {/* Feed page - uses AppShell without right sidebar */}
+        <Route element={<AppShell showRightSidebar={false} />}>
           <Route path="/" element={<Feed />} />
           <Route path="/feed" element={<Feed />} />
+        </Route>
+
+        {/* Other pages with full AppShell */}
+        <Route element={<AppShell />}>
           <Route path="/discover" element={<Discover />} />
           <Route path="/live" element={<Live />} />
           <Route path="/messages" element={
