@@ -12,6 +12,7 @@ import Live from "./pages/Live";
 import Discover from "./pages/Discover";
 import Feed from "./pages/Feed";
 import Create from "./pages/Create";
+import VideoRecorder from "./pages/VideoRecorder";
 import Messages from "./pages/Messages";
 import Profile from "./pages/Profile";
 import Login from "./pages/Login";
@@ -131,6 +132,11 @@ function AppContent() {
         <Route path="/create" element={
           <ProtectedRoute>
             <Create />
+          </ProtectedRoute>
+        } />
+        <Route path="/record" element={
+          <ProtectedRoute>
+            <VideoRecorder />
           </ProtectedRoute>
         } />
         

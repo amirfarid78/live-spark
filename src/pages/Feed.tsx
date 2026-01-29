@@ -5,6 +5,8 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import { CommentsSheet } from "@/components/video/CommentsSheet";
+import { ShareSheet } from "@/components/video/ShareSheet";
 import logo from "@/assets/logo.png";
 
 interface Video {
@@ -89,9 +91,11 @@ interface VideoCardProps {
   isActive: boolean;
   onAuthRequired: () => void;
   isAuthenticated: boolean;
+  onOpenComments: (videoId: number, commentCount: string) => void;
+  onOpenShare: (videoId: number) => void;
 }
 
-function VideoCard({ video, isActive, onAuthRequired, isAuthenticated }: VideoCardProps) {
+function VideoCard({ video, isActive, onAuthRequired, isAuthenticated, onOpenComments, onOpenShare }: VideoCardProps) {
   const [isLiked, setIsLiked] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
   const [isFollowing, setIsFollowing] = useState(false);
@@ -195,7 +199,7 @@ function VideoCard({ video, isActive, onAuthRequired, isAuthenticated }: VideoCa
         </button>
 
         {/* Comment */}
-        <button onClick={() => handleAuthAction(() => {})} className="flex flex-col items-center gap-0.5 press-effect">
+        <button onClick={() => onOpenComments(video.id, video.comments)} className="flex flex-col items-center gap-0.5 press-effect">
           <div className="flex h-11 w-11 items-center justify-center">
             <MessageCircle className="h-8 w-8 text-white drop-shadow-lg" />
           </div>
@@ -210,7 +214,7 @@ function VideoCard({ video, isActive, onAuthRequired, isAuthenticated }: VideoCa
         </button>
 
         {/* Share */}
-        <button className="flex flex-col items-center gap-0.5 press-effect">
+        <button onClick={() => onOpenShare(video.id)} className="flex flex-col items-center gap-0.5 press-effect">
           <div className="flex h-11 w-11 items-center justify-center">
             <Share2 className="h-7 w-7 text-white drop-shadow-lg" />
           </div>
@@ -325,9 +329,24 @@ export default function Feed() {
   const [activeIndex, setActiveIndex] = useState(0);
   const [activeTab, setActiveTab] = useState("foryou");
   const [showAuthPrompt, setShowAuthPrompt] = useState(false);
+  const [commentsOpen, setCommentsOpen] = useState(false);
+  const [shareOpen, setShareOpen] = useState(false);
+  const [selectedVideoId, setSelectedVideoId] = useState<number>(0);
+  const [selectedCommentCount, setSelectedCommentCount] = useState("");
   const containerRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
   const { user } = useAuth();
+
+  const handleOpenComments = (videoId: number, commentCount: string) => {
+    setSelectedVideoId(videoId);
+    setSelectedCommentCount(commentCount);
+    setCommentsOpen(true);
+  };
+
+  const handleOpenShare = (videoId: number) => {
+    setSelectedVideoId(videoId);
+    setShareOpen(true);
+  };
 
   useEffect(() => {
     const container = containerRef.current;
@@ -344,6 +363,21 @@ export default function Feed() {
 
   return (
     <div className="relative h-screen w-full bg-black">
+      {/* Comments Sheet */}
+      <CommentsSheet 
+        isOpen={commentsOpen} 
+        onClose={() => setCommentsOpen(false)}
+        videoId={selectedVideoId}
+        commentCount={selectedCommentCount}
+      />
+
+      {/* Share Sheet */}
+      <ShareSheet 
+        isOpen={shareOpen}
+        onClose={() => setShareOpen(false)}
+        videoId={selectedVideoId}
+      />
+
       {/* Auth Prompt Modal */}
       {showAuthPrompt && <AuthPrompt onClose={() => setShowAuthPrompt(false)} />}
 
@@ -388,6 +422,8 @@ export default function Feed() {
               isActive={index === activeIndex}
               onAuthRequired={() => setShowAuthPrompt(true)}
               isAuthenticated={!!user}
+              onOpenComments={handleOpenComments}
+              onOpenShare={handleOpenShare}
             />
           </div>
         ))}
