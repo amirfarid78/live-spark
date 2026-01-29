@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from "react";
 import { Heart, MessageCircle, Share2, Bookmark, Music2, Plus, Search, Radio, Users, MapPin, Sparkles, Play, Volume2, VolumeX, MoreHorizontal, Home, User } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
 interface Video {
   id: number;
@@ -237,9 +237,9 @@ function VideoCard({ video, isActive }: VideoCardProps) {
       {/* Top controls */}
       <div className="absolute top-0 left-0 right-0 z-20 pt-safe">
         <div className="flex items-center justify-between px-4 py-3">
-          <button className="flex h-9 w-9 items-center justify-center rounded-full press-effect">
+          <Link to="/live" className="flex h-9 w-9 items-center justify-center rounded-full press-effect">
             <Radio className="h-6 w-6 text-white drop-shadow-lg" />
-          </button>
+          </Link>
           <div className="flex items-center gap-2">
             <button onClick={() => setIsMuted(!isMuted)} className="flex h-9 w-9 items-center justify-center rounded-full bg-black/20 backdrop-blur-sm press-effect">
               {isMuted ? <VolumeX className="h-5 w-5 text-white" /> : <Volume2 className="h-5 w-5 text-white" />}
@@ -258,6 +258,7 @@ export default function Feed() {
   const [activeIndex, setActiveIndex] = useState(0);
   const [activeTab, setActiveTab] = useState("foryou");
   const containerRef = useRef<HTMLDivElement>(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const container = containerRef.current;
@@ -280,7 +281,13 @@ export default function Feed() {
           {feedTabs.map((tab) => (
             <button
               key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
+              onClick={() => {
+                if (tab.id === "live") {
+                  navigate("/live");
+                } else {
+                  setActiveTab(tab.id);
+                }
+              }}
               className={cn(
                 "relative py-1 text-[15px] font-semibold transition-all press-effect",
                 activeTab === tab.id ? "text-white" : "text-white/50"
