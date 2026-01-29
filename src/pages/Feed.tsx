@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
-import { Heart, MessageCircle, Share2, Bookmark, Music2, Plus, Search, Radio, Users, MapPin, Sparkles, Play, Volume2, VolumeX, MoreHorizontal, Home, User, LogIn } from "lucide-react";
+import { Heart, MessageCircle, Share2, Bookmark, Music2, Plus, Search, Radio, Users, MapPin, Sparkles, Play, Volume2, VolumeX, MoreHorizontal, Home, User, LogIn, TrendingUp, ChevronRight } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -7,6 +7,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { CommentsSheet } from "@/components/video/CommentsSheet";
 import { ShareSheet } from "@/components/video/ShareSheet";
+import { useIsMobile } from "@/hooks/use-mobile";
 import logo from "@/assets/logo.png";
 
 interface Video {
@@ -325,7 +326,128 @@ function AuthPrompt({ onClose }: { onClose: () => void }) {
   );
 }
 
+// Desktop Video Card Component
+function DesktopVideoCard({ video, onOpenComments, onOpenShare, onAuthRequired, isAuthenticated }: {
+  video: Video;
+  onOpenComments: (videoId: number, commentCount: string) => void;
+  onOpenShare: (videoId: number) => void;
+  onAuthRequired: () => void;
+  isAuthenticated: boolean;
+}) {
+  const [isLiked, setIsLiked] = useState(false);
+  const [isSaved, setIsSaved] = useState(false);
+
+  const handleAuthAction = (action: () => void) => {
+    if (!isAuthenticated) {
+      onAuthRequired();
+    } else {
+      action();
+    }
+  };
+
+  return (
+    <div className="flex gap-4 p-4 border-b border-border/50 hover:bg-secondary/30 transition-colors animate-fade-in-up">
+      {/* Video Thumbnail */}
+      <div className="relative w-[280px] aspect-[9/16] rounded-xl overflow-hidden bg-muted flex-shrink-0 group cursor-pointer">
+        <img
+          src={video.thumbnail}
+          alt={video.description}
+          className="h-full w-full object-cover transition-transform group-hover:scale-105"
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+          <div className="h-14 w-14 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center">
+            <Play className="h-7 w-7 text-white ml-1" fill="white" />
+          </div>
+        </div>
+        {video.isLive && (
+          <div className="absolute top-3 left-3">
+            <div className="flex items-center gap-1.5 rounded-full bg-stream-live px-2.5 py-1 shadow-lg">
+              <span className="h-1.5 w-1.5 rounded-full bg-white animate-pulse" />
+              <span className="text-[10px] font-bold text-white">LIVE</span>
+            </div>
+          </div>
+        )}
+        {/* Music info */}
+        <div className="absolute bottom-3 left-3 right-3">
+          <div className="flex items-center gap-1.5 bg-black/30 backdrop-blur-sm rounded-full py-1 px-2.5 w-fit">
+            <Music2 className="h-3 w-3 text-white" />
+            <span className="text-white text-[10px] font-medium truncate max-w-[150px]">{video.song}</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Video Info */}
+      <div className="flex-1 py-2">
+        {/* User Info */}
+        <div className="flex items-center gap-3 mb-3">
+          <Avatar className="h-11 w-11 ring-2 ring-primary/20">
+            <AvatarImage src={video.user.avatar} />
+            <AvatarFallback>{video.user.name[0]}</AvatarFallback>
+          </Avatar>
+          <div className="flex-1">
+            <div className="flex items-center gap-1.5">
+              <span className="font-bold text-[15px]">{video.user.name}</span>
+              {video.user.isVerified && (
+                <div className="flex h-4 w-4 items-center justify-center rounded-full bg-primary">
+                  <svg className="h-2.5 w-2.5 text-white" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                  </svg>
+                </div>
+              )}
+            </div>
+            <span className="text-sm text-muted-foreground">{video.user.username}</span>
+          </div>
+          <Button 
+            size="sm" 
+            className="bg-stream-coral hover:bg-stream-coral/90 text-white rounded-lg font-semibold h-9 px-5"
+            onClick={() => handleAuthAction(() => {})}
+          >
+            Follow
+          </Button>
+        </div>
+
+        {/* Description */}
+        <p className="text-[15px] mb-4 leading-relaxed">{video.description}</p>
+
+        {/* Actions */}
+        <div className="flex items-center gap-6">
+          <button 
+            onClick={() => handleAuthAction(() => setIsLiked(!isLiked))}
+            className="flex items-center gap-2 text-sm font-medium hover:text-stream-coral transition-colors"
+          >
+            <Heart className={cn("h-5 w-5", isLiked && "fill-stream-coral text-stream-coral")} />
+            {video.likes}
+          </button>
+          <button 
+            onClick={() => onOpenComments(video.id, video.comments)}
+            className="flex items-center gap-2 text-sm font-medium hover:text-primary transition-colors"
+          >
+            <MessageCircle className="h-5 w-5" />
+            {video.comments}
+          </button>
+          <button 
+            onClick={() => handleAuthAction(() => setIsSaved(!isSaved))}
+            className="flex items-center gap-2 text-sm font-medium hover:text-stream-gold transition-colors"
+          >
+            <Bookmark className={cn("h-5 w-5", isSaved && "fill-stream-gold text-stream-gold")} />
+            Save
+          </button>
+          <button 
+            onClick={() => onOpenShare(video.id)}
+            className="flex items-center gap-2 text-sm font-medium hover:text-primary transition-colors"
+          >
+            <Share2 className="h-5 w-5" />
+            {video.shares}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function Feed() {
+  const isMobile = useIsMobile();
   const [activeIndex, setActiveIndex] = useState(0);
   const [activeTab, setActiveTab] = useState("foryou");
   const [showAuthPrompt, setShowAuthPrompt] = useState(false);
@@ -361,6 +483,83 @@ export default function Feed() {
     return () => container.removeEventListener('scroll', handleScroll);
   }, []);
 
+  // Desktop Layout
+  if (!isMobile) {
+    return (
+      <div className="min-h-screen bg-background">
+        {/* Comments Sheet */}
+        <CommentsSheet 
+          isOpen={commentsOpen} 
+          onClose={() => setCommentsOpen(false)}
+          videoId={selectedVideoId}
+          commentCount={selectedCommentCount}
+        />
+
+        {/* Share Sheet */}
+        <ShareSheet 
+          isOpen={shareOpen}
+          onClose={() => setShareOpen(false)}
+          videoId={selectedVideoId}
+        />
+
+        {/* Auth Prompt Modal */}
+        {showAuthPrompt && <AuthPrompt onClose={() => setShowAuthPrompt(false)} />}
+
+        {/* Desktop Header */}
+        <header className="sticky top-0 z-40 glass border-b border-border/50">
+          <div className="flex items-center justify-between px-6 py-4">
+            <div>
+              <h1 className="text-2xl font-bold">For You</h1>
+              <p className="text-sm text-muted-foreground">Discover trending content</p>
+            </div>
+            <div className="flex gap-2">
+              {feedTabs.map((tab) => (
+                <button
+                  key={tab.id}
+                  onClick={() => {
+                    if (tab.id === "live") {
+                      navigate("/live");
+                    } else if (tab.id === "following" && !user) {
+                      setShowAuthPrompt(true);
+                    } else {
+                      setActiveTab(tab.id);
+                    }
+                  }}
+                  className={cn(
+                    "px-5 py-2.5 rounded-xl text-sm font-medium transition-all",
+                    activeTab === tab.id
+                      ? "bg-gradient-primary text-white shadow-lg shadow-primary/20"
+                      : "bg-secondary/50 text-muted-foreground hover:bg-secondary hover:text-foreground"
+                  )}
+                >
+                  <span className="flex items-center gap-1.5">
+                    {tab.label}
+                    {tab.isLive && <span className="h-1.5 w-1.5 rounded-full bg-stream-live animate-pulse" />}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </div>
+        </header>
+
+        {/* Desktop Video Feed */}
+        <div className="max-w-4xl mx-auto">
+          {mockVideos.map((video, index) => (
+            <DesktopVideoCard
+              key={video.id}
+              video={video}
+              onOpenComments={handleOpenComments}
+              onOpenShare={handleOpenShare}
+              onAuthRequired={() => setShowAuthPrompt(true)}
+              isAuthenticated={!!user}
+            />
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  // Mobile Layout (Original)
   return (
     <div className="relative h-screen w-full bg-black">
       {/* Comments Sheet */}
@@ -442,51 +641,37 @@ export default function Feed() {
               <Search className="h-6 w-6 text-white/60" />
               <span className="text-[10px] font-medium text-white/60">Discover</span>
             </Link>
-            
-            {/* Create Button - TikTok Style */}
-            <button 
-              onClick={() => user ? navigate('/create') : setShowAuthPrompt(true)}
-              className="flex-1 flex items-center justify-center py-2"
-            >
+
+            <Link to="/create" className="flex items-center justify-center py-2 px-4">
               <div className="relative">
-                {/* Colored sides */}
-                <div className="absolute inset-0 flex">
-                  <div className="w-1/2 bg-[#69C9D0] rounded-l-lg" />
-                  <div className="w-1/2 bg-[#EE1D52] rounded-r-lg" />
+                <div className="absolute inset-0 flex rounded-lg overflow-hidden">
+                  <div className="w-1/2 bg-stream-cyan" />
+                  <div className="w-1/2 bg-stream-coral" />
                 </div>
-                {/* White center */}
-                <div className="relative flex h-8 w-12 items-center justify-center bg-white rounded-lg ml-[3px] mr-[3px]">
+                <div className="relative flex h-8 w-12 items-center justify-center bg-white rounded-lg m-[2px]">
                   <Plus className="h-5 w-5 text-black" strokeWidth={2.5} />
                 </div>
               </div>
-            </button>
-            
-            <button 
-              onClick={() => user ? navigate('/messages') : setShowAuthPrompt(true)}
-              className="flex-1 flex flex-col items-center justify-center gap-0.5 py-2 press-effect relative"
-            >
+            </Link>
+
+            <Link to="/messages" className="flex-1 flex flex-col items-center justify-center gap-0.5 py-2 press-effect relative">
               <MessageCircle className="h-6 w-6 text-white/60" />
               <span className="text-[10px] font-medium text-white/60">Inbox</span>
-              {user && (
-                <span className="absolute top-1 right-1/4 flex h-4 min-w-4 items-center justify-center rounded-full bg-stream-coral text-[9px] font-bold text-white px-1">
-                  3
-                </span>
-              )}
-            </button>
-            
-            <button 
-              onClick={() => navigate('/profile')}
-              className="flex-1 flex flex-col items-center justify-center gap-0.5 py-2 press-effect"
-            >
-              {user ? (
-                <div className="h-6 w-6 rounded-full overflow-hidden ring-1 ring-white/30">
-                  <img src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=50" alt="" className="h-full w-full object-cover" />
-                </div>
-              ) : (
-                <User className="h-6 w-6 text-white/60" />
-              )}
+              <span className="absolute top-1 right-1/4 flex h-4 min-w-4 items-center justify-center rounded-full bg-stream-coral text-[9px] font-bold text-white px-1">
+                3
+              </span>
+            </Link>
+
+            <Link to="/profile" className="flex-1 flex flex-col items-center justify-center gap-0.5 py-2 press-effect">
+              <div className="h-6 w-6 rounded-full overflow-hidden ring-1 ring-white/50">
+                <img 
+                  src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=50" 
+                  alt="" 
+                  className="h-full w-full object-cover" 
+                />
+              </div>
               <span className="text-[10px] font-medium text-white/60">Profile</span>
-            </button>
+            </Link>
           </div>
         </div>
       </div>

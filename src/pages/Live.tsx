@@ -91,82 +91,39 @@ export default function Live() {
   // Desktop Layout
   if (!isMobile) {
     return (
-      <div className="flex min-h-screen bg-background">
-        {/* Desktop Sidebar */}
-        <aside className="hidden lg:flex flex-col w-64 border-r border-border/50 bg-card/50 backdrop-blur-sm sticky top-0 h-screen">
-          {/* Logo */}
-          <div className="p-6 border-b border-border/50">
-            <div className="flex items-center gap-3">
-              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-primary shadow-lg shadow-primary/30">
-                <Radio className="h-6 w-6 text-white" />
-              </div>
-              <div>
-                <h1 className="text-xl font-bold bg-gradient-to-r from-stream-purple to-stream-coral bg-clip-text text-transparent">StreamVerse</h1>
-                <p className="text-[10px] text-muted-foreground">Live Streaming Platform</p>
-              </div>
-            </div>
-          </div>
+      <div className="min-h-screen bg-background">
+        {/* Modals */}
+        {selectedStream && (
+          <LiveRoomViewer
+            streamId={selectedStream.id.toString()}
+            hostName={selectedStream.host}
+            hostAvatar={featuredStreamers.find(s => s.name === selectedStream.host.split(" ")[0])?.avatar || "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100"}
+            viewerCount={selectedStream.viewers}
+            thumbnail={selectedStream.thumbnail}
+            onClose={() => setSelectedStream(null)}
+          />
+        )}
 
-          {/* Navigation */}
-          <nav className="flex-1 p-4 space-y-1">
-            {sidebarNavItems.map((item) => {
-              const Icon = item.icon;
-              const isActive = activeSidebarItem === item.id;
-              return (
-                <button
-                  key={item.id}
-                  onClick={() => setActiveSidebarItem(item.id)}
-                  className={cn(
-                    "w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all",
-                    isActive
-                      ? "bg-gradient-primary text-white shadow-lg shadow-primary/20"
-                      : "text-muted-foreground hover:bg-secondary hover:text-foreground"
-                  )}
-                >
-                  <Icon className="h-5 w-5" />
-                  {item.label}
-                </button>
-              );
-            })}
-          </nav>
+        {selectedPartyRoom && (
+          <PartyRoomViewer
+            room={selectedPartyRoom}
+            onClose={() => setSelectedPartyRoom(null)}
+          />
+        )}
 
-          {/* Go Live Button */}
-          <div className="p-4 border-t border-border/50">
-            <Button
-              onClick={() => showPartyRooms ? setShowCreateParty(true) : setShowGoLive(true)}
-              className="w-full bg-gradient-live text-white h-12 gap-2 shadow-lg shadow-stream-live/30"
-            >
-              {showPartyRooms ? <Mic2 className="h-5 w-5" /> : <Radio className="h-5 w-5" />}
-              {showPartyRooms ? "Create Party" : "Go Live"}
-            </Button>
-          </div>
+        {showGoLive && (
+          <GoLiveSheet
+            onClose={() => setShowGoLive(false)}
+            onGoLive={handleGoLive}
+          />
+        )}
 
-          {/* Top Streamers */}
-          <div className="p-4 border-t border-border/50">
-            <h3 className="text-xs font-semibold text-muted-foreground uppercase mb-3">Top Streamers</h3>
-            <div className="space-y-2">
-              {featuredStreamers.slice(0, 4).map((streamer) => (
-                <div key={streamer.id} className="flex items-center gap-3 p-2 rounded-lg hover:bg-secondary/50 cursor-pointer transition-colors">
-                  <div className="relative">
-                    <Avatar className="h-9 w-9">
-                      <AvatarImage src={streamer.avatar} />
-                      <AvatarFallback>{streamer.name[0]}</AvatarFallback>
-                    </Avatar>
-                    {streamer.isLive && (
-                      <span className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full bg-stream-live ring-2 ring-card" />
-                    )}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium truncate">{streamer.name}</p>
-                    {streamer.isLive && (
-                      <p className="text-[10px] text-stream-live">{streamer.viewers.toLocaleString()} watching</p>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </aside>
+        {showCreateParty && (
+          <CreatePartySheet
+            onClose={() => setShowCreateParty(false)}
+            onCreate={handleCreateParty}
+          />
+        )}
 
         {/* Main Content */}
         <main className="flex-1 min-w-0">

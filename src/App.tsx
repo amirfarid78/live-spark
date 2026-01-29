@@ -5,6 +5,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { MainLayout } from "@/components/layout/MainLayout";
+import { AppShell } from "@/components/layout/AppShell";
 import { Onboarding } from "@/components/onboarding/Onboarding";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { Sparkles } from "lucide-react";
@@ -124,11 +125,21 @@ function AppContent() {
           </AuthRoute>
         } />
         
-        {/* Public Feed - accessible without login but with limited features */}
-        <Route path="/" element={<Feed />} />
-        <Route path="/feed" element={<Feed />} />
+        {/* Pages with AppShell (desktop sidebar + mobile bottom nav) */}
+        <Route element={<AppShell />}>
+          <Route path="/" element={<Feed />} />
+          <Route path="/feed" element={<Feed />} />
+          <Route path="/discover" element={<Discover />} />
+          <Route path="/live" element={<Live />} />
+          <Route path="/messages" element={
+            <ProtectedRoute>
+              <Messages />
+            </ProtectedRoute>
+          } />
+          <Route path="/profile" element={<Profile />} />
+        </Route>
         
-        {/* Protected routes - require authentication */}
+        {/* Protected routes without shell */}
         <Route path="/create" element={
           <ProtectedRoute>
             <Create />
@@ -139,18 +150,6 @@ function AppContent() {
             <VideoRecorder />
           </ProtectedRoute>
         } />
-        
-        {/* Pages with bottom navigation */}
-        <Route element={<MainLayout />}>
-          <Route path="/live" element={<Live />} />
-          <Route path="/discover" element={<Discover />} />
-          <Route path="/messages" element={
-            <ProtectedRoute>
-              <Messages />
-            </ProtectedRoute>
-          } />
-          <Route path="/profile" element={<Profile />} />
-        </Route>
         
         <Route path="*" element={<NotFound />} />
       </Routes>
