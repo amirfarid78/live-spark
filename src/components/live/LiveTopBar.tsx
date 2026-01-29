@@ -1,66 +1,94 @@
 import React from "react";
-import { X, Volume2, VolumeX, Users, Zap, Shield } from "lucide-react";
+import { X, Users, UserPlus } from "lucide-react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 
+interface TopViewer {
+  id: string;
+  avatar: string;
+  isVIP: boolean;
+  level: number;
+}
+
 interface LiveTopBarProps {
+  hostName: string;
+  hostAvatar: string;
   viewerCount: number;
+  topViewers: TopViewer[];
   isMuted: boolean;
   onMuteToggle: () => void;
   onClose: () => void;
 }
 
-export function LiveTopBar({ viewerCount, isMuted, onMuteToggle, onClose }: LiveTopBarProps) {
+export function LiveTopBar({ hostName, hostAvatar, viewerCount, topViewers, isMuted, onMuteToggle, onClose }: LiveTopBarProps) {
   return (
     <div className="absolute top-0 left-0 right-0 z-10 pt-safe">
-      <div className="flex items-center justify-between px-4 py-3">
-        {/* Left - Premium Live Badge */}
-        <div className="flex items-center gap-2">
-          <div className="flex items-center gap-2 bg-black/50 backdrop-blur-xl rounded-full pl-1.5 pr-3.5 py-1.5 border border-white/10">
-            {/* Animated Live Dot */}
-            <div className="relative flex items-center justify-center h-6 w-6">
-              <span className="absolute h-full w-full rounded-full bg-stream-live/40 animate-ping" />
-              <span className="absolute h-4 w-4 rounded-full bg-stream-live/60 animate-pulse" />
-              <span className="relative h-2.5 w-2.5 rounded-full bg-stream-live shadow-[0_0_10px_rgba(249,38,114,0.8)]" />
+      <div className="flex items-center justify-between px-3 py-3">
+        {/* Left - Host Info with Viewer Count */}
+        <div className="flex items-center gap-2 animate-fade-in-left">
+          {/* Host Avatar with Ring */}
+          <div className="relative">
+            <div className="absolute -inset-0.5 rounded-full bg-gradient-to-r from-stream-purple via-stream-coral to-stream-gold animate-spin-slow opacity-75" />
+            <Avatar className="relative h-10 w-10 ring-2 ring-black">
+              <AvatarImage src={hostAvatar} />
+              <AvatarFallback className="text-xs bg-neutral-800">{hostName[0]}</AvatarFallback>
+            </Avatar>
+          </div>
+
+          {/* Host Name & Viewer Count */}
+          <div className="bg-black/50 backdrop-blur-xl rounded-full pl-2 pr-3 py-1.5 border border-white/10">
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-semibold text-white truncate max-w-[70px]">{hostName}</span>
+              <div className="flex items-center gap-1 text-white/70">
+                <Users className="h-3 w-3" />
+                <span className="text-[10px] font-medium">{viewerCount.toLocaleString()}</span>
+              </div>
             </div>
-            <span className="text-xs font-bold text-white tracking-wider">LIVE</span>
-          </div>
-
-          {/* Viewer Count Pill */}
-          <div className="flex items-center gap-1.5 bg-black/50 backdrop-blur-xl rounded-full px-3 py-1.5 border border-white/10">
-            <Users className="h-3.5 w-3.5 text-white/80" />
-            <span className="text-xs font-semibold text-white">{viewerCount.toLocaleString()}</span>
-          </div>
-
-          {/* Quality Badge */}
-          <div className="flex items-center gap-1 bg-gradient-to-r from-stream-purple/80 to-stream-coral/80 backdrop-blur-xl rounded-full px-2.5 py-1 border border-white/20">
-            <Zap className="h-3 w-3 text-white" />
-            <span className="text-[10px] font-bold text-white">HD</span>
           </div>
         </div>
 
-        {/* Right - Actions */}
-        <div className="flex items-center gap-2">
-          {/* Report Button */}
-          <button className="h-9 w-9 rounded-full bg-black/50 backdrop-blur-xl border border-white/10 flex items-center justify-center press-effect hover:bg-white/10 transition-colors">
-            <Shield className="h-4 w-4 text-white/70" />
-          </button>
+        {/* Center - Top Viewers Row */}
+        <div className="flex items-center -space-x-1.5 animate-fade-in-up">
+          {topViewers.slice(0, 5).map((viewer, index) => (
+            <div key={viewer.id} className="relative" style={{ zIndex: 5 - index }}>
+              {/* VIP Frame */}
+              {viewer.isVIP && viewer.level >= 2 && (
+                <div className={cn(
+                  "absolute -inset-1 rounded-full",
+                  viewer.level === 3 
+                    ? "bg-gradient-to-r from-orange-400 via-yellow-400 to-orange-500" 
+                    : "bg-gradient-to-r from-stream-purple to-stream-coral"
+                )}>
+                  {/* Crown decoration for level 3 */}
+                  {viewer.level === 3 && (
+                    <div className="absolute -top-2 left-1/2 -translate-x-1/2">
+                      <span className="text-[10px]">👑</span>
+                    </div>
+                  )}
+                </div>
+              )}
+              <Avatar className={cn(
+                "relative h-8 w-8 ring-2",
+                viewer.isVIP ? "ring-black" : "ring-white/20"
+              )}>
+                <AvatarImage src={viewer.avatar} />
+                <AvatarFallback className="text-[8px] bg-neutral-800">U</AvatarFallback>
+              </Avatar>
+            </div>
+          ))}
+        </div>
 
-          {/* Mute Button */}
-          <button
-            onClick={onMuteToggle}
-            className="h-9 w-9 rounded-full bg-black/50 backdrop-blur-xl border border-white/10 flex items-center justify-center press-effect hover:bg-white/10 transition-colors"
-          >
-            {isMuted ? (
-              <VolumeX className="h-4.5 w-4.5 text-white/70" />
-            ) : (
-              <Volume2 className="h-4.5 w-4.5 text-white" />
-            )}
+        {/* Right - Actions */}
+        <div className="flex items-center gap-2 animate-fade-in-right">
+          {/* Add User Button */}
+          <button className="h-9 w-9 rounded-full bg-black/50 backdrop-blur-xl border border-white/10 flex items-center justify-center press-effect hover:bg-white/10 transition-colors">
+            <UserPlus className="h-4 w-4 text-white/80" />
           </button>
 
           {/* Close Button */}
           <button
             onClick={onClose}
-            className="h-9 w-9 rounded-full bg-white/10 backdrop-blur-xl border border-white/20 flex items-center justify-center press-effect hover:bg-white/20 transition-colors"
+            className="h-9 w-9 rounded-full bg-white/15 backdrop-blur-xl border border-white/20 flex items-center justify-center press-effect hover:bg-white/25 transition-colors"
           >
             <X className="h-5 w-5 text-white" />
           </button>
