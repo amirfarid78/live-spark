@@ -2,7 +2,7 @@ import React from "react";
 import { Camera, Upload, Video, Radio, Mic, Image, Sparkles, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 
 const createOptions = [
@@ -49,6 +49,16 @@ const createOptions = [
 ];
 
 export default function Create() {
+  const navigate = useNavigate();
+
+  const handleOptionClick = (optionId: string) => {
+    if (optionId === 'video') {
+      navigate('/record');
+    } else if (optionId === 'live') {
+      navigate('/live');
+    }
+  };
+
   return (
     <div className="flex min-h-screen flex-col bg-background">
       {/* Header */}
@@ -81,6 +91,7 @@ export default function Create() {
               return (
                 <button
                   key={option.id}
+                  onClick={() => handleOptionClick(option.id)}
                   className={cn(
                     "group relative overflow-hidden rounded-2xl p-6 text-left transition-all press-effect card-hover animate-fade-in-up",
                     `stagger-${index + 1}`
