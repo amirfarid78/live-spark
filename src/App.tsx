@@ -7,6 +7,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { MainLayout } from "@/components/layout/MainLayout";
 import Live from "./pages/Live";
 import Discover from "./pages/Discover";
+import Feed from "./pages/Feed";
 import Create from "./pages/Create";
 import Messages from "./pages/Messages";
 import Profile from "./pages/Profile";
@@ -26,10 +27,12 @@ function App() {
               <Route path="/" element={<Navigate to="/discover" replace />} />
               <Route path="/live" element={<Live />} />
               <Route path="/discover" element={<Discover />} />
-              <Route path="/create" element={<Create />} />
               <Route path="/messages" element={<Messages />} />
               <Route path="/profile" element={<Profile />} />
             </Route>
+            {/* Full-screen routes without bottom nav */}
+            <Route path="/feed" element={<Feed />} />
+            <Route path="/create" element={<Create />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
