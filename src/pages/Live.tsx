@@ -1,15 +1,20 @@
 import React, { useState } from "react";
-import { Radio, Search, Bell, Flame, Swords, Headphones, Users, ChevronRight, Sparkles, Play } from "lucide-react";
+import { Radio, Search, Bell, Flame, Swords, Headphones, Users, ChevronRight, Play, Mic2, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import { LiveRoomViewer } from "@/components/live/LiveRoomViewer";
 import { GoLiveSheet } from "@/components/live/GoLiveSheet";
+import { PartyRoomCard, PartyRoom } from "@/components/party/PartyRoomCard";
+import { PartyRoomList } from "@/components/party/PartyRoomList";
+import { PartyRoomViewer } from "@/components/party/PartyRoomViewer";
+import { CreatePartySheet, PartySettings } from "@/components/party/CreatePartySheet";
 
 const categories = [
   { id: "all", label: "All", icon: Flame },
   { id: "pk", label: "PK Battles", icon: Swords },
+  { id: "party", label: "Party", icon: Mic2 },
   { id: "audio", label: "Audio", icon: Headphones },
   { id: "following", label: "Following", icon: Users },
 ];
@@ -31,20 +36,41 @@ const mockStreams = [
   { id: 6, title: "Art Stream", host: "Creative K", viewers: 432, thumbnail: "https://images.unsplash.com/photo-1460661419201-fd4cecdf8a8b?w=400&h=600&fit=crop", isLive: true, isPK: false, category: "Art" },
 ];
 
+const mockPartyRooms: PartyRoom[] = [
+  { id: "party-1", name: "Late Night Chill 🌙", hostName: "Miss Aanya Khan", hostAvatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100", viewerCount: 1523, speakerCount: 5, maxSpeakers: 8, isPrivate: false, isLive: true, category: "Chat", tags: ["chill", "vibes", "midnight"] },
+  { id: "party-2", name: "Music Lovers Only 🎵", hostName: "DJ Party Pandey", hostAvatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100", viewerCount: 892, speakerCount: 6, maxSpeakers: 8, isPrivate: false, isLive: true, category: "Music", tags: ["music", "dj", "party"] },
+  { id: "party-3", name: "VIP Lounge ✨", hostName: "Manish Rao", hostAvatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100", viewerCount: 567, speakerCount: 4, maxSpeakers: 6, isPrivate: true, isLive: true, category: "Dating", tags: ["vip", "exclusive"] },
+  { id: "party-4", name: "Gaming Squad 🎮", hostName: "Miss Ninja Girl", hostAvatar: "https://images.unsplash.com/photo-1517841905240-472988babdf9?w=100", viewerCount: 2341, speakerCount: 8, maxSpeakers: 12, isPrivate: false, isLive: true, category: "Gaming", tags: ["gaming", "squad"] },
+  { id: "party-5", name: "Talent Show ⭐", hostName: "Dusty Andrew", hostAvatar: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100", viewerCount: 1890, speakerCount: 3, maxSpeakers: 8, isPrivate: false, isLive: true, category: "Talent", tags: ["talent", "singing", "performance"] },
+];
+
 export default function Live() {
   const [activeCategory, setActiveCategory] = useState("all");
   const [selectedStream, setSelectedStream] = useState<typeof mockStreams[0] | null>(null);
+  const [selectedPartyRoom, setSelectedPartyRoom] = useState<PartyRoom | null>(null);
   const [showGoLive, setShowGoLive] = useState(false);
+  const [showCreateParty, setShowCreateParty] = useState(false);
 
   const handleStreamClick = (stream: typeof mockStreams[0]) => {
     setSelectedStream(stream);
   };
 
+  const handlePartyRoomClick = (room: PartyRoom) => {
+    setSelectedPartyRoom(room);
+  };
+
   const handleGoLive = (settings: any) => {
     console.log("Going live with settings:", settings);
     setShowGoLive(false);
-    // In production, this would connect to Agora.io
   };
+
+  const handleCreateParty = (settings: PartySettings) => {
+    console.log("Creating party with settings:", settings);
+    setShowCreateParty(false);
+    // In production, this would create the room in the database
+  };
+
+  const showPartyRooms = activeCategory === "party" || activeCategory === "audio";
 
   return (
     <div className="flex flex-col min-h-screen bg-background">
@@ -95,116 +121,148 @@ export default function Live() {
         </div>
       </header>
 
-      {/* Featured Streamers */}
-      <section className="px-4 py-4">
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Featured</h2>
-          <button className="text-xs text-primary font-medium flex items-center gap-1 press-effect">
-            See all <ChevronRight className="h-3 w-3" />
-          </button>
-        </div>
-        <div className="flex gap-4 overflow-x-auto hide-scrollbar pb-2">
-          {featuredStreamers.map((streamer, index) => (
-            <div 
-              key={streamer.id} 
-              className={cn(
-                "flex flex-col items-center gap-2 animate-fade-in-up",
-                `stagger-${index + 1}`
-              )}
+      {/* Party Rooms Section */}
+      {showPartyRooms ? (
+        <div className="px-4 py-4 pb-24">
+          {/* Party Header */}
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h2 className="text-lg font-semibold">Party Rooms</h2>
+              <p className="text-xs text-muted-foreground">{mockPartyRooms.length} rooms active</p>
+            </div>
+            <Button
+              onClick={() => setShowCreateParty(true)}
+              className="bg-gradient-primary text-white h-9 px-4 gap-2"
             >
-              <div className="relative">
-                <Avatar className={cn(
-                  "h-16 w-16 ring-2 ring-offset-2 ring-offset-background transition-all",
-                  streamer.isLive ? "ring-stream-live ring-pulse" : "ring-border"
-                )}>
-                  <AvatarImage src={streamer.avatar} />
-                  <AvatarFallback>{streamer.name[0]}</AvatarFallback>
-                </Avatar>
-                {streamer.isLive && (
-                  <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 rounded-full bg-stream-live px-2 py-0.5 text-[10px] font-bold text-white shadow-lg">
-                    LIVE
-                  </span>
-                )}
-              </div>
-              <span className="text-xs font-medium truncate max-w-[64px]">{streamer.name}</span>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* Stream Grid */}
-      <div className="grid grid-cols-2 gap-3 px-4 pb-24">
-        {mockStreams.map((stream, index) => (
-          <div
-            key={stream.id}
-            onClick={() => handleStreamClick(stream)}
-            className={cn(
-              "group relative aspect-[3/4] overflow-hidden rounded-2xl bg-muted cursor-pointer card-hover animate-fade-in-up",
-              `stagger-${(index % 6) + 1}`
-            )}
-          >
-            <img
-              src={stream.thumbnail}
-              alt={stream.title}
-              className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
-            />
-            {/* Gradient overlay */}
-            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-black/30" />
-            
-            {/* Play button overlay */}
-            <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-              <div className="h-14 w-14 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center">
-                <Play className="h-7 w-7 text-white fill-white ml-1" />
-              </div>
-            </div>
-            
-            {/* Live badge */}
-            <div className="absolute left-2 top-2 flex items-center gap-1.5">
-              <Badge className="bg-stream-live text-white border-0 px-2 py-0.5 text-[10px] font-bold shadow-lg">
-                <span className="mr-1 h-1.5 w-1.5 rounded-full bg-white animate-pulse" />
-                LIVE
-              </Badge>
-              {stream.isPK && (
-                <Badge className="bg-gradient-gold text-black border-0 px-2 py-0.5 text-[10px] font-bold shadow-lg">
-                  <Swords className="mr-1 h-3 w-3" />
-                  PK
-                </Badge>
-              )}
-            </div>
-
-            {/* Category tag */}
-            <div className="absolute right-2 top-2">
-              <Badge variant="secondary" className="bg-black/50 text-white border-0 text-[10px] backdrop-blur-sm">
-                {stream.category}
-              </Badge>
-            </div>
-
-            {/* Viewer count */}
-            <div className="absolute left-2 bottom-14">
-              <Badge variant="secondary" className="bg-black/50 text-white border-0 text-[10px] backdrop-blur-sm">
-                <Users className="mr-1 h-3 w-3" />
-                {stream.viewers.toLocaleString()}
-              </Badge>
-            </div>
-
-            {/* Stream info */}
-            <div className="absolute bottom-0 left-0 right-0 p-3">
-              <p className="line-clamp-1 text-sm font-semibold text-white mb-0.5">
-                {stream.title}
-              </p>
-              <p className="text-xs text-white/70">{stream.host}</p>
-            </div>
+              <Plus className="h-4 w-4" />
+              Create
+            </Button>
           </div>
-        ))}
-      </div>
+
+          {/* Party Room List */}
+          <PartyRoomList 
+            rooms={mockPartyRooms} 
+            onRoomClick={handlePartyRoomClick} 
+          />
+        </div>
+      ) : (
+        <>
+          {/* Featured Streamers */}
+          <section className="px-4 py-4">
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Featured</h2>
+              <button className="text-xs text-primary font-medium flex items-center gap-1 press-effect">
+                See all <ChevronRight className="h-3 w-3" />
+              </button>
+            </div>
+            <div className="flex gap-4 overflow-x-auto hide-scrollbar pb-2">
+              {featuredStreamers.map((streamer, index) => (
+                <div 
+                  key={streamer.id} 
+                  className={cn(
+                    "flex flex-col items-center gap-2 animate-fade-in-up",
+                    `stagger-${index + 1}`
+                  )}
+                >
+                  <div className="relative">
+                    <Avatar className={cn(
+                      "h-16 w-16 ring-2 ring-offset-2 ring-offset-background transition-all",
+                      streamer.isLive ? "ring-stream-live ring-pulse" : "ring-border"
+                    )}>
+                      <AvatarImage src={streamer.avatar} />
+                      <AvatarFallback>{streamer.name[0]}</AvatarFallback>
+                    </Avatar>
+                    {streamer.isLive && (
+                      <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 rounded-full bg-stream-live px-2 py-0.5 text-[10px] font-bold text-white shadow-lg">
+                        LIVE
+                      </span>
+                    )}
+                  </div>
+                  <span className="text-xs font-medium truncate max-w-[64px]">{streamer.name}</span>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          {/* Stream Grid */}
+          <div className="grid grid-cols-2 gap-3 px-4 pb-24">
+            {mockStreams.map((stream, index) => (
+              <div
+                key={stream.id}
+                onClick={() => handleStreamClick(stream)}
+                className={cn(
+                  "group relative aspect-[3/4] overflow-hidden rounded-2xl bg-muted cursor-pointer card-hover animate-fade-in-up",
+                  `stagger-${(index % 6) + 1}`
+                )}
+              >
+                <img
+                  src={stream.thumbnail}
+                  alt={stream.title}
+                  className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                />
+                {/* Gradient overlay */}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-black/30" />
+                
+                {/* Play button overlay */}
+                <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                  <div className="h-14 w-14 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center">
+                    <Play className="h-7 w-7 text-white fill-white ml-1" />
+                  </div>
+                </div>
+                
+                {/* Live badge */}
+                <div className="absolute left-2 top-2 flex items-center gap-1.5">
+                  <Badge className="bg-stream-live text-white border-0 px-2 py-0.5 text-[10px] font-bold shadow-lg">
+                    <span className="mr-1 h-1.5 w-1.5 rounded-full bg-white animate-pulse" />
+                    LIVE
+                  </Badge>
+                  {stream.isPK && (
+                    <Badge className="bg-gradient-gold text-black border-0 px-2 py-0.5 text-[10px] font-bold shadow-lg">
+                      <Swords className="mr-1 h-3 w-3" />
+                      PK
+                    </Badge>
+                  )}
+                </div>
+
+                {/* Category tag */}
+                <div className="absolute right-2 top-2">
+                  <Badge variant="secondary" className="bg-black/50 text-white border-0 text-[10px] backdrop-blur-sm">
+                    {stream.category}
+                  </Badge>
+                </div>
+
+                {/* Viewer count */}
+                <div className="absolute left-2 bottom-14">
+                  <Badge variant="secondary" className="bg-black/50 text-white border-0 text-[10px] backdrop-blur-sm">
+                    <Users className="mr-1 h-3 w-3" />
+                    {stream.viewers.toLocaleString()}
+                  </Badge>
+                </div>
+
+                {/* Stream info */}
+                <div className="absolute bottom-0 left-0 right-0 p-3">
+                  <p className="line-clamp-1 text-sm font-semibold text-white mb-0.5">
+                    {stream.title}
+                  </p>
+                  <p className="text-xs text-white/70">{stream.host}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
 
       {/* Go Live FAB */}
       <button
-        onClick={() => setShowGoLive(true)}
+        onClick={() => showPartyRooms ? setShowCreateParty(true) : setShowGoLive(true)}
         className="fixed bottom-24 right-4 h-14 w-14 rounded-full bg-gradient-live shadow-xl shadow-stream-live/30 flex items-center justify-center press-effect z-30"
       >
         <div className="absolute inset-0 rounded-full bg-gradient-live animate-pulse opacity-50" />
-        <Radio className="h-6 w-6 text-white relative z-10" />
+        {showPartyRooms ? (
+          <Mic2 className="h-6 w-6 text-white relative z-10" />
+        ) : (
+          <Radio className="h-6 w-6 text-white relative z-10" />
+        )}
       </button>
 
       {/* Live Room Viewer */}
@@ -219,11 +277,27 @@ export default function Live() {
         />
       )}
 
+      {/* Party Room Viewer */}
+      {selectedPartyRoom && (
+        <PartyRoomViewer
+          room={selectedPartyRoom}
+          onClose={() => setSelectedPartyRoom(null)}
+        />
+      )}
+
       {/* Go Live Sheet */}
       {showGoLive && (
         <GoLiveSheet
           onClose={() => setShowGoLive(false)}
           onGoLive={handleGoLive}
+        />
+      )}
+
+      {/* Create Party Sheet */}
+      {showCreateParty && (
+        <CreatePartySheet
+          onClose={() => setShowCreateParty(false)}
+          onCreate={handleCreateParty}
         />
       )}
     </div>
