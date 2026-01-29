@@ -14,16 +14,127 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      followers: {
+        Row: {
+          created_at: string
+          follower_id: string
+          following_id: string
+          id: string
+        }
+        Insert: {
+          created_at?: string
+          follower_id: string
+          following_id: string
+          id?: string
+        }
+        Update: {
+          created_at?: string
+          follower_id?: string
+          following_id?: string
+          id?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          bio: string | null
+          coins_balance: number | null
+          cover_url: string | null
+          created_at: string
+          diamonds_balance: number | null
+          display_name: string | null
+          followers_count: number | null
+          following_count: number | null
+          id: string
+          is_online: boolean | null
+          is_verified: boolean | null
+          last_seen_at: string | null
+          level: Database["public"]["Enums"]["user_level"] | null
+          likes_count: number | null
+          updated_at: string
+          user_id: string
+          username: string | null
+        }
+        Insert: {
+          avatar_url?: string | null
+          bio?: string | null
+          coins_balance?: number | null
+          cover_url?: string | null
+          created_at?: string
+          diamonds_balance?: number | null
+          display_name?: string | null
+          followers_count?: number | null
+          following_count?: number | null
+          id?: string
+          is_online?: boolean | null
+          is_verified?: boolean | null
+          last_seen_at?: string | null
+          level?: Database["public"]["Enums"]["user_level"] | null
+          likes_count?: number | null
+          updated_at?: string
+          user_id: string
+          username?: string | null
+        }
+        Update: {
+          avatar_url?: string | null
+          bio?: string | null
+          coins_balance?: number | null
+          cover_url?: string | null
+          created_at?: string
+          diamonds_balance?: number | null
+          display_name?: string | null
+          followers_count?: number | null
+          following_count?: number | null
+          id?: string
+          is_online?: boolean | null
+          is_verified?: boolean | null
+          last_seen_at?: string | null
+          level?: Database["public"]["Enums"]["user_level"] | null
+          likes_count?: number | null
+          updated_at?: string
+          user_id?: string
+          username?: string | null
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "moderator" | "user" | "creator" | "vip"
+      user_level: "bronze" | "silver" | "gold" | "platinum" | "diamond"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +261,9 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "moderator", "user", "creator", "vip"],
+      user_level: ["bronze", "silver", "gold", "platinum", "diamond"],
+    },
   },
 } as const

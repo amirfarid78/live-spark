@@ -1,17 +1,14 @@
 import React from "react";
-import { Settings, Share2, Edit2, Grid3X3, Heart, Bookmark, Coins, Users, UserPlus, Trophy, ChevronRight, Sparkles, Star, Gift } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
+import { Settings, Share2, Edit2, Grid3X3, Heart, Bookmark, Coins, Users, UserPlus, Trophy, LogOut, Sparkles, Star, Gift } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
-
-const stats = [
-  { label: "Following", value: "234" },
-  { label: "Followers", value: "12.5K" },
-  { label: "Likes", value: "89.2K" },
-];
+import { useAuth } from "@/contexts/AuthContext";
+import { useProfile } from "@/hooks/useProfile";
+import { toast } from "@/hooks/use-toast";
 
 const badges = [
   { icon: Star, label: "Top Creator", color: "from-yellow-400 to-orange-500" },
@@ -28,7 +25,80 @@ const userVideos = [
   { id: 6, thumbnail: "https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=300&h=400&fit=crop", views: "9.8K", likes: "980" },
 ];
 
+const formatNumber = (num: number) => {
+  if (num >= 1000000) return `${(num / 1000000).toFixed(1)}M`;
+  if (num >= 1000) return `${(num / 1000).toFixed(1)}K`;
+  return num.toString();
+};
+
 export default function Profile() {
+  const { user, signOut } = useAuth();
+  const { profile, loading } = useProfile();
+  const navigate = useNavigate();
+
+  const handleSignOut = async () => {
+    await signOut();
+    toast({ title: "Signed out", description: "You've been signed out successfully" });
+    navigate("/");
+  };
+
+  // Not logged in state
+  if (!user) {
+    return (
+      <div className="flex flex-col min-h-screen bg-background">
+        <header className="sticky top-0 z-40 glass border-b border-border/50">
+          <div className="flex items-center justify-between px-4 py-3">
+            <h1 className="text-xl font-bold">Profile</h1>
+          </div>
+        </header>
+
+        <div className="flex-1 flex flex-col items-center justify-center px-6 pb-20">
+          <div className="h-20 w-20 rounded-full bg-secondary flex items-center justify-center mb-4">
+            <UserPlus className="h-10 w-10 text-muted-foreground" />
+          </div>
+          <h2 className="text-xl font-bold mb-2">Join StreamVerse</h2>
+          <p className="text-muted-foreground text-center mb-6">
+            Create an account to start streaming, follow creators, and connect with the community
+          </p>
+          <div className="flex gap-3 w-full max-w-xs">
+            <Button asChild className="flex-1 bg-gradient-to-r from-stream-purple to-stream-coral">
+              <Link to="/signup">Sign Up</Link>
+            </Button>
+            <Button asChild variant="outline" className="flex-1">
+              <Link to="/login">Log In</Link>
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Loading state
+  if (loading) {
+    return (
+      <div className="flex flex-col min-h-screen bg-background">
+        <header className="sticky top-0 z-40 glass border-b border-border/50">
+          <div className="flex items-center justify-between px-4 py-3">
+            <h1 className="text-xl font-bold">Profile</h1>
+          </div>
+        </header>
+        <div className="flex-1 flex items-center justify-center">
+          <div className="animate-pulse flex flex-col items-center gap-4">
+            <div className="h-24 w-24 rounded-full bg-muted" />
+            <div className="h-4 w-32 rounded bg-muted" />
+            <div className="h-3 w-24 rounded bg-muted" />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const stats = [
+    { label: "Following", value: formatNumber(profile?.following_count || 0) },
+    { label: "Followers", value: formatNumber(profile?.followers_count || 0) },
+    { label: "Likes", value: formatNumber(profile?.likes_count || 0) },
+  ];
+
   return (
     <div className="flex flex-col min-h-screen bg-background">
       {/* Header */}
@@ -38,6 +108,9 @@ export default function Profile() {
           <div className="flex items-center gap-1">
             <Button variant="ghost" size="icon" className="h-10 w-10 rounded-xl press-effect">
               <Share2 className="h-5 w-5" />
+            </Button>
+            <Button variant="ghost" size="icon" className="h-10 w-10 rounded-xl press-effect" onClick={handleSignOut}>
+              <LogOut className="h-5 w-5" />
             </Button>
             <Button variant="ghost" size="icon" className="h-10 w-10 rounded-xl press-effect">
               <Settings className="h-5 w-5" />
@@ -50,18 +123,22 @@ export default function Profile() {
       <div className="px-4 py-6">
         {/* Avatar & Stats */}
         <div className="flex items-start gap-5">
-          {/* Avatar */}
           <div className="relative">
             <Avatar className="h-24 w-24 ring-4 ring-primary/20 ring-offset-2 ring-offset-background">
-              <AvatarImage src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=200" alt="User" />
-              <AvatarFallback className="text-3xl">JD</AvatarFallback>
+              <AvatarImage 
+                src={profile?.avatar_url || `https://api.dicebear.com/7.x/initials/svg?seed=${profile?.display_name || 'User'}`} 
+                alt={profile?.display_name || "User"} 
+              />
+              <AvatarFallback className="text-3xl">
+                {(profile?.display_name || user?.email || "U")[0].toUpperCase()}
+              </AvatarFallback>
             </Avatar>
             <button className="absolute -bottom-1 -right-1 flex h-8 w-8 items-center justify-center rounded-full bg-gradient-primary text-white shadow-lg press-effect">
               <Edit2 className="h-4 w-4" />
             </button>
             {/* Level Badge */}
             <div className="absolute -top-2 -right-2 flex h-8 w-8 items-center justify-center rounded-full bg-gradient-gold text-xs font-bold text-black shadow-lg ring-2 ring-background">
-              28
+              {profile?.level === "diamond" ? "💎" : profile?.level === "platinum" ? "🏆" : profile?.level === "gold" ? "🥇" : "1"}
             </div>
           </div>
 
@@ -85,39 +162,41 @@ export default function Profile() {
         {/* User Info */}
         <div className="mt-5">
           <div className="flex items-center gap-2">
-            <h2 className="text-xl font-bold">John Doe</h2>
-            <div className="flex h-5 w-5 items-center justify-center rounded-full bg-primary text-white">
-              <svg className="h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-              </svg>
-            </div>
+            <h2 className="text-xl font-bold">{profile?.display_name || "User"}</h2>
+            {profile?.is_verified && (
+              <div className="flex h-5 w-5 items-center justify-center rounded-full bg-primary text-white">
+                <svg className="h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                </svg>
+              </div>
+            )}
           </div>
-          <p className="text-sm text-muted-foreground">@johndoe</p>
+          <p className="text-sm text-muted-foreground">@{profile?.username || "user"}</p>
           <p className="mt-3 text-sm leading-relaxed">
-            🎬 Content Creator | 🎮 Gamer | 🎵 Music Lover
-            <br />
-            Making awesome content every day! ✨
+            {profile?.bio || "No bio yet. Tap Edit Profile to add one!"}
           </p>
           
           {/* Badges */}
-          <div className="mt-3 flex gap-2">
-            {badges.map((badge, index) => {
-              const Icon = badge.icon;
-              return (
-                <div 
-                  key={badge.label}
-                  className={cn(
-                    "flex items-center gap-1.5 rounded-full bg-gradient-to-r px-3 py-1 text-white text-xs font-medium animate-fade-in-up",
-                    badge.color,
-                    `stagger-${index + 1}`
-                  )}
-                >
-                  <Icon className="h-3 w-3" />
-                  {badge.label}
-                </div>
-              );
-            })}
-          </div>
+          {profile?.is_verified && (
+            <div className="mt-3 flex gap-2">
+              {badges.slice(0, profile.is_verified ? 3 : 0).map((badge, index) => {
+                const Icon = badge.icon;
+                return (
+                  <div 
+                    key={badge.label}
+                    className={cn(
+                      "flex items-center gap-1.5 rounded-full bg-gradient-to-r px-3 py-1 text-white text-xs font-medium animate-fade-in-up",
+                      badge.color,
+                      `stagger-${index + 1}`
+                    )}
+                  >
+                    <Icon className="h-3 w-3" />
+                    {badge.label}
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
 
         {/* Action Buttons */}
@@ -142,7 +221,9 @@ export default function Profile() {
                 </div>
                 <div>
                   <p className="text-xs text-muted-foreground font-medium">Coin Balance</p>
-                  <p className="text-2xl font-bold text-gradient">12,450</p>
+                  <p className="text-2xl font-bold text-gradient">
+                    {formatNumber(profile?.coins_balance || 0)}
+                  </p>
                 </div>
               </div>
               <Button size="sm" className="bg-gradient-primary hover:opacity-90 rounded-xl font-semibold shadow-lg shadow-primary/20">
@@ -155,10 +236,10 @@ export default function Profile() {
         {/* Quick Actions */}
         <div className="mt-5 grid grid-cols-4 gap-3">
           {[
-            { icon: Trophy, label: "Badges", count: "12" },
-            { icon: Users, label: "Friends", count: "234" },
+            { icon: Trophy, label: "Badges", count: "0" },
+            { icon: Users, label: "Friends", count: formatNumber(profile?.followers_count || 0) },
             { icon: UserPlus, label: "Invite", count: "" },
-            { icon: Bookmark, label: "Saved", count: "45" },
+            { icon: Bookmark, label: "Saved", count: "0" },
           ].map((item, index) => {
             const Icon = item.icon;
             return (
