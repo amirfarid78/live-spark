@@ -385,4 +385,23 @@
     -webkit-text-fill-color: transparent;
     background-clip: text;
   }
+
+  .animate-gift-particle {
+    animation: gift-particle 2s ease-out forwards;
+  }
+
+  @keyframes gift-particle {
+    0% {
+      opacity: 0;
+      transform: translateY(0) scale(0.5);
+    }
+    20% {
+      opacity: 1;
+      transform: translateY(-20px) scale(1);
+    }
+    100% {
+      opacity: 0;
+      transform: translateY(-150px) scale(0.3) rotate(360deg);
+    }
+  }
 }
