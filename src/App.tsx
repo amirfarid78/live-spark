@@ -3,7 +3,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { MainLayout } from "@/components/layout/MainLayout";
 import Live from "./pages/Live";
 import Discover from "./pages/Discover";
@@ -23,17 +23,19 @@ function App() {
         <Sonner />
         <BrowserRouter>
           <Routes>
+            {/* Feed is the default home - full screen like TikTok */}
+            <Route path="/" element={<Feed />} />
+            <Route path="/feed" element={<Feed />} />
+            <Route path="/create" element={<Create />} />
+            
+            {/* Pages with bottom navigation */}
             <Route element={<MainLayout />}>
-              <Route path="/" element={<Navigate to="/discover" replace />} />
               <Route path="/live" element={<Live />} />
               <Route path="/discover" element={<Discover />} />
               <Route path="/messages" element={<Messages />} />
               <Route path="/profile" element={<Profile />} />
             </Route>
-            {/* Full-screen routes without bottom nav */}
-            <Route path="/feed" element={<Feed />} />
-            <Route path="/create" element={<Create />} />
-            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+            
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
