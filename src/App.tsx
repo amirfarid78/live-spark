@@ -16,6 +16,7 @@ import Create from "./pages/Create";
 import VideoRecorder from "./pages/VideoRecorder";
 import Messages from "./pages/Messages";
 import Profile from "./pages/Profile";
+import CreatorStudio from "./pages/CreatorStudio";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import NotFound from "./pages/NotFound";
@@ -232,6 +233,11 @@ function AppContent() {
             </ProtectedRoute>
           } />
           <Route path="/profile" element={<Profile />} />
+          <Route path="/creator-studio" element={
+            <ProtectedRoute>
+              <CreatorStudio />
+            </ProtectedRoute>
+          } />
         </Route>
         
         {/* Protected routes without shell */}

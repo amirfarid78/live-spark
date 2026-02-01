@@ -14,6 +14,87 @@ export type Database = {
   }
   public: {
     Tables: {
+      coin_packages: {
+        Row: {
+          bonus_coins: number
+          coins: number
+          created_at: string
+          currency: string
+          id: string
+          is_active: boolean
+          is_popular: boolean
+          name: string
+          price_cents: number
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          bonus_coins?: number
+          coins: number
+          created_at?: string
+          currency?: string
+          id?: string
+          is_active?: boolean
+          is_popular?: boolean
+          name: string
+          price_cents: number
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          bonus_coins?: number
+          coins?: number
+          created_at?: string
+          currency?: string
+          id?: string
+          is_active?: boolean
+          is_popular?: boolean
+          name?: string
+          price_cents?: number
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      creator_earnings: {
+        Row: {
+          coins_value: number
+          created_at: string
+          creator_id: string
+          diamonds_earned: number
+          gift_icon: string
+          gift_name: string
+          id: string
+          live_session_id: string | null
+          pk_battle_id: string | null
+          sender_id: string
+        }
+        Insert: {
+          coins_value: number
+          created_at?: string
+          creator_id: string
+          diamonds_earned: number
+          gift_icon: string
+          gift_name: string
+          id?: string
+          live_session_id?: string | null
+          pk_battle_id?: string | null
+          sender_id: string
+        }
+        Update: {
+          coins_value?: number
+          created_at?: string
+          creator_id?: string
+          diamonds_earned?: number
+          gift_icon?: string
+          gift_name?: string
+          id?: string
+          live_session_id?: string | null
+          pk_battle_id?: string | null
+          sender_id?: string
+        }
+        Relationships: []
+      }
       followers: {
         Row: {
           created_at: string
@@ -32,6 +113,48 @@ export type Database = {
           follower_id?: string
           following_id?: string
           id?: string
+        }
+        Relationships: []
+      }
+      gift_history: {
+        Row: {
+          coins_spent: number
+          combo_count: number
+          created_at: string
+          diamonds_earned: number
+          gift_icon: string
+          gift_name: string
+          id: string
+          live_session_id: string | null
+          pk_battle_id: string | null
+          receiver_id: string
+          sender_id: string
+        }
+        Insert: {
+          coins_spent: number
+          combo_count?: number
+          created_at?: string
+          diamonds_earned: number
+          gift_icon: string
+          gift_name: string
+          id?: string
+          live_session_id?: string | null
+          pk_battle_id?: string | null
+          receiver_id: string
+          sender_id: string
+        }
+        Update: {
+          coins_spent?: number
+          combo_count?: number
+          created_at?: string
+          diamonds_earned?: number
+          gift_icon?: string
+          gift_name?: string
+          id?: string
+          live_session_id?: string | null
+          pk_battle_id?: string | null
+          receiver_id?: string
+          sender_id?: string
         }
         Relationships: []
       }
@@ -98,6 +221,51 @@ export type Database = {
         }
         Relationships: []
       }
+      transactions: {
+        Row: {
+          amount: number
+          coins: number
+          created_at: string
+          description: string | null
+          diamonds: number
+          id: string
+          metadata: Json | null
+          reference_id: string | null
+          status: Database["public"]["Enums"]["transaction_status"]
+          type: Database["public"]["Enums"]["transaction_type"]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          coins?: number
+          created_at?: string
+          description?: string | null
+          diamonds?: number
+          id?: string
+          metadata?: Json | null
+          reference_id?: string | null
+          status?: Database["public"]["Enums"]["transaction_status"]
+          type: Database["public"]["Enums"]["transaction_type"]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          coins?: number
+          created_at?: string
+          description?: string | null
+          diamonds?: number
+          id?: string
+          metadata?: Json | null
+          reference_id?: string | null
+          status?: Database["public"]["Enums"]["transaction_status"]
+          type?: Database["public"]["Enums"]["transaction_type"]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -119,6 +287,48 @@ export type Database = {
         }
         Relationships: []
       }
+      withdrawal_requests: {
+        Row: {
+          admin_notes: string | null
+          created_at: string
+          diamonds_amount: number
+          id: string
+          payment_details: Json
+          payment_method: string
+          processed_at: string | null
+          status: Database["public"]["Enums"]["withdrawal_status"]
+          updated_at: string
+          usd_amount: number
+          user_id: string
+        }
+        Insert: {
+          admin_notes?: string | null
+          created_at?: string
+          diamonds_amount: number
+          id?: string
+          payment_details?: Json
+          payment_method: string
+          processed_at?: string | null
+          status?: Database["public"]["Enums"]["withdrawal_status"]
+          updated_at?: string
+          usd_amount: number
+          user_id: string
+        }
+        Update: {
+          admin_notes?: string | null
+          created_at?: string
+          diamonds_amount?: number
+          id?: string
+          payment_details?: Json
+          payment_method?: string
+          processed_at?: string | null
+          status?: Database["public"]["Enums"]["withdrawal_status"]
+          updated_at?: string
+          usd_amount?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -134,7 +344,17 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "moderator" | "user" | "creator" | "vip"
+      transaction_status: "pending" | "completed" | "failed" | "cancelled"
+      transaction_type:
+        | "purchase"
+        | "gift_sent"
+        | "gift_received"
+        | "withdrawal"
+        | "refund"
+        | "bonus"
+        | "conversion"
       user_level: "bronze" | "silver" | "gold" | "platinum" | "diamond"
+      withdrawal_status: "pending" | "processing" | "completed" | "rejected"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -263,7 +483,18 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "moderator", "user", "creator", "vip"],
+      transaction_status: ["pending", "completed", "failed", "cancelled"],
+      transaction_type: [
+        "purchase",
+        "gift_sent",
+        "gift_received",
+        "withdrawal",
+        "refund",
+        "bonus",
+        "conversion",
+      ],
       user_level: ["bronze", "silver", "gold", "platinum", "diamond"],
+      withdrawal_status: ["pending", "processing", "completed", "rejected"],
     },
   },
 } as const
