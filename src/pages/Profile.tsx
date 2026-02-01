@@ -1,6 +1,6 @@
 import React from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Settings, Share2, Edit2, Grid3X3, Heart, Bookmark, Coins, Users, UserPlus, Trophy, LogOut, Sparkles, Star, Gift, Play, Camera, Mail, MapPin } from "lucide-react";
+import { Settings, Share2, Edit2, Grid3X3, Heart, Bookmark, Coins, Users, UserPlus, Trophy, LogOut, Sparkles, Star, Gift, Play, Camera, Mail, MapPin, BarChart3 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -254,15 +254,16 @@ export default function Profile() {
               <CardContent className="p-4">
                 <div className="grid grid-cols-2 gap-3">
                   {[
+                    { icon: BarChart3, label: "Studio", count: "", onClick: () => navigate("/creator-studio") },
                     { icon: Trophy, label: "Badges", count: "0" },
                     { icon: Users, label: "Friends", count: formatNumber(profile?.followers_count || 0) },
-                    { icon: UserPlus, label: "Invite", count: "" },
                     { icon: Bookmark, label: "Saved", count: "0" },
                   ].map((item) => {
                     const Icon = item.icon;
                     return (
                       <button
                         key={item.label}
+                        onClick={item.onClick}
                         className="flex flex-col items-center gap-2 rounded-xl bg-secondary/50 p-4 transition-all press-effect hover:bg-secondary"
                       >
                         <div className="relative">
@@ -509,15 +510,16 @@ export default function Profile() {
         {/* Quick Actions */}
         <div className="mt-5 grid grid-cols-4 gap-3">
           {[
+            { icon: BarChart3, label: "Studio", count: "", onClick: () => navigate("/creator-studio") },
             { icon: Trophy, label: "Badges", count: "0" },
             { icon: Users, label: "Friends", count: formatNumber(profile?.followers_count || 0) },
-            { icon: UserPlus, label: "Invite", count: "" },
             { icon: Bookmark, label: "Saved", count: "0" },
           ].map((item, index) => {
             const Icon = item.icon;
             return (
               <button
                 key={item.label}
+                onClick={item.onClick}
                 className={cn(
                   "flex flex-col items-center gap-2 rounded-2xl bg-secondary p-4 transition-all press-effect card-hover animate-fade-in-up",
                   `stagger-${index + 1}`
