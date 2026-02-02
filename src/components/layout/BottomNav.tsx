@@ -1,12 +1,12 @@
 import { NavLink, useLocation } from "react-router-dom";
-import { Search, Plus, MessageCircle, User, Home, Radio } from "lucide-react";
+import { Search, Plus, MessageCircle, User, Home, Radio, ShoppingBag } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const navItems = [
   { path: "/", icon: Home, label: "Home", activeIcon: true },
-  { path: "/live", icon: Radio, label: "Live" },
+  { path: "/shop", icon: ShoppingBag, label: "Shop" },
   { path: "/create", icon: Plus, label: "", isCreate: true },
-  { path: "/messages", icon: MessageCircle, label: "Inbox", badge: 3 },
+  { path: "/live", icon: Radio, label: "Live" },
   { path: "/profile", icon: User, label: "Profile", isProfile: true },
 ];
 
@@ -86,11 +86,6 @@ export function BottomNav() {
               <span className={cn("text-[10px]", isActive ? "font-semibold" : "font-medium")}>
                 {item.label}
               </span>
-              {item.badge && (
-                <span className="absolute top-1 right-2 flex h-4 min-w-4 items-center justify-center rounded-full bg-stream-coral text-[9px] font-bold text-white px-1">
-                  {item.badge}
-                </span>
-              )}
             </NavLink>
           );
         })}

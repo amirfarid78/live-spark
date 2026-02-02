@@ -8,6 +8,7 @@ import { MainLayout } from "@/components/layout/MainLayout";
 import { AppShell } from "@/components/layout/AppShell";
 import { Onboarding } from "@/components/onboarding/Onboarding";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
+import { useCartSync } from "@/hooks/useCartSync";
 import { Sparkles } from "lucide-react";
 import Live from "./pages/Live";
 import Discover from "./pages/Discover";
@@ -17,6 +18,8 @@ import VideoRecorder from "./pages/VideoRecorder";
 import Messages from "./pages/Messages";
 import Profile from "./pages/Profile";
 import CreatorStudio from "./pages/CreatorStudio";
+import Shop from "./pages/Shop";
+import ProductDetail from "./pages/ProductDetail";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import NotFound from "./pages/NotFound";
@@ -72,6 +75,8 @@ function AuthRoute({ children }: { children: React.ReactNode }) {
 }
 
 function AppContent() {
+  // Sync cart with Shopify when user returns from checkout
+  useCartSync();
   // PWA update notification
   const [waitingWorker, setWaitingWorker] = useState(null);
   const [showUpdate, setShowUpdate] = useState(false);
@@ -227,6 +232,7 @@ function AppContent() {
         <Route element={<AppShell />}>
           <Route path="/discover" element={<Discover />} />
           <Route path="/live" element={<Live />} />
+          <Route path="/shop" element={<Shop />} />
           <Route path="/messages" element={
             <ProtectedRoute>
               <Messages />
@@ -239,6 +245,9 @@ function AppContent() {
             </ProtectedRoute>
           } />
         </Route>
+        
+        {/* Shop product detail - no shell */}
+        <Route path="/shop/product/:handle" element={<ProductDetail />} />
         
         {/* Protected routes without shell */}
         <Route path="/create" element={

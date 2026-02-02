@@ -1,5 +1,5 @@
 import { NavLink, useLocation } from "react-router-dom";
-import { Home, Radio, Search, MessageCircle, User, Plus, TrendingUp, Crown, Star, Settings, Sparkles, Bell, Play, Upload, Globe } from "lucide-react";
+import { Home, Radio, Search, MessageCircle, User, Plus, TrendingUp, Crown, Star, Settings, Sparkles, Bell, Play, Upload, Globe, ShoppingBag } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -8,6 +8,7 @@ import logo from "@/assets/logo.png";
 
 const mainNavItems = [
   { path: "/", icon: Play, label: "Reels" },
+  { path: "/shop", icon: ShoppingBag, label: "Shop" },
   { path: "/live", icon: Radio, label: "Live Stream" },
   { path: "/discover", icon: Globe, label: "Social Feed" },
   { path: "/create", icon: Upload, label: "Upload" },
