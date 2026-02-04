@@ -1,12 +1,16 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, ShoppingCart, Minus, Plus, Loader2, Share2, Heart, ShoppingBag } from "lucide-react";
+import { ArrowLeft, ShoppingCart, Minus, Plus, Loader2, Share2, Heart, ShoppingBag, Truck, RotateCcw, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { fetchProductByHandle, ShopifyProduct } from "@/lib/shopify";
 import { useCartStore } from "@/stores/cartStore";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { ProductReviews } from "@/components/shop/ProductReviews";
+import { SimilarProducts } from "@/components/shop/SimilarProducts";
+import { SellerInfo } from "@/components/shop/SellerInfo";
 
 export default function ProductDetail() {
   const { handle } = useParams<{ handle: string }>();
@@ -18,8 +22,10 @@ export default function ProductDetail() {
   const [quantity, setQuantity] = useState(1);
   const [isAdding, setIsAdding] = useState(false);
   const [isLiked, setIsLiked] = useState(false);
+  const [activeTab, setActiveTab] = useState("description");
   
   const addItem = useCartStore(state => state.addItem);
+  const getCheckoutUrl = useCartStore(state => state.getCheckoutUrl);
 
   useEffect(() => {
     const loadProduct = async () => {
@@ -79,6 +85,34 @@ export default function ProductDetail() {
       });
     } catch (error) {
       toast.error("Failed to add to cart");
+    } finally {
+      setIsAdding(false);
+    }
+  };
+
+  const handleBuyNow = async () => {
+    if (!selectedVariant) return;
+    
+    setIsAdding(true);
+    try {
+      await addItem({
+        product: { node: product },
+        variantId: selectedVariant.id,
+        variantTitle: selectedVariant.title,
+        price: selectedVariant.price,
+        quantity,
+        selectedOptions: selectedVariant.selectedOptions || []
+      });
+      
+      // Wait for cart to update then open checkout
+      setTimeout(() => {
+        const checkoutUrl = getCheckoutUrl();
+        if (checkoutUrl) {
+          window.open(checkoutUrl, '_blank');
+        }
+      }, 500);
+    } catch (error) {
+      toast.error("Failed to process");
     } finally {
       setIsAdding(false);
     }
@@ -181,6 +215,22 @@ export default function ProductDetail() {
           </Badge>
         )}
 
+        {/* Shipping & Returns Info */}
+        <div className="flex gap-4 py-3 border-y">
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <Truck className="h-4 w-4 text-primary" />
+            <span>Free Shipping</span>
+          </div>
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <RotateCcw className="h-4 w-4 text-primary" />
+            <span>7 Days Return</span>
+          </div>
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <ShieldCheck className="h-4 w-4 text-primary" />
+            <span>Secure</span>
+          </div>
+        </div>
+
         {/* Variant Options */}
         {product.options?.map((option, optIdx) => (
           <div key={optIdx} className="space-y-2">
@@ -234,20 +284,45 @@ export default function ProductDetail() {
           </div>
         </div>
 
-        {/* Description */}
-        {product.description && (
-          <div className="space-y-2 pt-4 border-t">
-            <h3 className="font-medium">Description</h3>
-            <p className="text-muted-foreground text-sm leading-relaxed">
-              {product.description}
-            </p>
-          </div>
-        )}
+        {/* Seller Info */}
+        <SellerInfo />
+
+        {/* Tabs for Description, Reviews */}
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="pt-4">
+          <TabsList className="w-full">
+            <TabsTrigger value="description" className="flex-1">Description</TabsTrigger>
+            <TabsTrigger value="reviews" className="flex-1">Reviews</TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="description" className="mt-4">
+            {product.description ? (
+              <p className="text-muted-foreground text-sm leading-relaxed">
+                {product.description}
+              </p>
+            ) : (
+              <p className="text-muted-foreground text-sm italic">
+                No description available for this product.
+              </p>
+            )}
+          </TabsContent>
+          
+          <TabsContent value="reviews" className="mt-4">
+            <ProductReviews productId={product.id} />
+          </TabsContent>
+        </Tabs>
+
+        {/* Similar Products */}
+        <div className="pt-6">
+          <SimilarProducts 
+            currentProductId={product.id} 
+            currentProductTitle={product.title}
+          />
+        </div>
       </div>
 
       {/* Bottom Action Bar */}
       <div className="fixed bottom-0 left-0 right-0 p-4 bg-background border-t safe-area-inset-bottom">
-        <div className="flex gap-3">
+        <div className="flex gap-3 max-w-lg mx-auto">
           <Button
             variant="outline"
             size="lg"
@@ -267,7 +342,7 @@ export default function ProductDetail() {
           <Button
             size="lg"
             className="flex-1"
-            onClick={handleAddToCart}
+            onClick={handleBuyNow}
             disabled={!selectedVariant?.availableForSale || isAdding}
           >
             Buy Now
