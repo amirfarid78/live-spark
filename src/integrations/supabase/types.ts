@@ -14,6 +14,95 @@ export type Database = {
   }
   public: {
     Tables: {
+      affiliate_conversions: {
+        Row: {
+          affiliate_link_id: string
+          buyer_id: string | null
+          commission_amount: number
+          created_at: string
+          id: string
+          order_amount: number
+          order_id: string
+          status: string
+        }
+        Insert: {
+          affiliate_link_id: string
+          buyer_id?: string | null
+          commission_amount: number
+          created_at?: string
+          id?: string
+          order_amount: number
+          order_id: string
+          status?: string
+        }
+        Update: {
+          affiliate_link_id?: string
+          buyer_id?: string | null
+          commission_amount?: number
+          created_at?: string
+          id?: string
+          order_amount?: number
+          order_id?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "affiliate_conversions_affiliate_link_id_fkey"
+            columns: ["affiliate_link_id"]
+            isOneToOne: false
+            referencedRelation: "affiliate_links"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      affiliate_links: {
+        Row: {
+          clicks: number
+          commission_rate: number
+          conversions: number
+          created_at: string
+          creator_id: string
+          earnings: number
+          id: string
+          is_active: boolean
+          link_code: string
+          product_id: string
+          product_image: string | null
+          product_title: string
+          updated_at: string
+        }
+        Insert: {
+          clicks?: number
+          commission_rate?: number
+          conversions?: number
+          created_at?: string
+          creator_id: string
+          earnings?: number
+          id?: string
+          is_active?: boolean
+          link_code: string
+          product_id: string
+          product_image?: string | null
+          product_title: string
+          updated_at?: string
+        }
+        Update: {
+          clicks?: number
+          commission_rate?: number
+          conversions?: number
+          created_at?: string
+          creator_id?: string
+          earnings?: number
+          id?: string
+          is_active?: boolean
+          link_code?: string
+          product_id?: string
+          product_image?: string | null
+          product_title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       coin_packages: {
         Row: {
           bonus_coins: number
@@ -95,6 +184,48 @@ export type Database = {
         }
         Relationships: []
       }
+      creator_shops: {
+        Row: {
+          commission_rate: number
+          created_at: string
+          creator_id: string
+          id: string
+          is_verified: boolean
+          shop_banner_url: string | null
+          shop_description: string | null
+          shop_name: string | null
+          total_revenue: number
+          total_sales: number
+          updated_at: string
+        }
+        Insert: {
+          commission_rate?: number
+          created_at?: string
+          creator_id: string
+          id?: string
+          is_verified?: boolean
+          shop_banner_url?: string | null
+          shop_description?: string | null
+          shop_name?: string | null
+          total_revenue?: number
+          total_sales?: number
+          updated_at?: string
+        }
+        Update: {
+          commission_rate?: number
+          created_at?: string
+          creator_id?: string
+          id?: string
+          is_verified?: boolean
+          shop_banner_url?: string | null
+          shop_description?: string | null
+          shop_name?: string | null
+          total_revenue?: number
+          total_sales?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       followers: {
         Row: {
           created_at: string
@@ -155,6 +286,51 @@ export type Database = {
           pk_battle_id?: string | null
           receiver_id?: string
           sender_id?: string
+        }
+        Relationships: []
+      }
+      live_shopping_pins: {
+        Row: {
+          created_at: string
+          discount_percent: number | null
+          display_order: number
+          flash_sale_ends_at: string | null
+          id: string
+          is_active: boolean
+          is_flash_sale: boolean
+          live_session_id: string
+          product_id: string
+          product_image: string | null
+          product_price: number
+          product_title: string
+        }
+        Insert: {
+          created_at?: string
+          discount_percent?: number | null
+          display_order?: number
+          flash_sale_ends_at?: string | null
+          id?: string
+          is_active?: boolean
+          is_flash_sale?: boolean
+          live_session_id: string
+          product_id: string
+          product_image?: string | null
+          product_price: number
+          product_title: string
+        }
+        Update: {
+          created_at?: string
+          discount_percent?: number | null
+          display_order?: number
+          flash_sale_ends_at?: string | null
+          id?: string
+          is_active?: boolean
+          is_flash_sale?: boolean
+          live_session_id?: string
+          product_id?: string
+          product_image?: string | null
+          product_price?: number
+          product_title?: string
         }
         Relationships: []
       }
