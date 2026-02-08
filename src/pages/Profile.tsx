@@ -1,8 +1,7 @@
 import { Link, useNavigate } from "react-router-dom";
-import { Settings, LogOut, UserPlus, Grid3X3, Heart, Bookmark } from "lucide-react";
+import { Settings, LogOut, UserPlus, Grid3X3, Heart, Bookmark, Building2, Store } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
 import { useProfile } from "@/hooks/useProfile";
 import { toast } from "@/hooks/use-toast";
@@ -37,7 +36,6 @@ export default function Profile() {
     navigate("/");
   };
 
-  // Not logged in state
   if (!user) {
     return (
       <div className="flex flex-col min-h-screen bg-background">
@@ -46,36 +44,26 @@ export default function Profile() {
             <h1 className="text-xl font-bold">Profile</h1>
           </div>
         </header>
-
         <div className="flex-1 flex flex-col items-center justify-center px-6 pb-20">
           <div className="h-20 w-20 rounded-full bg-secondary flex items-center justify-center mb-4">
             <UserPlus className="h-10 w-10 text-muted-foreground" />
           </div>
           <h2 className="text-xl font-bold mb-2">Join Snap Live</h2>
-          <p className="text-muted-foreground text-center mb-6">
-            Create an account to start streaming, follow creators, and connect with the community
-          </p>
+          <p className="text-muted-foreground text-center mb-6">Create an account to start streaming, follow creators, and connect with the community</p>
           <div className="flex gap-3 w-full max-w-xs">
-            <Button asChild className="flex-1 bg-gradient-to-r from-stream-purple to-stream-coral">
-              <Link to="/signup">Sign Up</Link>
-            </Button>
-            <Button asChild variant="outline" className="flex-1">
-              <Link to="/login">Log In</Link>
-            </Button>
+            <Button asChild className="flex-1 bg-gradient-to-r from-stream-purple to-stream-coral"><Link to="/signup">Sign Up</Link></Button>
+            <Button asChild variant="outline" className="flex-1"><Link to="/login">Log In</Link></Button>
           </div>
         </div>
       </div>
     );
   }
 
-  // Loading state
   if (loading) {
     return (
       <div className="flex flex-col min-h-screen bg-background">
         <header className="sticky top-0 z-40 glass border-b border-border/50">
-          <div className="flex items-center justify-between px-4 py-3">
-            <h1 className="text-xl font-bold">Profile</h1>
-          </div>
+          <div className="flex items-center justify-between px-4 py-3"><h1 className="text-xl font-bold">Profile</h1></div>
         </header>
         <div className="flex-1 flex items-center justify-center">
           <div className="animate-pulse flex flex-col items-center gap-4">
@@ -90,7 +78,6 @@ export default function Profile() {
 
   return (
     <div className="flex flex-col min-h-screen bg-background">
-      {/* Header */}
       <header className="sticky top-0 z-40 glass border-b border-border/50">
         <div className="flex items-center justify-between px-4 py-3">
           <h1 className="text-xl font-bold">Profile</h1>
@@ -105,27 +92,23 @@ export default function Profile() {
         </div>
       </header>
 
-      {/* Profile Content */}
       <div className="flex-1 pb-24">
-        {/* Profile Header with Cover */}
-        <ProfileHeader 
+        <ProfileHeader
           profile={profile}
           userEmail={user?.email}
           onEditProfile={() => toast({ title: "Edit Profile", description: "Profile editing coming soon!" })}
           onShare={() => toast({ title: "Share", description: "Share link copied!" })}
         />
 
-        {/* Stats */}
-        <ProfileStats 
+        <ProfileStats
           following={profile?.following_count || 0}
           followers={profile?.followers_count || 0}
           likes={profile?.likes_count || 0}
           className="mt-5 mx-4 rounded-xl bg-card/50"
         />
 
-        {/* Wallet Cards */}
         <div className="px-4 mt-5">
-          <WalletCards 
+          <WalletCards
             coinsBalance={profile?.coins_balance || 0}
             diamondsBalance={profile?.diamonds_balance || 0}
             onTopUp={() => toast({ title: "Top Up", description: "Opening coin store..." })}
@@ -133,70 +116,68 @@ export default function Profile() {
           />
         </div>
 
-        {/* Level Progress */}
         <div className="px-4 mt-5">
-          <LevelProgress 
-            level={profile?.level || "bronze"}
-            currentXP={45}
-          />
+          <LevelProgress level={profile?.level || "bronze"} currentXP={45} />
         </div>
 
-        {/* Quick Actions */}
-        <div className="px-4 mt-5">
-          <QuickActions 
-            followersCount={profile?.followers_count || 0}
-            savedCount={0}
-          />
+        {/* Agency & Store Quick Links */}
+        <div className="px-4 mt-5 grid grid-cols-2 gap-3">
+          <button
+            onClick={() => navigate("/agency")}
+            className="flex items-center gap-3 p-3.5 rounded-2xl bg-gradient-to-br from-purple-500/10 to-pink-500/10 border border-purple-500/20 press-effect transition-all hover:shadow-lg"
+          >
+            <div className="h-10 w-10 rounded-xl bg-gradient-to-r from-purple-500 to-pink-500 flex items-center justify-center flex-shrink-0">
+              <Building2 className="h-5 w-5 text-white" />
+            </div>
+            <div className="text-left">
+              <p className="font-semibold text-sm">Agency</p>
+              <p className="text-[10px] text-muted-foreground">Join or manage</p>
+            </div>
+          </button>
+          <button
+            onClick={() => navigate("/store-management")}
+            className="flex items-center gap-3 p-3.5 rounded-2xl bg-gradient-to-br from-green-500/10 to-emerald-500/10 border border-green-500/20 press-effect transition-all hover:shadow-lg"
+          >
+            <div className="h-10 w-10 rounded-xl bg-gradient-to-r from-green-500 to-emerald-500 flex items-center justify-center flex-shrink-0">
+              <Store className="h-5 w-5 text-white" />
+            </div>
+            <div className="text-left">
+              <p className="font-semibold text-sm">My Store</p>
+              <p className="text-[10px] text-muted-foreground">Products & orders</p>
+            </div>
+          </button>
         </div>
 
-        {/* Content Tabs */}
+        <div className="px-4 mt-5">
+          <QuickActions followersCount={profile?.followers_count || 0} savedCount={0} />
+        </div>
+
         <Tabs defaultValue="videos" className="mt-6">
           <TabsList className="w-full justify-around border-b border-border bg-transparent h-14 rounded-none sticky top-[57px] z-30 glass">
-            <TabsTrigger 
-              value="videos" 
-              className="flex-1 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent h-full gap-2"
-            >
-              <Grid3X3 className="h-5 w-5" />
-              <span className="hidden sm:inline">Videos</span>
+            <TabsTrigger value="videos" className="flex-1 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent h-full gap-2">
+              <Grid3X3 className="h-5 w-5" /><span className="hidden sm:inline">Videos</span>
             </TabsTrigger>
-            <TabsTrigger 
-              value="liked" 
-              className="flex-1 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent h-full gap-2"
-            >
-              <Heart className="h-5 w-5" />
-              <span className="hidden sm:inline">Liked</span>
+            <TabsTrigger value="liked" className="flex-1 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent h-full gap-2">
+              <Heart className="h-5 w-5" /><span className="hidden sm:inline">Liked</span>
             </TabsTrigger>
-            <TabsTrigger 
-              value="saved" 
-              className="flex-1 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent h-full gap-2"
-            >
-              <Bookmark className="h-5 w-5" />
-              <span className="hidden sm:inline">Saved</span>
+            <TabsTrigger value="saved" className="flex-1 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent h-full gap-2">
+              <Bookmark className="h-5 w-5" /><span className="hidden sm:inline">Saved</span>
             </TabsTrigger>
           </TabsList>
 
           <TabsContent value="videos" className="mt-0">
-            <VideoGrid 
-              videos={userVideos}
-              columns={isMobile ? 3 : 4}
-            />
+            <VideoGrid videos={userVideos} columns={isMobile ? 3 : 4} />
           </TabsContent>
-
           <TabsContent value="liked" className="mt-0 flex items-center justify-center py-16">
             <div className="text-center text-muted-foreground animate-fade-in">
-              <div className="mx-auto h-16 w-16 rounded-full bg-secondary flex items-center justify-center mb-4">
-                <Heart className="h-8 w-8 opacity-50" />
-              </div>
+              <div className="mx-auto h-16 w-16 rounded-full bg-secondary flex items-center justify-center mb-4"><Heart className="h-8 w-8 opacity-50" /></div>
               <p className="font-semibold">Liked videos will appear here</p>
               <p className="text-sm mt-1">Videos you've liked will be saved here</p>
             </div>
           </TabsContent>
-
           <TabsContent value="saved" className="mt-0 flex items-center justify-center py-16">
             <div className="text-center text-muted-foreground animate-fade-in">
-              <div className="mx-auto h-16 w-16 rounded-full bg-secondary flex items-center justify-center mb-4">
-                <Bookmark className="h-8 w-8 opacity-50" />
-              </div>
+              <div className="mx-auto h-16 w-16 rounded-full bg-secondary flex items-center justify-center mb-4"><Bookmark className="h-8 w-8 opacity-50" /></div>
               <p className="font-semibold">Saved videos will appear here</p>
               <p className="text-sm mt-1">Bookmark videos to watch later</p>
             </div>

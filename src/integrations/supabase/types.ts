@@ -103,6 +103,152 @@ export type Database = {
         }
         Relationships: []
       }
+      agencies: {
+        Row: {
+          banner_url: string | null
+          commission_rate: number
+          contact_email: string | null
+          contact_phone: string | null
+          created_at: string
+          description: string | null
+          id: string
+          is_verified: boolean
+          logo_url: string | null
+          name: string
+          owner_id: string
+          status: Database["public"]["Enums"]["agency_status"]
+          total_creators: number
+          total_revenue: number
+          updated_at: string
+          website: string | null
+        }
+        Insert: {
+          banner_url?: string | null
+          commission_rate?: number
+          contact_email?: string | null
+          contact_phone?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_verified?: boolean
+          logo_url?: string | null
+          name: string
+          owner_id: string
+          status?: Database["public"]["Enums"]["agency_status"]
+          total_creators?: number
+          total_revenue?: number
+          updated_at?: string
+          website?: string | null
+        }
+        Update: {
+          banner_url?: string | null
+          commission_rate?: number
+          contact_email?: string | null
+          contact_phone?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_verified?: boolean
+          logo_url?: string | null
+          name?: string
+          owner_id?: string
+          status?: Database["public"]["Enums"]["agency_status"]
+          total_creators?: number
+          total_revenue?: number
+          updated_at?: string
+          website?: string | null
+        }
+        Relationships: []
+      }
+      agency_applications: {
+        Row: {
+          admin_notes: string | null
+          agency_name: string
+          contact_email: string
+          contact_phone: string | null
+          created_at: string
+          creator_count: number | null
+          description: string | null
+          experience: string | null
+          id: string
+          social_links: Json | null
+          status: Database["public"]["Enums"]["agency_status"]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          admin_notes?: string | null
+          agency_name: string
+          contact_email: string
+          contact_phone?: string | null
+          created_at?: string
+          creator_count?: number | null
+          description?: string | null
+          experience?: string | null
+          id?: string
+          social_links?: Json | null
+          status?: Database["public"]["Enums"]["agency_status"]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          admin_notes?: string | null
+          agency_name?: string
+          contact_email?: string
+          contact_phone?: string | null
+          created_at?: string
+          creator_count?: number | null
+          description?: string | null
+          experience?: string | null
+          id?: string
+          social_links?: Json | null
+          status?: Database["public"]["Enums"]["agency_status"]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      agency_members: {
+        Row: {
+          agency_id: string
+          commission_split: number
+          id: string
+          is_active: boolean
+          joined_at: string
+          role: string
+          total_earnings: number
+          user_id: string
+        }
+        Insert: {
+          agency_id: string
+          commission_split?: number
+          id?: string
+          is_active?: boolean
+          joined_at?: string
+          role?: string
+          total_earnings?: number
+          user_id: string
+        }
+        Update: {
+          agency_id?: string
+          commission_split?: number
+          id?: string
+          is_active?: boolean
+          joined_at?: string
+          role?: string
+          total_earnings?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agency_members_agency_id_fkey"
+            columns: ["agency_id"]
+            isOneToOne: false
+            referencedRelation: "agencies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       coin_packages: {
         Row: {
           bonus_coins: number
@@ -519,6 +665,7 @@ export type Database = {
       }
     }
     Enums: {
+      agency_status: "pending" | "approved" | "rejected" | "suspended"
       app_role: "admin" | "moderator" | "user" | "creator" | "vip"
       transaction_status: "pending" | "completed" | "failed" | "cancelled"
       transaction_type:
@@ -658,6 +805,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      agency_status: ["pending", "approved", "rejected", "suspended"],
       app_role: ["admin", "moderator", "user", "creator", "vip"],
       transaction_status: ["pending", "completed", "failed", "cancelled"],
       transaction_type: [

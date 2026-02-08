@@ -22,6 +22,8 @@ import Shop from "./pages/Shop";
 import ProductDetail from "./pages/ProductDetail";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
+import Agency from "./pages/Agency";
+import StoreManagement from "./pages/StoreManagement";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -242,6 +244,12 @@ function AppContent() {
           <Route path="/creator-studio" element={
             <ProtectedRoute>
               <CreatorStudio />
+            </ProtectedRoute>
+          } />
+          <Route path="/agency" element={<Agency />} />
+          <Route path="/store-management" element={
+            <ProtectedRoute>
+              <StoreManagement />
             </ProtectedRoute>
           } />
         </Route>
