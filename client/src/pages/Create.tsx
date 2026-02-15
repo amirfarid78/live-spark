@@ -11,13 +11,15 @@ import { useUpload } from "@/hooks/use-upload";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import api from "@/lib/api";
 import { toast } from "sonner";
+import { VideoRecorder } from "@/components/create/VideoRecorder";
+import { VideoEditor } from "@/components/create/VideoEditor";
 
 const createOptions = [
   {
-    id: "video",
+    id: "record",
     title: "Record Video",
-    description: "Create with effects & music",
-    icon: Video,
+    description: "Camera with effects & filters",
+    icon: Camera,
     gradient: "from-purple-500 to-pink-500",
     primary: true,
   },
@@ -55,13 +57,14 @@ const createOptions = [
   },
 ];
 
-type UploadStep = "select" | "upload" | "details" | "publishing";
+type CreateStep = "select" | "recording" | "editing" | "upload" | "details" | "publishing";
 
 export default function Create() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [step, setStep] = useState<UploadStep>("select");
+  const [step, setStep] = useState<CreateStep>("select");
+  const [recordedBlob, setRecordedBlob] = useState<Blob | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [videoPreviewUrl, setVideoPreviewUrl] = useState<string | null>(null);
   const [uploadedVideoPath, setUploadedVideoPath] = useState<string | null>(null);
@@ -93,6 +96,7 @@ export default function Create() {
       return res.data;
     },
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["videoFeed"] });
       queryClient.invalidateQueries({ queryKey: ["/api/videos/feed"] });
       queryClient.invalidateQueries({ queryKey: ["/api/videos/trending"] });
       toast.success("Video published successfully!");
@@ -104,37 +108,26 @@ export default function Create() {
     },
   });
 
-  const generateThumbnail = useCallback((file: File): Promise<Blob | null> => {
-    return new Promise((resolve) => {
-      const video = document.createElement("video");
-      video.preload = "metadata";
-      video.muted = true;
-      video.playsInline = true;
-
-      video.onloadeddata = () => {
-        video.currentTime = 1;
-      };
-
-      video.onseeked = () => {
-        const canvas = document.createElement("canvas");
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
-        const ctx = canvas.getContext("2d");
-        if (ctx) {
-          ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-          canvas.toBlob((blob) => {
-            resolve(blob);
-            URL.revokeObjectURL(video.src);
-          }, "image/jpeg", 0.8);
-        } else {
-          resolve(null);
-        }
-      };
-
-      video.onerror = () => resolve(null);
-      video.src = URL.createObjectURL(file);
-    });
+  const handleVideoRecorded = useCallback((blob: Blob, _duration: number) => {
+    setRecordedBlob(blob);
+    setStep("editing");
   }, []);
+
+  const handleEditorSave = useCallback(async (editedBlob: Blob, thumbnail: Blob | null) => {
+    const videoFile = new File([editedBlob], `video_${Date.now()}.webm`, { type: editedBlob.type || "video/webm" });
+    setSelectedFile(videoFile);
+    setVideoPreviewUrl(URL.createObjectURL(editedBlob));
+    setStep("upload");
+
+    const result = await uploadFile(videoFile);
+    if (result) {
+      if (thumbnail) {
+        const thumbFile = new File([thumbnail], `thumb_${Date.now()}.jpg`, { type: "image/jpeg" });
+        await thumbnailUpload.uploadFile(thumbFile);
+      }
+      setStep("details");
+    }
+  }, [uploadFile, thumbnailUpload]);
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -150,19 +143,8 @@ export default function Create() {
       return;
     }
 
-    setSelectedFile(file);
-    setVideoPreviewUrl(URL.createObjectURL(file));
-    setStep("upload");
-
-    const result = await uploadFile(file);
-    if (result) {
-      const thumbnailBlob = await generateThumbnail(file);
-      if (thumbnailBlob) {
-        const thumbFile = new File([thumbnailBlob], `thumb_${file.name}.jpg`, { type: "image/jpeg" });
-        await thumbnailUpload.uploadFile(thumbFile);
-      }
-      setStep("details");
-    }
+    setRecordedBlob(file);
+    setStep("editing");
   };
 
   const handleAddHashtag = () => {
@@ -194,12 +176,43 @@ export default function Create() {
   };
 
   const handleOptionClick = (optionId: string) => {
-    if (optionId === "video") {
-      fileInputRef.current?.click();
+    if (optionId === "record") {
+      setStep("recording");
     } else if (optionId === "live") {
       navigate("/live");
     }
   };
+
+  const resetToSelect = () => {
+    setStep("select");
+    setRecordedBlob(null);
+    setSelectedFile(null);
+    setVideoPreviewUrl(null);
+    setUploadedVideoPath(null);
+    setUploadedThumbnailPath(null);
+    setDescription("");
+    setHashtags([]);
+    setSongName("");
+  };
+
+  if (step === "recording") {
+    return (
+      <VideoRecorder
+        onVideoRecorded={handleVideoRecorded}
+        onClose={resetToSelect}
+      />
+    );
+  }
+
+  if (step === "editing" && recordedBlob) {
+    return (
+      <VideoEditor
+        videoBlob={recordedBlob}
+        onSave={handleEditorSave}
+        onClose={resetToSelect}
+      />
+    );
+  }
 
   if (step === "upload") {
     return (
@@ -236,7 +249,7 @@ export default function Create() {
     return (
       <div className="flex min-h-screen flex-col bg-background">
         <header className="sticky top-0 z-40 flex items-center justify-between px-4 py-3 border-b border-border/50 bg-background/95 backdrop-blur-sm">
-          <button onClick={() => setStep("select")} className="flex items-center gap-1 text-sm text-muted-foreground" data-testid="button-back-create">
+          <button onClick={resetToSelect} className="flex items-center gap-1 text-sm text-muted-foreground" data-testid="button-back-create">
             <ChevronLeft className="h-5 w-5" />
             Back
           </button>
