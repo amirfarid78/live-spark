@@ -76,6 +76,12 @@ export interface IStorage {
 
   getWalletBalance(userId: number): Promise<{ coins: number; diamonds: number }>;
   getTransactionHistory(userId: number, limit?: number, offset?: number): Promise<any[]>;
+
+  incrementVideoViews(videoId: number): Promise<void>;
+  incrementVideoShares(videoId: number): Promise<void>;
+  getUserLikedVideos(userId: number, limit?: number, offset?: number): Promise<(Video & { user: Pick<User, "id" | "username" | "displayName" | "avatarUrl" | "isVerified"> })[]>;
+  getUserSavedVideos(userId: number, limit?: number, offset?: number): Promise<(Video & { user: Pick<User, "id" | "username" | "displayName" | "avatarUrl" | "isVerified"> })[]>;
+  sendGift(senderId: number, receiverId: number, giftId: number, quantity: number, contextType: string, contextId: number): Promise<any>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -595,6 +601,80 @@ export class DatabaseStorage implements IStorage {
       .where(eq(walletTransactions.userId, userId))
       .orderBy(desc(walletTransactions.createdAt))
       .limit(limit).offset(offset);
+  }
+  async incrementVideoViews(videoId: number): Promise<void> {
+    await db.update(videos).set({ viewsCount: sql`${videos.viewsCount} + 1` }).where(eq(videos.id, videoId));
+  }
+
+  async incrementVideoShares(videoId: number): Promise<void> {
+    await db.update(videos).set({ sharesCount: sql`${videos.sharesCount} + 1` }).where(eq(videos.id, videoId));
+  }
+
+  async getUserLikedVideos(userId: number, limit = 20, offset = 0): Promise<(Video & { user: Pick<User, "id" | "username" | "displayName" | "avatarUrl" | "isVerified"> })[]> {
+    const likedVideoIds = await db.select({ videoId: videoLikes.videoId })
+      .from(videoLikes)
+      .where(eq(videoLikes.userId, userId))
+      .orderBy(desc(videoLikes.createdAt))
+      .limit(limit).offset(offset);
+
+    if (likedVideoIds.length === 0) return [];
+
+    const ids = likedVideoIds.map(l => l.videoId);
+    const result = await db.select({
+      id: videos.id, userId: videos.userId, description: videos.description,
+      videoUrl: videos.videoUrl, thumbnailUrl: videos.thumbnailUrl, songName: videos.songName,
+      hashtags: videos.hashtags, likesCount: videos.likesCount, commentsCount: videos.commentsCount,
+      sharesCount: videos.sharesCount, viewsCount: videos.viewsCount, isPublished: videos.isPublished,
+      createdAt: videos.createdAt,
+      user: { id: users.id, username: users.username, displayName: users.displayName, avatarUrl: users.avatarUrl, isVerified: users.isVerified },
+    })
+    .from(videos)
+    .innerJoin(users, eq(videos.userId, users.id))
+    .where(inArray(videos.id, ids));
+    return result as any;
+  }
+
+  async getUserSavedVideos(userId: number, limit = 20, offset = 0): Promise<(Video & { user: Pick<User, "id" | "username" | "displayName" | "avatarUrl" | "isVerified"> })[]> {
+    const savedVideoIds = await db.select({ videoId: videoSaves.videoId })
+      .from(videoSaves)
+      .where(eq(videoSaves.userId, userId))
+      .orderBy(desc(videoSaves.createdAt))
+      .limit(limit).offset(offset);
+
+    if (savedVideoIds.length === 0) return [];
+
+    const ids = savedVideoIds.map(l => l.videoId);
+    const result = await db.select({
+      id: videos.id, userId: videos.userId, description: videos.description,
+      videoUrl: videos.videoUrl, thumbnailUrl: videos.thumbnailUrl, songName: videos.songName,
+      hashtags: videos.hashtags, likesCount: videos.likesCount, commentsCount: videos.commentsCount,
+      sharesCount: videos.sharesCount, viewsCount: videos.viewsCount, isPublished: videos.isPublished,
+      createdAt: videos.createdAt,
+      user: { id: users.id, username: users.username, displayName: users.displayName, avatarUrl: users.avatarUrl, isVerified: users.isVerified },
+    })
+    .from(videos)
+    .innerJoin(users, eq(videos.userId, users.id))
+    .where(inArray(videos.id, ids));
+    return result as any;
+  }
+
+  async sendGift(senderId: number, receiverId: number, giftId: number, quantity: number, contextType: string, contextId: number): Promise<any> {
+    const gift = await db.select().from(gifts).where(eq(gifts.id, giftId));
+    if (!gift.length) throw new Error("Gift not found");
+
+    const totalCost = gift[0].coinValue * quantity;
+    const sender = await this.getUser(senderId);
+    if (!sender || (sender.coinsBalance || 0) < totalCost) throw new Error("Insufficient coins");
+
+    await db.update(users).set({ coinsBalance: sql`${users.coinsBalance} - ${totalCost}` }).where(eq(users.id, senderId));
+    await db.update(users).set({ diamondsBalance: sql`${users.diamondsBalance} + ${totalCost}` }).where(eq(users.id, receiverId));
+
+    const [txn] = await db.insert(giftTransactions).values({ senderId, receiverId, giftId, quantity, totalCoins: totalCost, contextType, contextId }).returning();
+
+    await db.insert(walletTransactions).values({ userId: senderId, type: "gift_sent", amount: totalCost, currency: "coins", description: `Sent ${gift[0].name} x${quantity}` });
+    await db.insert(walletTransactions).values({ userId: receiverId, type: "gift_received", amount: totalCost, currency: "diamonds", description: `Received ${gift[0].name} x${quantity}` });
+
+    return txn;
   }
 }
 

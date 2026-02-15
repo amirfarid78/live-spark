@@ -744,6 +744,69 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // ==================== VIDEO VIEWS & SHARES ====================
+
+  app.post("/api/videos/:id/view", async (req, res) => {
+    try {
+      await storage.incrementVideoViews(parseInt(req.params.id));
+      res.json({ success: true });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.post("/api/videos/:id/share", async (req, res) => {
+    try {
+      await storage.incrementVideoShares(parseInt(req.params.id));
+      res.json({ success: true });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // ==================== USER LIKED & SAVED VIDEOS ====================
+
+  app.get("/api/users/:id/liked-videos", requireAuth, async (req, res) => {
+    try {
+      const likedVideos = await storage.getUserLikedVideos(parseInt(req.params.id));
+      res.json(likedVideos);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.get("/api/users/:id/saved-videos", requireAuth, async (req, res) => {
+    try {
+      const savedVideos = await storage.getUserSavedVideos(parseInt(req.params.id));
+      res.json(savedVideos);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // ==================== GIFT SENDING & CATALOG ====================
+
+  app.post("/api/gifts/send", requireAuth, async (req, res) => {
+    try {
+      const userId = (req.session as any).userId;
+      const { receiverId, giftId, quantity, contextType, contextId } = req.body;
+      const txn = await storage.sendGift(userId, receiverId, giftId, quantity, contextType, contextId);
+      res.json(txn);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.get("/api/gifts/catalog", async (req, res) => {
+    try {
+      const category = req.query.category as string | undefined;
+      const giftList = await storage.getGiftCatalog(category);
+      res.json(giftList);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
   registerObjectStorageRoutes(app);
 
   const httpServer = createServer(app);
