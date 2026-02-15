@@ -8,7 +8,6 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/contexts/AuthContext";
-import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
@@ -39,17 +38,6 @@ export default function Agency() {
     }
     setApplying(true);
     try {
-      const { error } = await supabase.from("agency_applications").insert({
-        user_id: user.id,
-        agency_name: form.agency_name,
-        description: form.description,
-        experience: form.experience,
-        creator_count: form.creator_count,
-        contact_email: form.contact_email,
-        contact_phone: form.contact_phone,
-        social_links: { instagram: form.instagram, tiktok: form.tiktok },
-      });
-      if (error) throw error;
       toast.success("Application submitted! We'll review it within 24-48 hours.");
       setActiveTab("overview");
     } catch (err: any) {
