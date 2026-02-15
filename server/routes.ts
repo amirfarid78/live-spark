@@ -458,7 +458,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/live/agora-token", requireAuth, async (req, res) => {
     try {
-      const { RtcTokenBuilder, RtcRole } = await import("agora-token");
+      const agoraToken = await import("agora-token");
+      const { RtcTokenBuilder, RtcRole } = agoraToken.default || agoraToken;
       const appId = process.env.AGORA_APP_ID;
       const appCertificate = process.env.AGORA_APP_CERTIFICATE;
       if (!appId || !appCertificate) {
