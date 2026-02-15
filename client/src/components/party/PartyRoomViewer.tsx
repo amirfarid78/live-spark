@@ -32,31 +32,17 @@ interface ChatMessage {
   giftIcon?: string;
 }
 
-const mockSeats: { id: number; status: SeatStatus; speaker?: Speaker }[] = [
-  { id: 1, status: "occupied", speaker: { id: "1", name: "Johnson", avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100", isSpeaking: true, isMuted: false, isHost: true, level: 45 } },
-  { id: 2, status: "occupied", speaker: { id: "2", name: "Daniel Taylor", avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100", isSpeaking: false, isMuted: true, level: 32 } },
-  { id: 3, status: "empty" },
-  { id: 4, status: "locked" },
-  { id: 5, status: "locked" },
-  { id: 6, status: "occupied", speaker: { id: "3", name: "Alex P.", avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100", isSpeaking: false, isMuted: false, level: 28 } },
-  { id: 7, status: "locked" },
-  { id: 8, status: "occupied", speaker: { id: "4", name: "Matt S.", avatar: "https://images.unsplash.com/photo-1517841905240-472988babdf9?w=100", isSpeaking: true, isMuted: false, level: 15 } },
-  { id: 9, status: "occupied", speaker: { id: "5", name: "Joseph R.", avatar: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100", isSpeaking: false, isMuted: true, level: 22 } },
-  { id: 10, status: "locked" },
-  { id: 11, status: "empty" },
-  { id: 12, status: "empty" },
-];
-
-const mockMessages: ChatMessage[] = [
-  { id: "1", user: "Guest", avatar: "", message: "give me your mobile number" },
-  { id: "2", user: "Lily Adams", avatar: "https://i.pravatar.cc/50?u=lily", message: "Your Hotness is beating me everytime?" },
-  { id: "3", user: "Bailey Mia", avatar: "https://i.pravatar.cc/50?u=bailey", message: "looking very very hot" },
-  { id: "4", user: "Thomas", avatar: "https://i.pravatar.cc/50?u=thomas", message: "can we talk?" },
-];
+const initialSeats: { id: number; status: SeatStatus; speaker: Speaker | null }[] = Array.from({ length: 12 }, (_, i) => ({
+  id: i + 1,
+  status: "empty" as const,
+  speaker: null,
+}));
 
 export function PartyRoomViewer({ room, onClose }: PartyRoomViewerProps) {
-  const [seats, setSeats] = useState(mockSeats);
-  const [messages, setMessages] = useState<ChatMessage[]>(mockMessages);
+  const [seats, setSeats] = useState(initialSeats);
+  const [messages, setMessages] = useState<ChatMessage[]>([
+    { id: "system-1", user: "System", avatar: "", message: "Welcome to the party room!" }
+  ]);
   const [inputMessage, setInputMessage] = useState("");
   const [isMuted, setIsMuted] = useState(true);
   const [isAudioMuted, setIsAudioMuted] = useState(false);
@@ -82,7 +68,7 @@ export function PartyRoomViewer({ room, onClose }: PartyRoomViewerProps) {
     const newMsg: ChatMessage = {
       id: Date.now().toString(),
       user: "You",
-      avatar: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=50",
+      avatar: "",
       message: inputMessage,
     };
     setMessages(prev => [...prev, newMsg]);
@@ -105,7 +91,7 @@ export function PartyRoomViewer({ room, onClose }: PartyRoomViewerProps) {
     const giftMessage: ChatMessage = {
       id: Date.now().toString(),
       user: "You",
-      avatar: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=50",
+      avatar: "",
       message: `sent ${gift.name}`,
       isGift: true,
       giftIcon: gift.icon,
@@ -114,26 +100,6 @@ export function PartyRoomViewer({ room, onClose }: PartyRoomViewerProps) {
     setShowGiftPanel(false);
   };
 
-  useEffect(() => {
-    const interval = setInterval(() => {
-      const randomMessages = [
-        "Hey everyone! 👋",
-        "This room is lit 🔥",
-        "Can I get on mic?",
-        "Love the vibes here",
-        "❤️❤️❤️",
-      ];
-      const randomUsers = ["Emma", "Chris", "Taylor", "Jordan", "Sam"];
-      const newMsg: ChatMessage = {
-        id: Date.now().toString(),
-        user: randomUsers[Math.floor(Math.random() * randomUsers.length)],
-        avatar: `https://i.pravatar.cc/50?u=${Date.now()}`,
-        message: randomMessages[Math.floor(Math.random() * randomMessages.length)],
-      };
-      setMessages(prev => [...prev.slice(-15), newMsg]);
-    }, 4000);
-    return () => clearInterval(interval);
-  }, []);
 
   return (
     <div className="fixed inset-0 z-[100] flex flex-col overflow-hidden animate-fade-in">

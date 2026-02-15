@@ -1,6 +1,8 @@
 import { NavLink, useLocation } from "react-router-dom";
 import { Search, Plus, MessageCircle, User, Home } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/contexts/AuthContext";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 const navItems = [
   { path: "/", icon: Home, label: "Home", activeIcon: true },
@@ -12,6 +14,7 @@ const navItems = [
 
 export function BottomNav() {
   const location = useLocation();
+  const { user } = useAuth();
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 bg-background border-t border-border/50">
@@ -52,16 +55,13 @@ export function BottomNav() {
                   isActive ? "text-foreground" : "text-muted-foreground"
                 )}
               >
-                <div className={cn(
-                  "h-6 w-6 rounded-full overflow-hidden ring-offset-background transition-all",
+                <Avatar className={cn(
+                  "h-6 w-6 ring-offset-background transition-all",
                   isActive ? "ring-2 ring-foreground ring-offset-1" : ""
                 )}>
-                  <img 
-                    src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=50" 
-                    alt="" 
-                    className="h-full w-full object-cover" 
-                  />
-                </div>
+                  <AvatarImage src={user?.avatarUrl || ""} alt="" />
+                  <AvatarFallback className="text-[10px]">{user?.username?.[0]?.toUpperCase() || "U"}</AvatarFallback>
+                </Avatar>
                 <span className={cn("text-[10px]", isActive ? "font-semibold" : "font-medium")}>
                   {item.label}
                 </span>

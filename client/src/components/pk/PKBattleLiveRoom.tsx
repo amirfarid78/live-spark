@@ -43,31 +43,17 @@ interface PKBattleLiveRoomProps {
   onClose: () => void;
 }
 
-const mockTopGiftersP1: TopGifter[] = [
-  { id: "1", avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=50", rank: 1, isVIP: true },
-  { id: "2", avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=50", rank: 2, isVIP: true },
-  { id: "3", avatar: "https://images.unsplash.com/photo-1517841905240-472988babdf9?w=50", rank: 3 },
-];
-
-const mockTopGiftersP2: TopGifter[] = [
-  { id: "4", avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=50", rank: 1, isVIP: true },
-  { id: "5", avatar: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=50", rank: 2 },
-  { id: "6", avatar: "https://images.unsplash.com/photo-1556910103-1c02745aae4d?w=50", rank: 3 },
-];
-
-const mockMessages: ChatMessage[] = [
-  { id: "1", user: "John Daveldeo", avatar: "", message: "Very Nice Cloths" },
-  { id: "2", user: "John Daveldeo", avatar: "", message: "Sent Friend Request", isVIP: true },
-  { id: "3", user: "Jamie Davidson", avatar: "", message: "Very Nice Cloths" },
-  { id: "4", user: "John Davidson", avatar: "", message: "Very Nice Cloths" },
-];
 
 export function PKBattleLiveRoom({ battle, onClose }: PKBattleLiveRoomProps) {
   const totalDuration = 240;
   const [timeLeft, setTimeLeft] = useState(totalDuration);
   const [showGiftPanel, setShowGiftPanel] = useState(false);
   const [inputMessage, setInputMessage] = useState("");
-  const [messages, setMessages] = useState<ChatMessage[]>(mockMessages);
+  const [topGiftersP1, setTopGiftersP1] = useState<TopGifter[]>([]);
+  const [topGiftersP2, setTopGiftersP2] = useState<TopGifter[]>([]);
+  const [messages, setMessages] = useState<ChatMessage[]>([
+    { id: "system-1", user: "System", avatar: "", message: "PK Battle has started!" }
+  ]);
   const [scores, setScores] = useState({ p1: battle.player1.score, p2: battle.player2.score });
   const [previousScores, setPreviousScores] = useState({ p1: battle.player1.score, p2: battle.player2.score });
   const [selectedPlayer, setSelectedPlayer] = useState<"p1" | "p2">("p1");
@@ -106,20 +92,6 @@ export function PKBattleLiveRoom({ battle, onClose }: PKBattleLiveRoomProps) {
     return () => clearInterval(timer);
   }, [timeLeft, scores]);
 
-  // Simulate score updates
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setPreviousScores(scores);
-      const random1 = Math.floor(Math.random() * 100);
-      const random2 = Math.floor(Math.random() * 100);
-      setScores((prev) => ({
-        p1: prev.p1 + random1,
-        p2: prev.p2 + random2,
-      }));
-    }, 3000);
-
-    return () => clearInterval(interval);
-  }, [scores]);
 
   const handleSendMessage = () => {
     if (!inputMessage.trim()) return;
@@ -323,7 +295,7 @@ export function PKBattleLiveRoom({ battle, onClose }: PKBattleLiveRoomProps) {
 
           {/* Top Viewers */}
           <div className="flex items-center gap-1">
-            {mockTopGiftersP1.slice(0, 4).map((gifter, i) => (
+            {topGiftersP1.slice(0, 4).map((gifter, i) => (
               <motion.div
                 key={gifter.id}
                 initial={{ scale: 0 }}
@@ -376,7 +348,7 @@ export function PKBattleLiveRoom({ battle, onClose }: PKBattleLiveRoomProps) {
           onClick={() => setSelectedPlayer("p1")}
         >
           <img
-            src="https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=600&h=800&fit=crop"
+            src={battle.player1.avatar}
             alt={battle.player1.name}
             className="h-full w-full object-cover"
           />
@@ -420,7 +392,7 @@ export function PKBattleLiveRoom({ battle, onClose }: PKBattleLiveRoomProps) {
           onClick={() => setSelectedPlayer("p2")}
         >
           <img
-            src="https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=600&h=800&fit=crop"
+            src={battle.player2.avatar}
             alt={battle.player2.name}
             className="h-full w-full object-cover"
           />
@@ -464,7 +436,7 @@ export function PKBattleLiveRoom({ battle, onClose }: PKBattleLiveRoomProps) {
       <div className="flex justify-between px-2 py-2 bg-gradient-to-r from-stream-purple/40 to-stream-coral/40">
         <div className="flex items-center gap-1">
           <ChevronLeft className="h-4 w-4 text-white/50" />
-          {mockTopGiftersP1.map((gifter, i) => (
+          {topGiftersP1.map((gifter, i) => (
             <motion.div
               key={gifter.id}
               whileHover={{ scale: 1.2, y: -5 }}
@@ -486,7 +458,7 @@ export function PKBattleLiveRoom({ battle, onClose }: PKBattleLiveRoomProps) {
         </div>
 
         <div className="flex items-center gap-1">
-          {mockTopGiftersP2.map((gifter, i) => (
+          {topGiftersP2.map((gifter, i) => (
             <motion.div
               key={gifter.id}
               whileHover={{ scale: 1.2, y: -5 }}

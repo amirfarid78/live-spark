@@ -1,10 +1,14 @@
-import React, { useState, useRef, useCallback } from "react";
-import { Camera, X, RotateCcw, Check, ChevronLeft, ChevronRight, Type, Sticker, Wand2, Volume2, Scissors, Send, Music2 } from "lucide-react";
+import React, { useState, useRef, useCallback, useEffect } from "react";
+import { Camera, X, RotateCcw, Check, ChevronLeft, ChevronRight, Type, Sticker, Wand2, Volume2, Scissors, Send, Music2, Upload, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { useNavigate } from "react-router-dom";
 import { toast } from "@/hooks/use-toast";
+import { useUpload } from "@/hooks/use-upload";
+import api from "@/lib/api";
+import { useAuth } from "@/contexts/AuthContext";
+import { useQueryClient } from "@tanstack/react-query";
 
 // Components
 import RecordingControls from "@/components/video/RecordingControls";
@@ -19,6 +23,18 @@ type RecordingState = 'idle' | 'recording' | 'preview' | 'editing';
 
 export default function VideoRecorder() {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
+  const { uploadFile, isUploading, progress } = useUpload();
+  const [selectedVideoFile, setSelectedVideoFile] = useState<File | null>(null);
+  const [videoPreviewUrl, setVideoPreviewUrl] = useState<string | null>(null);
+  const videoFileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    return () => {
+      if (videoPreviewUrl) URL.revokeObjectURL(videoPreviewUrl);
+    };
+  }, [videoPreviewUrl]);
   
   // Recording state
   const [recordingState, setRecordingState] = useState<RecordingState>('idle');
@@ -162,12 +178,59 @@ export default function VideoRecorder() {
     setRecordingState('editing');
   };
 
-  const handlePost = () => {
-    toast({
-      title: "Video Posted!",
-      description: "Your video has been shared with your followers.",
-    });
-    navigate('/');
+  const handleVideoFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setSelectedVideoFile(file);
+      setVideoPreviewUrl(URL.createObjectURL(file));
+      setRecordingState('preview');
+    }
+  };
+
+  const handlePost = async () => {
+    if (!selectedVideoFile) {
+      toast({
+        title: "No video",
+        description: "Please select or record a video first.",
+      });
+      return;
+    }
+    try {
+      const result = await uploadFile(selectedVideoFile);
+      if (!result) {
+        toast({
+          title: "Upload failed",
+          description: "Could not upload video. Please try again.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const hashtags = caption.match(/#\w+/g)?.map(h => h.slice(1)) || [];
+
+      await api.post('/videos', {
+        videoUrl: result.objectPath,
+        description: caption || '',
+        hashtags,
+      });
+
+      if (user?.id) {
+        queryClient.invalidateQueries({ queryKey: [`/api/users/${user.id}/videos`] });
+      }
+      queryClient.invalidateQueries({ queryKey: ['/api/videos'] });
+
+      toast({
+        title: "Video posted",
+        description: "Your video has been shared successfully.",
+      });
+      navigate('/profile');
+    } catch (err: any) {
+      toast({
+        title: "Error",
+        description: err?.response?.data?.message || "Failed to post video",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleSaveDraft = () => {
@@ -226,9 +289,11 @@ export default function VideoRecorder() {
           <h1 className="text-white font-semibold">Edit</h1>
           <button 
             onClick={handlePost}
-            className="px-4 py-2 rounded-full bg-gradient-primary text-white font-semibold press-effect"
+            disabled={isUploading}
+            className="px-4 py-2 rounded-full bg-gradient-primary text-white font-semibold press-effect disabled:opacity-50"
+            data-testid="button-post-video"
           >
-            Post
+            {isUploading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Post"}
           </button>
         </div>
 
@@ -238,12 +303,16 @@ export default function VideoRecorder() {
             className="absolute inset-0 bg-gradient-to-br from-purple-900/50 to-pink-900/50"
             style={getFilterStyle()}
           >
-            <div className="absolute inset-0 flex items-center justify-center">
-              <div className="text-center text-white/60">
-                <Camera className="h-16 w-16 mx-auto mb-2 opacity-50" />
-                <p className="text-sm">Video Preview</p>
+            {videoPreviewUrl ? (
+              <video src={videoPreviewUrl} className="absolute inset-0 h-full w-full object-cover" autoPlay loop muted playsInline />
+            ) : (
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="text-center text-white/60">
+                  <Camera className="h-16 w-16 mx-auto mb-2 opacity-50" />
+                  <p className="text-sm">Video Preview</p>
+                </div>
               </div>
-            </div>
+            )}
             
             {/* Text overlays preview */}
             {textOverlays.map((overlay) => (
@@ -358,16 +427,19 @@ export default function VideoRecorder() {
               <Button 
                 variant="outline" 
                 onClick={handleSaveDraft}
+                disabled={isUploading}
                 className="flex-1 h-12 rounded-xl border-white/20 text-white hover:bg-white/10"
               >
                 Save Draft
               </Button>
               <Button 
                 onClick={handlePost}
+                disabled={isUploading}
                 className="flex-1 h-12 rounded-xl bg-gradient-primary hover:opacity-90"
+                data-testid="button-post-final"
               >
-                <Send className="h-5 w-5 mr-2" />
-                Post
+                {isUploading ? <Loader2 className="h-5 w-5 mr-2 animate-spin" /> : <Send className="h-5 w-5 mr-2" />}
+                {isUploading ? `Uploading ${progress}%` : "Post"}
               </Button>
             </div>
           </div>
@@ -398,12 +470,16 @@ export default function VideoRecorder() {
             className="absolute inset-0 bg-gradient-to-br from-purple-900/50 to-pink-900/50"
             style={getFilterStyle()}
           >
-            <div className="absolute inset-0 flex items-center justify-center">
-              <div className="text-center text-white/60">
-                <Camera className="h-16 w-16 mx-auto mb-2 opacity-50" />
-                <p className="text-sm">Recorded Video</p>
+            {videoPreviewUrl ? (
+              <video src={videoPreviewUrl} className="absolute inset-0 h-full w-full object-cover" autoPlay loop muted playsInline />
+            ) : (
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="text-center text-white/60">
+                  <Camera className="h-16 w-16 mx-auto mb-2 opacity-50" />
+                  <p className="text-sm">Recorded Video</p>
+                </div>
               </div>
-            </div>
+            )}
           </div>
         </div>
 
@@ -588,6 +664,27 @@ export default function VideoRecorder() {
           />
         </div>
       )}
+
+      {/* Hidden file input for video upload */}
+      <input
+        ref={videoFileInputRef}
+        type="file"
+        accept="video/*"
+        className="hidden"
+        onChange={handleVideoFileSelect}
+        data-testid="input-video-file"
+      />
+
+      {/* Upload Video Button */}
+      <div className="absolute bottom-40 right-6 z-20">
+        <button
+          onClick={() => videoFileInputRef.current?.click()}
+          className="h-12 w-12 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center press-effect"
+          data-testid="button-upload-video"
+        >
+          <Upload className="h-6 w-6 text-white" />
+        </button>
+      </div>
 
       {/* Bottom Controls */}
       <RecordingControls

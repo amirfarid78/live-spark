@@ -27,13 +27,13 @@ export function QuickActions({ followersCount, savedCount = 0, className }: Quic
 
   const actions: QuickAction[] = [
     { icon: BarChart3, label: "Studio", color: "text-purple-500", path: "/creator-studio" },
-    { icon: Trophy, label: "Badges", count: "0", color: "text-amber-500" },
+    { icon: Trophy, label: "Badges", color: "text-amber-500" },
     { icon: Users, label: "Friends", count: formatNumber(followersCount), color: "text-blue-500" },
     { icon: ShoppingBag, label: "Orders", color: "text-green-500", path: "/shop" },
     { icon: Bookmark, label: "Saved", count: formatNumber(savedCount), color: "text-rose-500" },
-    { icon: Gift, label: "Gifts", color: "text-pink-500" },
-    { icon: Settings, label: "Settings", color: "text-slate-500" },
-    { icon: HelpCircle, label: "Help", color: "text-cyan-500" },
+    { icon: Gift, label: "Gifts", color: "text-pink-500", path: "/profile" },
+    { icon: Settings, label: "Settings", color: "text-slate-500", path: "/settings" },
+    { icon: HelpCircle, label: "Help", color: "text-cyan-500", path: "/settings" },
   ];
 
   return (

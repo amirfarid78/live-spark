@@ -453,7 +453,7 @@ export default function Messages() {
 
   const startChatMutation = useMutation({
     mutationFn: async (targetId: number) => {
-      const res = await api.post("/conversations/direct", { targetId });
+      const res = await api.post("/conversations/direct", { targetUserId: targetId });
       return res.data;
     },
     onSuccess: (data: any) => {

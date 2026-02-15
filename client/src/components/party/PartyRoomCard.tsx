@@ -46,12 +46,7 @@ const categoryColors: Record<string, string> = {
   default: "bg-blue-500 text-white",
 };
 
-const mockViewerAvatars = [
-  "https://i.pravatar.cc/40?u=1",
-  "https://i.pravatar.cc/40?u=2",
-  "https://i.pravatar.cc/40?u=3",
-  "https://i.pravatar.cc/40?u=4",
-];
+const mockViewerAvatars: string[] = [];
 
 export function PartyRoomCard({ room, onClick, index = 0 }: PartyRoomCardProps) {
   const gradient = categoryGradients[room.category] || categoryGradients.default;

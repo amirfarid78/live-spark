@@ -38,28 +38,16 @@ export interface FlyingGift {
   sender: string;
 }
 
-const mockMessages: ChatMessage[] = [
-  { id: "1", user: "System", avatar: "", message: "Welcome to the room", isSystem: true },
-  { id: "2", user: "StarGirl", avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=50", message: "You look amazing! 💖", isVIP: true },
-  { id: "3", user: "Mike_M", avatar: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=50", message: "Hi from NYC 🗽" },
-  { id: "4", user: "Luna", avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=50", message: "Sent Friend Request", isFriendRequest: true, isVIP: true },
-  { id: "5", user: "GamerX", avatar: "https://images.unsplash.com/photo-1517841905240-472988babdf9?w=50", message: "Very Nice!", isVIP: true },
-];
-
-const topViewers = [
-  { id: "1", avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=50", isVIP: true, level: 3 },
-  { id: "2", avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=50", isVIP: true, level: 2 },
-  { id: "3", avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=50", isVIP: false, level: 1 },
-  { id: "4", avatar: "https://images.unsplash.com/photo-1517841905240-472988babdf9?w=50", isVIP: true, level: 3 },
-  { id: "5", avatar: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=50", isVIP: false, level: 1 },
-];
+const topViewers: { id: string; avatar: string; isVIP: boolean; level: number }[] = [];
 
 export function LiveRoomViewer({ streamId, hostName, hostAvatar, viewerCount, thumbnail, isHost, onClose, onEndStream }: LiveRoomViewerProps) {
   const [showOpeningAnimation, setShowOpeningAnimation] = useState(true);
   const [isLoaded, setIsLoaded] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
   const [showGiftPanel, setShowGiftPanel] = useState(false);
-  const [messages, setMessages] = useState<ChatMessage[]>(mockMessages);
+  const [messages, setMessages] = useState<ChatMessage[]>([
+    { id: "system-1", user: "System", avatar: "", message: "Welcome to the live room!", isSystem: true }
+  ]);
   const [floatingHearts, setFloatingHearts] = useState<{ id: number; x: number; color: string }[]>([]);
   const [flyingGifts, setFlyingGifts] = useState<FlyingGift[]>([]);
   const [inputMessage, setInputMessage] = useState("");
@@ -93,7 +81,7 @@ export function LiveRoomViewer({ streamId, hostName, hostAvatar, viewerCount, th
     const newMessage: ChatMessage = {
       id: Date.now().toString(),
       user: "You",
-      avatar: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=50",
+      avatar: "",
       message: inputMessage,
     };
     setMessages(prev => [...prev, newMessage]);
@@ -119,7 +107,7 @@ export function LiveRoomViewer({ streamId, hostName, hostAvatar, viewerCount, th
     const giftMessage: ChatMessage = {
       id: Date.now().toString(),
       user: "You",
-      avatar: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=50",
+      avatar: "",
       message: `sent ${gift.name}`,
       giftName: gift.name,
       giftIcon: gift.icon,
@@ -128,33 +116,6 @@ export function LiveRoomViewer({ streamId, hostName, hostAvatar, viewerCount, th
     setShowGiftPanel(false);
   };
 
-  useEffect(() => {
-    const interval = setInterval(() => {
-      const randomMessages = [
-        "Love this stream! 🔥",
-        "Amazing vibes ✨",
-        "Hi from Brazil 🇧🇷",
-        "You're the best!",
-        "❤️❤️❤️",
-        "Very Nice Cloths",
-        "This is fire! 🔥",
-        "Wow so pretty! 💕",
-        "Hello everyone 👋",
-      ];
-      const randomUsers = ["John Daveldeo", "Emma_Star", "Chris", "Taylor", "Jordan", "Sam_VIP", "Casey", "Riley", "Morgan"];
-      const newMsg: ChatMessage = {
-        id: Date.now().toString(),
-        user: randomUsers[Math.floor(Math.random() * randomUsers.length)],
-        avatar: `https://i.pravatar.cc/50?u=${Date.now()}`,
-        message: randomMessages[Math.floor(Math.random() * randomMessages.length)],
-        isVIP: Math.random() > 0.7,
-        isFriendRequest: Math.random() > 0.9,
-      };
-      setMessages(prev => [...prev.slice(-12), newMsg]);
-    }, 2500);
-
-    return () => clearInterval(interval);
-  }, []);
 
   if (showOpeningAnimation) {
     return (

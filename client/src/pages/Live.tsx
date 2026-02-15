@@ -502,8 +502,8 @@ export default function Live() {
                   <Bell className="h-5 w-5" />
                 </Button>
                 <Avatar className="h-10 w-10 cursor-pointer ring-2 ring-primary/20">
-                  <AvatarImage src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100" />
-                  <AvatarFallback>U</AvatarFallback>
+                  <AvatarImage src={user?.avatarUrl || ""} />
+                  <AvatarFallback>{user?.username?.[0]?.toUpperCase() || "U"}</AvatarFallback>
                 </Avatar>
               </div>
             </div>
@@ -578,22 +578,10 @@ export default function Live() {
             <h3 className="font-semibold">Activity Feed</h3>
           </div>
           <div className="flex-1 p-4 space-y-3 overflow-y-auto">
-            {[...Array(8)].map((_, i) => (
-              <div key={i} className="flex items-start gap-3 p-3 rounded-xl bg-secondary/30 animate-fade-in" style={{ animationDelay: `${i * 100}ms` }}>
-                <Avatar className="h-8 w-8">
-                  <AvatarImage src={`https://i.pravatar.cc/40?u=${i + 100}`} />
-                  <AvatarFallback>U</AvatarFallback>
-                </Avatar>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm">
-                    <span className="font-medium">User{i + 1}</span>
-                    <span className="text-muted-foreground"> started watching </span>
-                    <span className="font-medium text-primary">Stream {i + 1}</span>
-                  </p>
-                  <p className="text-[10px] text-muted-foreground mt-0.5">{i + 1}m ago</p>
-                </div>
-              </div>
-            ))}
+            <div className="flex flex-col items-center justify-center h-full text-muted-foreground text-sm">
+              <Radio className="h-8 w-8 mb-2 opacity-40" />
+              <p>No recent activity</p>
+            </div>
           </div>
         </aside>
       </div>

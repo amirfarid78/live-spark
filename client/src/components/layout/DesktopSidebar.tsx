@@ -4,7 +4,10 @@ import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
 import logo from "@/assets/logo.png";
+import { useQuery } from "@tanstack/react-query";
+import api from "@/lib/api";
 
 const mainNavItems = [
   { path: "/", icon: Play, label: "Reels" },
@@ -16,15 +19,22 @@ const mainNavItems = [
   { path: "/profile", icon: User, label: "Profile" },
 ];
 
-const featuredCreators = [
-  { id: 1, name: "Sarah M.", avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100", isLive: true, viewers: 1243 },
-  { id: 2, name: "Alex Chen", avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100", isLive: true, viewers: 892 },
-  { id: 3, name: "Luna Star", avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100", isLive: false, viewers: 0 },
-  { id: 4, name: "DJ Mike", avatar: "https://images.unsplash.com/photo-1556910103-1c02745aae4d?w=100", isLive: true, viewers: 567 },
-];
-
 export function DesktopSidebar() {
   const location = useLocation();
+
+  const { data: featuredCreators = [], isLoading: creatorsLoading } = useQuery({
+    queryKey: ['/api/live/featured'],
+    queryFn: async () => {
+      const res = await api.get('/live/featured');
+      return (res.data || []).slice(0, 5).map((s: any) => ({
+        id: s.id,
+        name: s.host?.displayName || s.host?.username || 'Unknown',
+        avatar: s.host?.avatarUrl || '',
+        isLive: s.status === 'live',
+        viewers: s.viewerCount || 0,
+      }));
+    },
+  });
 
   return (
     <aside className="hidden lg:flex flex-col w-56 border-r border-border/30 bg-background sticky top-0 h-screen">
@@ -86,28 +96,44 @@ export function DesktopSidebar() {
       <div className="p-3 border-t border-border/30">
         <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider px-2 mb-2">Top Creators</p>
         <div className="space-y-1">
-          {featuredCreators.slice(0, 3).map((creator) => (
-            <div
-              key={creator.id}
-              className="flex items-center gap-2.5 px-2 py-2 rounded-lg hover:bg-secondary/50 cursor-pointer transition-colors"
-            >
-              <div className="relative">
-                <Avatar className="h-8 w-8">
-                  <AvatarImage src={creator.avatar} />
-                  <AvatarFallback>{creator.name[0]}</AvatarFallback>
-                </Avatar>
-                {creator.isLive && (
-                  <span className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-stream-live ring-2 ring-background" />
-                )}
+          {creatorsLoading ? (
+            <>
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="flex items-center gap-2.5 px-2 py-2">
+                  <Skeleton className="h-8 w-8 rounded-full" />
+                  <div className="flex-1">
+                    <Skeleton className="h-3.5 w-20 mb-1" />
+                    <Skeleton className="h-2.5 w-14" />
+                  </div>
+                </div>
+              ))}
+            </>
+          ) : featuredCreators.length === 0 ? (
+            <p className="text-xs text-muted-foreground px-2 py-2">No creators online</p>
+          ) : (
+            featuredCreators.slice(0, 3).map((creator: any) => (
+              <div
+                key={creator.id}
+                className="flex items-center gap-2.5 px-2 py-2 rounded-lg hover:bg-secondary/50 cursor-pointer transition-colors"
+              >
+                <div className="relative">
+                  <Avatar className="h-8 w-8">
+                    <AvatarImage src={creator.avatar} />
+                    <AvatarFallback>{creator.name?.[0] || '?'}</AvatarFallback>
+                  </Avatar>
+                  {creator.isLive && (
+                    <span className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-stream-live ring-2 ring-background" />
+                  )}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium truncate">{creator.name}</p>
+                  {creator.isLive && (
+                    <p className="text-[10px] text-stream-live">{creator.viewers.toLocaleString()} viewers</p>
+                  )}
+                </div>
               </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium truncate">{creator.name}</p>
-                {creator.isLive && (
-                  <p className="text-[10px] text-stream-live">{creator.viewers.toLocaleString()} viewers</p>
-                )}
-              </div>
-            </div>
-          ))}
+            ))
+          )}
         </div>
       </div>
 
@@ -115,7 +141,6 @@ export function DesktopSidebar() {
       <div className="p-3 border-t border-border/30">
         <div className="flex items-center gap-2.5 px-2 py-2">
           <Avatar className="h-9 w-9 ring-2 ring-primary/20">
-            <AvatarImage src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100" />
             <AvatarFallback>U</AvatarFallback>
           </Avatar>
           <div className="flex-1 min-w-0">
