@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useState, useCallback } from "react";
-import { auth, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, firebaseSignOut, type FirebaseUser } from "@/lib/firebase";
+import { auth, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, firebaseSignOut, googleProvider, signInWithPopup, type FirebaseUser } from "@/lib/firebase";
 
 interface AuthUser {
   id: number;
@@ -28,6 +28,7 @@ interface AuthContextType {
   signUp: (email: string, password: string, metadata?: { username?: string; display_name?: string }) => Promise<{ error: Error | null }>;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signInWithPhone: (firebaseUser: FirebaseUser) => Promise<{ error: Error | null }>;
+  signInWithGoogle: () => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
 }
 
@@ -212,6 +213,44 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const signInWithGoogle = async () => {
+    try {
+      const result = await signInWithPopup(auth, googleProvider);
+      const fbUser = result.user;
+      const token = await fbUser.getIdToken();
+
+      const res = await fetch("/api/auth/firebase", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          firebaseUid: fbUser.uid,
+          email: fbUser.email,
+          phoneNumber: fbUser.phoneNumber,
+          displayName: fbUser.displayName || fbUser.email?.split("@")[0],
+          photoURL: fbUser.photoURL,
+          idToken: token,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        return { error: new Error(data.message) };
+      }
+      setUser(data.user);
+      setFirebaseUser(fbUser);
+      return { error: null };
+    } catch (err: any) {
+      if (err.code === "auth/popup-closed-by-user") {
+        return { error: new Error("Sign-in cancelled") };
+      }
+      if (err.code === "auth/popup-blocked") {
+        return { error: new Error("Pop-up was blocked by your browser. Please allow pop-ups and try again.") };
+      }
+      return { error: new Error(err.message || "Google sign-in failed") };
+    }
+  };
+
   const signOut = async () => {
     try {
       await firebaseSignOut(auth);
@@ -222,7 +261,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, firebaseUser, loading, signUp, signIn, signInWithPhone, signOut }}>
+    <AuthContext.Provider value={{ user, firebaseUser, loading, signUp, signIn, signInWithPhone, signInWithGoogle, signOut }}>
       {children}
     </AuthContext.Provider>
   );

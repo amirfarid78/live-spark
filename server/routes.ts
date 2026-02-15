@@ -104,7 +104,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/auth/firebase", async (req, res) => {
     try {
-      const { idToken, displayName: clientDisplayName, username: clientUsername } = req.body;
+      const { idToken, displayName: clientDisplayName, username: clientUsername, photoURL } = req.body;
       if (!idToken) {
         return res.status(400).json({ message: "Firebase ID token is required" });
       }
@@ -119,6 +119,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const phoneNumber = decoded.phone_number || null;
 
       let user = await storage.getUserByFirebaseUid(firebaseUid);
+
+      if (user) {
+        if (photoURL && !user.avatarUrl) {
+          user = await storage.updateUser(user.id, { avatarUrl: photoURL }) || user;
+        }
+      }
 
       if (!user) {
         const userEmail = email || `${phoneNumber?.replace(/\+/g, "")}@phone.snaplive.app`;
@@ -136,6 +142,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               phoneNumber,
               username: generatedUsername,
               displayName: clientDisplayName || generatedUsername,
+              avatarUrl: photoURL || null,
             });
           } catch (createErr: any) {
             if (createErr?.cause?.code === '23505') {

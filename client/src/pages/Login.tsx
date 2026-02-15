@@ -34,7 +34,7 @@ export default function Login() {
   const recaptchaRef = useRef<HTMLDivElement>(null);
   const recaptchaVerifier = useRef<any>(null);
 
-  const { signIn, signInWithPhone } = useAuth();
+  const { signIn, signInWithPhone, signInWithGoogle } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -161,6 +161,20 @@ export default function Login() {
     }
   };
 
+  const handleGoogleLogin = async () => {
+    setLoading(true);
+    const { error } = await signInWithGoogle();
+    setLoading(false);
+    if (error) {
+      if (error.message !== "Sign-in cancelled") {
+        toast({ title: "Google Sign-in Failed", description: error.message, variant: "destructive" });
+      }
+    } else {
+      toast({ title: "Welcome!", description: "You've successfully signed in with Google" });
+      navigate("/");
+    }
+  };
+
   const handleSocialLogin = (provider: string) => {
     toast({ title: "Coming Soon", description: `${provider} login will be available soon` });
   };
@@ -217,7 +231,8 @@ export default function Login() {
 
               <Button
                 data-testid="button-google-login"
-                onClick={() => handleSocialLogin("Google")}
+                onClick={handleGoogleLogin}
+                disabled={loading}
                 className="w-full h-14 rounded-full bg-white hover:bg-white/95 text-gray-700 font-medium shadow-lg press-effect"
               >
                 <svg className="h-5 w-5 mr-3" viewBox="0 0 24 24">
