@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { Search, Edit, Image, Phone, Video, Send, Smile, Paperclip, MoreVertical, ArrowLeft, Loader2 } from "lucide-react";
+import { useState, useEffect, useRef, useCallback } from "react";
+import { Search, Edit, Phone, Video, Send, Smile, Paperclip, MoreVertical, ArrowLeft, Loader2, Check, CheckCheck } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -10,7 +10,9 @@ import { cn } from "@/lib/utils";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
 import api from "@/lib/api";
+import CallScreen from "@/components/call/CallScreen";
 
 interface MappedConversation {
   id: number;
@@ -138,10 +140,46 @@ function NewMessageDialog({ isOpen, onClose, onStartChat }: { isOpen: boolean; o
   );
 }
 
-function ChatView({ chat, onBack }: { chat: MappedConversation; onBack: () => void }) {
+function groupMessagesByDate(messages: ApiMessage[]) {
+  const groups: { date: string; messages: ApiMessage[] }[] = [];
+  let currentDate = "";
+
+  for (const msg of messages) {
+    const msgDate = new Date(msg.createdAt);
+    const today = new Date();
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+
+    let dateLabel: string;
+    if (msgDate.toDateString() === today.toDateString()) {
+      dateLabel = "Today";
+    } else if (msgDate.toDateString() === yesterday.toDateString()) {
+      dateLabel = "Yesterday";
+    } else {
+      dateLabel = msgDate.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+    }
+
+    if (dateLabel !== currentDate) {
+      currentDate = dateLabel;
+      groups.push({ date: dateLabel, messages: [] });
+    }
+    groups[groups.length - 1].messages.push(msg);
+  }
+  return groups;
+}
+
+interface ChatViewProps {
+  chat: MappedConversation;
+  onBack: () => void;
+  onCall: (type: "audio" | "video") => void;
+}
+
+function ChatView({ chat, onBack, onCall }: ChatViewProps) {
   const [message, setMessage] = useState("");
   const queryClient = useQueryClient();
-  const { toast } = useToast();
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const { user } = useAuth();
 
   const { data: messages = [], isLoading: messagesLoading } = useQuery<ApiMessage[]>({
     queryKey: ["/api/conversations", chat.id, "messages"],
@@ -151,6 +189,12 @@ function ChatView({ chat, onBack }: { chat: MappedConversation; onBack: () => vo
     },
     refetchInterval: 5000,
   });
+
+  useEffect(() => {
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [messages]);
 
   const sendMutation = useMutation({
     mutationFn: async (content: string) => {
@@ -177,92 +221,148 @@ function ChatView({ chat, onBack }: { chat: MappedConversation; onBack: () => vo
     }
   };
 
+  const messageGroups = groupMessagesByDate(messages);
+
   return (
-    <div className="flex flex-col h-full">
-      <div className="flex items-center gap-3 p-4 border-b border-border/50 bg-card/50">
-        <button onClick={onBack} className="lg:hidden" data-testid="button-chat-back">
+    <div className="flex flex-col h-full bg-background">
+      <div className="flex items-center gap-2.5 px-3 py-2.5 border-b border-border/40 bg-background sticky top-0 z-10">
+        <button onClick={onBack} className="p-1" data-testid="button-chat-back">
           <ArrowLeft className="h-5 w-5" />
         </button>
         <div className="relative">
-          <Avatar className="h-11 w-11">
+          <Avatar className="h-10 w-10">
             <AvatarImage src={chat.avatar} alt={chat.name} />
-            <AvatarFallback>{chat.name[0]}</AvatarFallback>
+            <AvatarFallback className="text-sm">{chat.name[0]}</AvatarFallback>
           </Avatar>
           {chat.online && (
-            <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-background bg-stream-success" />
+            <span className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full border-2 border-background bg-stream-success" />
           )}
         </div>
-        <div className="flex-1">
+        <div className="flex-1 min-w-0">
           <div className="flex items-center gap-1.5">
-            <span className="font-semibold">{chat.name}</span>
+            <span className="font-semibold text-sm truncate">{chat.name}</span>
             {chat.isVerified && (
-              <div className="flex h-4 w-4 items-center justify-center rounded-full bg-primary text-white">
-                <svg className="h-2.5 w-2.5" fill="currentColor" viewBox="0 0 20 20">
+              <div className="flex h-3.5 w-3.5 items-center justify-center rounded-full bg-primary text-white shrink-0">
+                <svg className="h-2 w-2" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                 </svg>
               </div>
             )}
           </div>
-          <p className="text-xs text-muted-foreground">
+          <p className="text-[11px] text-muted-foreground leading-tight">
             {chat.online ? "Online" : "Last seen recently"}
           </p>
         </div>
-        <div className="flex gap-1">
-          <Button variant="ghost" size="icon" className="h-10 w-10 rounded-xl"
-            onClick={() => toast({ title: "Audio Call", description: "Audio calling requires real-time infrastructure and will be available soon" })}
+        <div className="flex items-center">
+          <Button variant="ghost" size="icon"
+            onClick={() => onCall("audio")}
             data-testid="button-chat-call">
             <Phone className="h-5 w-5" />
           </Button>
-          <Button variant="ghost" size="icon" className="h-10 w-10 rounded-xl"
-            onClick={() => toast({ title: "Video Call", description: "Video calling requires real-time infrastructure and will be available soon" })}
+          <Button variant="ghost" size="icon"
+            onClick={() => onCall("video")}
             data-testid="button-chat-video">
             <Video className="h-5 w-5" />
           </Button>
-          <Button variant="ghost" size="icon" className="h-10 w-10 rounded-xl" data-testid="button-chat-more">
+          <Button variant="ghost" size="icon" data-testid="button-chat-more">
             <MoreVertical className="h-5 w-5" />
           </Button>
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+      <div ref={scrollContainerRef} className="flex-1 overflow-y-auto px-3 py-3">
         {messagesLoading ? (
           <div className="flex items-center justify-center h-full">
             <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
           </div>
+        ) : messages.length === 0 ? (
+          <div className="flex flex-col items-center justify-center h-full gap-3">
+            <Avatar className="h-16 w-16">
+              <AvatarImage src={chat.avatar} />
+              <AvatarFallback className="text-xl">{chat.name[0]}</AvatarFallback>
+            </Avatar>
+            <p className="font-semibold">{chat.name}</p>
+            <p className="text-sm text-muted-foreground text-center max-w-[200px]">
+              Start a conversation. Say hi!
+            </p>
+          </div>
         ) : (
-          messages.map((msg) => (
-            <div
-              key={msg.id}
-              className={cn(
-                "flex",
-                msg.isMe ? "justify-end" : "justify-start"
-              )}
-              data-testid={`message-item-${msg.id}`}
-            >
-              <div
-                className={cn(
-                  "max-w-[70%] rounded-2xl px-4 py-2.5",
-                  msg.isMe
-                    ? "bg-gradient-primary text-white rounded-br-sm"
-                    : "bg-secondary rounded-bl-sm"
-                )}
-              >
-                <p className="text-sm">{msg.content}</p>
-                <p className={cn(
-                  "text-[10px] mt-1",
-                  msg.isMe ? "text-white/70" : "text-muted-foreground"
-                )}>
-                  {new Date(msg.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                </p>
+          messageGroups.map((group) => (
+            <div key={group.date}>
+              <div className="flex items-center justify-center my-4">
+                <span className="text-[11px] text-muted-foreground bg-secondary/80 px-3 py-1 rounded-full">
+                  {group.date}
+                </span>
+              </div>
+              <div className="space-y-1">
+                {group.messages.map((msg, idx) => {
+                  const prevMsg = idx > 0 ? group.messages[idx - 1] : null;
+                  const nextMsg = idx < group.messages.length - 1 ? group.messages[idx + 1] : null;
+                  const isFirst = !prevMsg || prevMsg.isMe !== msg.isMe;
+                  const isLast = !nextMsg || nextMsg.isMe !== msg.isMe;
+
+                  return (
+                    <div
+                      key={msg.id}
+                      className={cn(
+                        "flex",
+                        msg.isMe ? "justify-end" : "justify-start",
+                        isLast ? "mb-2" : "mb-0.5"
+                      )}
+                      data-testid={`message-item-${msg.id}`}
+                    >
+                      {!msg.isMe && isLast && (
+                        <Avatar className="h-6 w-6 mt-auto mr-1.5 shrink-0">
+                          <AvatarImage src={msg.sender.avatarUrl} />
+                          <AvatarFallback className="text-[10px]">{msg.sender.displayName?.[0]}</AvatarFallback>
+                        </Avatar>
+                      )}
+                      {!msg.isMe && !isLast && <div className="w-[30px] shrink-0" />}
+                      <div
+                        className={cn(
+                          "max-w-[75%] px-3.5 py-2",
+                          msg.isMe
+                            ? "bg-gradient-primary text-white"
+                            : "bg-secondary",
+                          msg.isMe && isFirst && isLast && "rounded-2xl rounded-br-md",
+                          msg.isMe && isFirst && !isLast && "rounded-2xl rounded-br-md",
+                          msg.isMe && !isFirst && isLast && "rounded-2xl rounded-tr-md rounded-br-md",
+                          msg.isMe && !isFirst && !isLast && "rounded-xl rounded-r-md",
+                          !msg.isMe && isFirst && isLast && "rounded-2xl rounded-bl-md",
+                          !msg.isMe && isFirst && !isLast && "rounded-2xl rounded-bl-md",
+                          !msg.isMe && !isFirst && isLast && "rounded-2xl rounded-tl-md rounded-bl-md",
+                          !msg.isMe && !isFirst && !isLast && "rounded-xl rounded-l-md",
+                        )}
+                      >
+                        <p className="text-[14px] leading-snug break-words">{msg.content}</p>
+                        <div className={cn(
+                          "flex items-center gap-1 mt-0.5",
+                          msg.isMe ? "justify-end" : "justify-start"
+                        )}>
+                          <span className={cn(
+                            "text-[10px]",
+                            msg.isMe ? "text-white/60" : "text-muted-foreground"
+                          )}>
+                            {new Date(msg.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                          </span>
+                          {msg.isMe && (
+                            <CheckCheck className={cn("h-3 w-3", "text-white/60")} />
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           ))
         )}
+        <div ref={messagesEndRef} />
       </div>
 
-      <div className="p-4 border-t border-border/50 bg-card/50">
-        <div className="flex items-center gap-2">
-          <Button variant="ghost" size="icon" className="h-10 w-10 rounded-xl shrink-0" data-testid="button-attach">
+      <div className="px-3 py-2.5 border-t border-border/40 bg-background pb-safe">
+        <div className="flex items-end gap-1.5">
+          <Button variant="ghost" size="icon" className="shrink-0 mb-0.5" data-testid="button-attach">
             <Paperclip className="h-5 w-5" />
           </Button>
           <div className="relative flex-1">
@@ -271,7 +371,7 @@ function ChatView({ chat, onBack }: { chat: MappedConversation; onBack: () => vo
               value={message}
               onChange={(e) => setMessage(e.target.value)}
               onKeyDown={handleKeyDown}
-              className="h-11 bg-secondary border-0 rounded-xl pr-12"
+              className="h-10 bg-secondary border-0 rounded-full pr-10 text-sm"
               data-testid="input-message"
             />
             <button className="absolute right-3 top-1/2 -translate-y-1/2" data-testid="button-emoji">
@@ -280,7 +380,7 @@ function ChatView({ chat, onBack }: { chat: MappedConversation; onBack: () => vo
           </div>
           <Button
             size="icon"
-            className="h-10 w-10 rounded-xl bg-gradient-primary shrink-0"
+            className="rounded-full bg-gradient-primary shrink-0 mb-0.5"
             onClick={handleSend}
             disabled={sendMutation.isPending || !message.trim()}
             data-testid="button-send"
@@ -288,7 +388,7 @@ function ChatView({ chat, onBack }: { chat: MappedConversation; onBack: () => vo
             {sendMutation.isPending ? (
               <Loader2 className="h-5 w-5 text-white animate-spin" />
             ) : (
-              <Send className="h-5 w-5 text-white" />
+              <Send className="h-4 w-4 text-white" />
             )}
           </Button>
         </div>
@@ -298,18 +398,13 @@ function ChatView({ chat, onBack }: { chat: MappedConversation; onBack: () => vo
 }
 
 function ConversationList({ conversations, isLoading, onSelectChat, selectedChatId, onNewMessage }: { conversations: MappedConversation[]; isLoading: boolean; onSelectChat: (chat: MappedConversation) => void; selectedChatId?: number; onNewMessage?: () => void }) {
-  const isMobile = useIsMobile();
-
   return (
     <div className="flex flex-col h-full">
       <div className="p-4 border-b border-border/50">
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center justify-between gap-2 mb-4">
           <h1 className="text-2xl font-bold">Messages</h1>
           <div className="flex items-center gap-1">
-            <Button variant="ghost" size="icon" className="h-10 w-10 rounded-xl press-effect" data-testid="button-video-call">
-              <Video className="h-5 w-5" />
-            </Button>
-            <Button variant="ghost" size="icon" className="h-10 w-10 rounded-xl press-effect" onClick={onNewMessage} data-testid="button-new-message">
+            <Button variant="ghost" size="icon" onClick={onNewMessage} data-testid="button-new-message">
               <Edit className="h-5 w-5" />
             </Button>
           </div>
@@ -363,8 +458,14 @@ function ConversationList({ conversations, isLoading, onSelectChat, selectedChat
             <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
           </div>
         ) : conversations.length === 0 ? (
-          <div className="flex items-center justify-center py-12">
-            <p className="text-muted-foreground">No conversations yet</p>
+          <div className="flex flex-col items-center justify-center py-16 gap-3">
+            <div className="h-16 w-16 rounded-full bg-secondary flex items-center justify-center">
+              <MessageIcon className="h-8 w-8 text-muted-foreground" />
+            </div>
+            <p className="text-muted-foreground text-sm">No conversations yet</p>
+            <Button variant="outline" size="sm" onClick={onNewMessage} data-testid="button-start-chat">
+              Start a chat
+            </Button>
           </div>
         ) : (
           conversations.map((chat, index) => (
@@ -372,63 +473,59 @@ function ConversationList({ conversations, isLoading, onSelectChat, selectedChat
               key={chat.id}
               onClick={() => onSelectChat(chat)}
               className={cn(
-                "flex items-center gap-3 px-4 py-3.5 transition-colors hover:bg-secondary cursor-pointer active:bg-secondary/80 animate-fade-in-up",
+                "flex items-center gap-3 px-4 py-3 transition-colors cursor-pointer hover-elevate",
                 selectedChatId === chat.id && "bg-secondary",
-                `stagger-${(index % 6) + 1}`
+                `animate-fade-in-up stagger-${(index % 6) + 1}`
               )}
               data-testid={`conversation-item-${chat.id}`}
             >
-              <div className="relative">
-                <Avatar className="h-14 w-14">
+              <div className="relative shrink-0">
+                <Avatar className="h-13 w-13">
                   <AvatarImage src={chat.avatar} alt={chat.name} />
-                  <AvatarFallback className="text-lg">{chat.name[0]}</AvatarFallback>
+                  <AvatarFallback className="text-base">{chat.name[0]}</AvatarFallback>
                 </Avatar>
                 {chat.online && (
-                  <span className="absolute bottom-0.5 right-0.5 h-3.5 w-3.5 rounded-full border-[2.5px] border-background bg-stream-success" />
+                  <span className="absolute bottom-0.5 right-0.5 h-3 w-3 rounded-full border-2 border-background bg-stream-success" />
                 )}
               </div>
 
               <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    <span className={cn(
+                      "font-semibold text-sm truncate",
+                      chat.unread > 0 && "text-foreground"
+                    )}>
+                      {chat.name}
+                    </span>
+                    {chat.isVerified && (
+                      <div className="flex h-3.5 w-3.5 items-center justify-center rounded-full bg-primary text-white shrink-0">
+                        <svg className="h-2 w-2" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                        </svg>
+                      </div>
+                    )}
+                  </div>
                   <span className={cn(
-                    "font-semibold truncate",
-                    chat.unread > 0 && "text-foreground"
+                    "text-[11px] shrink-0",
+                    chat.unread > 0 ? "text-primary font-semibold" : "text-muted-foreground"
                   )}>
-                    {chat.name}
+                    {chat.time}
                   </span>
-                  {chat.isVerified && (
-                    <div className="flex h-4 w-4 items-center justify-center rounded-full bg-primary text-white shrink-0">
-                      <svg className="h-2.5 w-2.5" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                      </svg>
-                    </div>
-                  )}
-                  {chat.isGroup && (
-                    <Badge variant="secondary" className="text-[10px] px-2 py-0 font-medium">
-                      Group
+                </div>
+                <div className="flex items-center justify-between gap-2 mt-0.5">
+                  <p className={cn(
+                    "text-[13px] truncate",
+                    chat.unread > 0 ? "text-foreground font-medium" : "text-muted-foreground"
+                  )}>
+                    {chat.lastMessage || "Start chatting"}
+                  </p>
+                  {chat.unread > 0 && (
+                    <Badge className="h-5 min-w-5 bg-primary text-primary-foreground border-0 text-[10px] justify-center font-bold shrink-0">
+                      {chat.unread > 99 ? "99+" : chat.unread}
                     </Badge>
                   )}
                 </div>
-                <p className={cn(
-                  "text-sm truncate",
-                  chat.unread > 0 ? "text-foreground font-medium" : "text-muted-foreground"
-                )}>
-                  {chat.lastMessage}
-                </p>
-              </div>
-
-              <div className="flex flex-col items-end gap-1.5">
-                <span className={cn(
-                  "text-xs",
-                  chat.unread > 0 ? "text-primary font-medium" : "text-muted-foreground"
-                )}>
-                  {chat.time}
-                </span>
-                {chat.unread > 0 && (
-                  <Badge className="h-5 min-w-5 bg-primary text-primary-foreground border-0 text-[10px] justify-center font-bold">
-                    {chat.unread > 99 ? "99+" : chat.unread}
-                  </Badge>
-                )}
               </div>
             </div>
           ))
@@ -443,7 +540,9 @@ export default function Messages() {
   const location = useLocation();
   const [selectedChat, setSelectedChat] = useState<MappedConversation | null>(null);
   const [newMessageOpen, setNewMessageOpen] = useState(false);
+  const [activeCall, setActiveCall] = useState<{ type: "audio" | "video"; chat: MappedConversation } | null>(null);
   const queryClient = useQueryClient();
+  const { user } = useAuth();
 
   const { data: conversations = [], isLoading } = useQuery<MappedConversation[]>({
     queryKey: ["/api/conversations"],
@@ -500,6 +599,24 @@ export default function Messages() {
     },
   });
 
+  const handleCall = (type: "audio" | "video") => {
+    if (!selectedChat || !user) return;
+    setActiveCall({ type, chat: selectedChat });
+  };
+
+  if (activeCall) {
+    const channelName = `call_${Math.min(user?.id || 0, activeCall.chat.id)}_${Math.max(user?.id || 0, activeCall.chat.id)}_${Date.now()}`;
+    return (
+      <CallScreen
+        callType={activeCall.type}
+        channelName={channelName}
+        peerName={activeCall.chat.name}
+        peerAvatar={activeCall.chat.avatar}
+        onEnd={() => setActiveCall(null)}
+      />
+    );
+  }
+
   if (!isMobile) {
     return (
       <div className="flex h-screen bg-background">
@@ -515,7 +632,7 @@ export default function Messages() {
 
         <div className="flex-1 flex flex-col">
           {selectedChat ? (
-            <ChatView chat={selectedChat} onBack={() => setSelectedChat(null)} />
+            <ChatView chat={selectedChat} onBack={() => setSelectedChat(null)} onCall={handleCall} />
           ) : (
             <div className="flex-1 flex items-center justify-center">
               <div className="text-center">
@@ -540,11 +657,15 @@ export default function Messages() {
   }
 
   if (selectedChat) {
-    return <ChatView chat={selectedChat} onBack={() => setSelectedChat(null)} />;
+    return (
+      <>
+        <ChatView chat={selectedChat} onBack={() => setSelectedChat(null)} onCall={handleCall} />
+      </>
+    );
   }
 
   return (
-    <div className="flex flex-col min-h-screen bg-background pb-20">
+    <div className="flex flex-col h-[calc(100vh-4rem)] bg-background">
       <ConversationList 
         conversations={conversations}
         isLoading={isLoading}
