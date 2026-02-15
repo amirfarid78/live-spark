@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { Search, Edit, Phone, Video, Send, Smile, Paperclip, MoreVertical, ArrowLeft, Loader2, Check, CheckCheck } from "lucide-react";
+import { Search, Edit, Phone, Video, Send, Smile, Paperclip, MoreVertical, ArrowLeft, Loader2, Check, CheckCheck, Mic, Image as ImageIcon, Camera } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -87,7 +87,7 @@ function NewMessageDialog({ isOpen, onClose, onStartChat }: { isOpen: boolean; o
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 bg-background animate-fade-in flex flex-col">
+    <div className="fixed inset-0 z-[65] bg-background animate-fade-in flex flex-col">
       <div className="flex items-center gap-3 px-4 py-3 border-b">
         <button onClick={onClose} data-testid="button-close-new-message">
           <ArrowLeft className="h-5 w-5" />
@@ -172,14 +172,17 @@ interface ChatViewProps {
   chat: MappedConversation;
   onBack: () => void;
   onCall: (type: "audio" | "video") => void;
+  fullScreen?: boolean;
 }
 
-function ChatView({ chat, onBack, onCall }: ChatViewProps) {
+function ChatView({ chat, onBack, onCall, fullScreen }: ChatViewProps) {
   const [message, setMessage] = useState("");
   const queryClient = useQueryClient();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
   const { user } = useAuth();
+  const [showAttachMenu, setShowAttachMenu] = useState(false);
 
   const { data: messages = [], isLoading: messagesLoading } = useQuery<ApiMessage[]>({
     queryKey: ["/api/conversations", chat.id, "messages"],
@@ -190,11 +193,17 @@ function ChatView({ chat, onBack, onCall }: ChatViewProps) {
     refetchInterval: 5000,
   });
 
+  const scrollToBottom = useCallback((behavior: ScrollBehavior = "smooth") => {
+    requestAnimationFrame(() => {
+      if (messagesEndRef.current) {
+        messagesEndRef.current.scrollIntoView({ behavior });
+      }
+    });
+  }, []);
+
   useEffect(() => {
-    if (messagesEndRef.current) {
-      messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
-    }
-  }, [messages]);
+    scrollToBottom("instant");
+  }, [messages.length, scrollToBottom]);
 
   const sendMutation = useMutation({
     mutationFn: async (content: string) => {
@@ -204,6 +213,7 @@ function ChatView({ chat, onBack, onCall }: ChatViewProps) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/conversations", chat.id, "messages"] });
       queryClient.invalidateQueries({ queryKey: ["/api/conversations"] });
+      scrollToBottom();
     },
   });
 
@@ -212,6 +222,7 @@ function ChatView({ chat, onBack, onCall }: ChatViewProps) {
     if (!trimmed) return;
     sendMutation.mutate(trimmed);
     setMessage("");
+    inputRef.current?.focus();
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -222,175 +233,214 @@ function ChatView({ chat, onBack, onCall }: ChatViewProps) {
   };
 
   const messageGroups = groupMessagesByDate(messages);
+  const hasText = message.trim().length > 0;
 
   return (
-    <div className="flex flex-col h-full bg-background">
-      <div className="flex items-center gap-2.5 px-3 py-2.5 border-b border-border/40 bg-background sticky top-0 z-10">
-        <button onClick={onBack} className="p-1" data-testid="button-chat-back">
+    <div className={cn(
+      "flex flex-col bg-background",
+      fullScreen ? "fixed inset-0 z-[60]" : "h-full"
+    )}>
+      <div className="flex items-center gap-2 px-2 py-2 bg-background/95 backdrop-blur-md border-b border-border/30 shrink-0" style={{ paddingTop: "max(0.5rem, env(safe-area-inset-top))" }}>
+        <button onClick={onBack} className="p-1.5 -ml-0.5 active:opacity-60 transition-opacity" data-testid="button-chat-back">
           <ArrowLeft className="h-5 w-5" />
         </button>
-        <div className="relative">
-          <Avatar className="h-10 w-10">
+        <div className="relative shrink-0">
+          <Avatar className="h-9 w-9">
             <AvatarImage src={chat.avatar} alt={chat.name} />
-            <AvatarFallback className="text-sm">{chat.name[0]}</AvatarFallback>
+            <AvatarFallback className="text-sm font-medium">{chat.name[0]}</AvatarFallback>
           </Avatar>
           {chat.online && (
-            <span className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full border-2 border-background bg-stream-success" />
+            <span className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-[2.5px] border-background bg-emerald-500" />
           )}
         </div>
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-1.5">
-            <span className="font-semibold text-sm truncate">{chat.name}</span>
+        <div className="flex-1 min-w-0 ml-0.5">
+          <div className="flex items-center gap-1">
+            <span className="font-semibold text-[15px] truncate leading-tight">{chat.name}</span>
             {chat.isVerified && (
-              <div className="flex h-3.5 w-3.5 items-center justify-center rounded-full bg-primary text-white shrink-0">
-                <svg className="h-2 w-2" fill="currentColor" viewBox="0 0 20 20">
+              <div className="flex h-4 w-4 items-center justify-center rounded-full bg-primary text-white shrink-0">
+                <svg className="h-2.5 w-2.5" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                 </svg>
               </div>
             )}
           </div>
-          <p className="text-[11px] text-muted-foreground leading-tight">
-            {chat.online ? "Online" : "Last seen recently"}
+          <p className="text-[11px] text-muted-foreground leading-none mt-0.5">
+            {chat.online ? (
+              <span className="text-emerald-500">Online</span>
+            ) : "Last seen recently"}
           </p>
         </div>
-        <div className="flex items-center">
-          <Button variant="ghost" size="icon"
+        <div className="flex items-center gap-0.5 shrink-0">
+          <button
             onClick={() => onCall("audio")}
-            data-testid="button-chat-call">
-            <Phone className="h-5 w-5" />
-          </Button>
-          <Button variant="ghost" size="icon"
+            className="p-2 rounded-full active:bg-secondary transition-colors"
+            data-testid="button-chat-call"
+          >
+            <Phone className="h-[20px] w-[20px] text-muted-foreground" />
+          </button>
+          <button
             onClick={() => onCall("video")}
-            data-testid="button-chat-video">
-            <Video className="h-5 w-5" />
-          </Button>
-          <Button variant="ghost" size="icon" data-testid="button-chat-more">
-            <MoreVertical className="h-5 w-5" />
-          </Button>
+            className="p-2 rounded-full active:bg-secondary transition-colors"
+            data-testid="button-chat-video"
+          >
+            <Video className="h-[20px] w-[20px] text-muted-foreground" />
+          </button>
+          <button
+            className="p-2 rounded-full active:bg-secondary transition-colors"
+            data-testid="button-chat-more"
+          >
+            <MoreVertical className="h-[20px] w-[20px] text-muted-foreground" />
+          </button>
         </div>
       </div>
 
-      <div ref={scrollContainerRef} className="flex-1 overflow-y-auto px-3 py-3">
-        {messagesLoading ? (
-          <div className="flex items-center justify-center h-full">
-            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-          </div>
-        ) : messages.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-full gap-3">
-            <Avatar className="h-16 w-16">
-              <AvatarImage src={chat.avatar} />
-              <AvatarFallback className="text-xl">{chat.name[0]}</AvatarFallback>
-            </Avatar>
-            <p className="font-semibold">{chat.name}</p>
-            <p className="text-sm text-muted-foreground text-center max-w-[200px]">
-              Start a conversation. Say hi!
-            </p>
-          </div>
-        ) : (
-          messageGroups.map((group) => (
-            <div key={group.date}>
-              <div className="flex items-center justify-center my-4">
-                <span className="text-[11px] text-muted-foreground bg-secondary/80 px-3 py-1 rounded-full">
-                  {group.date}
-                </span>
-              </div>
-              <div className="space-y-1">
-                {group.messages.map((msg, idx) => {
-                  const prevMsg = idx > 0 ? group.messages[idx - 1] : null;
-                  const nextMsg = idx < group.messages.length - 1 ? group.messages[idx + 1] : null;
-                  const isFirst = !prevMsg || prevMsg.isMe !== msg.isMe;
-                  const isLast = !nextMsg || nextMsg.isMe !== msg.isMe;
+      <div
+        ref={scrollContainerRef}
+        className="flex-1 overflow-y-auto overscroll-contain"
+        style={{ WebkitOverflowScrolling: "touch" }}
+      >
+        <div className="flex flex-col justify-end min-h-full px-3 py-2">
+          {messagesLoading ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            </div>
+          ) : messages.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-16 gap-3">
+              <Avatar className="h-20 w-20">
+                <AvatarImage src={chat.avatar} />
+                <AvatarFallback className="text-2xl">{chat.name[0]}</AvatarFallback>
+              </Avatar>
+              <p className="font-semibold text-lg">{chat.name}</p>
+              <p className="text-sm text-muted-foreground text-center max-w-[220px]">
+                Send a message to start your conversation
+              </p>
+            </div>
+          ) : (
+            messageGroups.map((group) => (
+              <div key={group.date}>
+                <div className="flex items-center justify-center my-3">
+                  <span className="text-[11px] text-muted-foreground bg-secondary/70 backdrop-blur-sm px-3 py-1 rounded-full font-medium">
+                    {group.date}
+                  </span>
+                </div>
+                <div className="space-y-[3px]">
+                  {group.messages.map((msg, idx) => {
+                    const prevMsg = idx > 0 ? group.messages[idx - 1] : null;
+                    const nextMsg = idx < group.messages.length - 1 ? group.messages[idx + 1] : null;
+                    const isFirst = !prevMsg || prevMsg.isMe !== msg.isMe;
+                    const isLast = !nextMsg || nextMsg.isMe !== msg.isMe;
 
-                  return (
-                    <div
-                      key={msg.id}
-                      className={cn(
-                        "flex",
-                        msg.isMe ? "justify-end" : "justify-start",
-                        isLast ? "mb-2" : "mb-0.5"
-                      )}
-                      data-testid={`message-item-${msg.id}`}
-                    >
-                      {!msg.isMe && isLast && (
-                        <Avatar className="h-6 w-6 mt-auto mr-1.5 shrink-0">
-                          <AvatarImage src={msg.sender.avatarUrl} />
-                          <AvatarFallback className="text-[10px]">{msg.sender.displayName?.[0]}</AvatarFallback>
-                        </Avatar>
-                      )}
-                      {!msg.isMe && !isLast && <div className="w-[30px] shrink-0" />}
+                    const myBubbleRadius = cn(
+                      isFirst && isLast && "rounded-[18px] rounded-br-[4px]",
+                      isFirst && !isLast && "rounded-[18px] rounded-br-[4px]",
+                      !isFirst && isLast && "rounded-[18px] rounded-tr-[4px] rounded-br-[4px]",
+                      !isFirst && !isLast && "rounded-[14px] rounded-r-[4px]",
+                    );
+                    const theirBubbleRadius = cn(
+                      isFirst && isLast && "rounded-[18px] rounded-bl-[4px]",
+                      isFirst && !isLast && "rounded-[18px] rounded-bl-[4px]",
+                      !isFirst && isLast && "rounded-[18px] rounded-tl-[4px] rounded-bl-[4px]",
+                      !isFirst && !isLast && "rounded-[14px] rounded-l-[4px]",
+                    );
+
+                    return (
                       <div
+                        key={msg.id}
                         className={cn(
-                          "max-w-[75%] px-3.5 py-2",
-                          msg.isMe
-                            ? "bg-gradient-primary text-white"
-                            : "bg-secondary",
-                          msg.isMe && isFirst && isLast && "rounded-2xl rounded-br-md",
-                          msg.isMe && isFirst && !isLast && "rounded-2xl rounded-br-md",
-                          msg.isMe && !isFirst && isLast && "rounded-2xl rounded-tr-md rounded-br-md",
-                          msg.isMe && !isFirst && !isLast && "rounded-xl rounded-r-md",
-                          !msg.isMe && isFirst && isLast && "rounded-2xl rounded-bl-md",
-                          !msg.isMe && isFirst && !isLast && "rounded-2xl rounded-bl-md",
-                          !msg.isMe && !isFirst && isLast && "rounded-2xl rounded-tl-md rounded-bl-md",
-                          !msg.isMe && !isFirst && !isLast && "rounded-xl rounded-l-md",
+                          "flex",
+                          msg.isMe ? "justify-end" : "justify-start",
+                          isLast ? "mb-2.5" : "mb-0"
                         )}
+                        data-testid={`message-item-${msg.id}`}
                       >
-                        <p className="text-[14px] leading-snug break-words">{msg.content}</p>
-                        <div className={cn(
-                          "flex items-center gap-1 mt-0.5",
-                          msg.isMe ? "justify-end" : "justify-start"
-                        )}>
-                          <span className={cn(
-                            "text-[10px]",
-                            msg.isMe ? "text-white/60" : "text-muted-foreground"
-                          )}>
-                            {new Date(msg.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                          </span>
-                          {msg.isMe && (
-                            <CheckCheck className={cn("h-3 w-3", "text-white/60")} />
+                        {!msg.isMe && isLast && (
+                          <Avatar className="h-7 w-7 mt-auto mr-1.5 shrink-0">
+                            <AvatarImage src={msg.sender.avatarUrl} />
+                            <AvatarFallback className="text-[10px]">{msg.sender.displayName?.[0]}</AvatarFallback>
+                          </Avatar>
+                        )}
+                        {!msg.isMe && !isLast && <div className="w-[34px] shrink-0" />}
+                        <div
+                          className={cn(
+                            "max-w-[78%] relative group",
+                            msg.isMe
+                              ? cn("bg-gradient-primary text-white", myBubbleRadius)
+                              : cn("bg-secondary dark:bg-secondary/80", theirBubbleRadius),
                           )}
+                        >
+                          <div className="px-3 py-[7px]">
+                            <p className="text-[15px] leading-[1.35] break-words whitespace-pre-wrap">{msg.content}</p>
+                            <div className={cn(
+                              "flex items-center gap-1 -mb-0.5 mt-0.5",
+                              msg.isMe ? "justify-end" : "justify-end"
+                            )}>
+                              <span className={cn(
+                                "text-[10px] leading-none",
+                                msg.isMe ? "text-white/55" : "text-muted-foreground/70"
+                              )}>
+                                {new Date(msg.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                              </span>
+                              {msg.isMe && (
+                                <CheckCheck className="h-3.5 w-3.5 text-white/55" />
+                              )}
+                            </div>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  );
-                })}
+                    );
+                  })}
+                </div>
               </div>
-            </div>
-          ))
-        )}
-        <div ref={messagesEndRef} />
+            ))
+          )}
+          <div ref={messagesEndRef} className="h-0.5" />
+        </div>
       </div>
 
-      <div className="px-3 py-2.5 border-t border-border/40 bg-background pb-safe">
-        <div className="flex items-end gap-1.5">
-          <Button variant="ghost" size="icon" className="shrink-0 mb-0.5" data-testid="button-attach">
-            <Paperclip className="h-5 w-5" />
-          </Button>
-          <div className="relative flex-1">
-            <Input
-              placeholder="Type a message..."
+      <div className="shrink-0 bg-background/95 backdrop-blur-md border-t border-border/30" style={{ paddingBottom: fullScreen ? "max(0.5rem, env(safe-area-inset-bottom))" : "0.5rem" }}>
+        <div className="flex items-end gap-1.5 px-2 py-1.5">
+          <button
+            onClick={() => setShowAttachMenu(!showAttachMenu)}
+            className="p-2 shrink-0 mb-0.5 rounded-full active:bg-secondary transition-colors text-muted-foreground"
+            data-testid="button-attach"
+          >
+            <Paperclip className="h-[22px] w-[22px]" />
+          </button>
+          <div className="relative flex-1 min-w-0">
+            <input
+              ref={inputRef}
+              placeholder="Message..."
               value={message}
               onChange={(e) => setMessage(e.target.value)}
               onKeyDown={handleKeyDown}
-              className="h-10 bg-secondary border-0 rounded-full pr-10 text-sm"
+              className="w-full h-10 bg-secondary dark:bg-secondary/60 border-0 rounded-full px-4 pr-10 text-[15px] outline-none focus:ring-1 focus:ring-primary/30 transition-shadow placeholder:text-muted-foreground/60"
               data-testid="input-message"
             />
-            <button className="absolute right-3 top-1/2 -translate-y-1/2" data-testid="button-emoji">
-              <Smile className="h-5 w-5 text-muted-foreground" />
+            <button className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground/60 active:opacity-60" data-testid="button-emoji">
+              <Smile className="h-[22px] w-[22px]" />
             </button>
           </div>
-          <Button
-            size="icon"
-            className="rounded-full bg-gradient-primary shrink-0 mb-0.5"
-            onClick={handleSend}
-            disabled={sendMutation.isPending || !message.trim()}
-            data-testid="button-send"
-          >
-            {sendMutation.isPending ? (
-              <Loader2 className="h-5 w-5 text-white animate-spin" />
-            ) : (
-              <Send className="h-4 w-4 text-white" />
-            )}
-          </Button>
+          {hasText ? (
+            <button
+              className="p-2 shrink-0 mb-0.5 rounded-full bg-primary active:opacity-80 transition-opacity"
+              onClick={handleSend}
+              disabled={sendMutation.isPending}
+              data-testid="button-send"
+            >
+              {sendMutation.isPending ? (
+                <Loader2 className="h-[22px] w-[22px] text-primary-foreground animate-spin" />
+              ) : (
+                <Send className="h-[22px] w-[22px] text-primary-foreground" />
+              )}
+            </button>
+          ) : (
+            <button
+              className="p-2 shrink-0 mb-0.5 rounded-full active:bg-secondary transition-colors text-muted-foreground"
+              data-testid="button-voice"
+            >
+              <Mic className="h-[22px] w-[22px]" />
+            </button>
+          )}
         </div>
       </div>
     </div>
@@ -436,7 +486,7 @@ function ConversationList({ conversations, isLoading, onSelectChat, selectedChat
               data-testid="tab-online"
             >
               Online
-              <span className="ml-1.5 h-2 w-2 rounded-full bg-stream-success" />
+              <span className="ml-1.5 h-2 w-2 rounded-full bg-emerald-500" />
             </TabsTrigger>
             <TabsTrigger 
               value="unread" 
@@ -485,7 +535,7 @@ function ConversationList({ conversations, isLoading, onSelectChat, selectedChat
                   <AvatarFallback className="text-base">{chat.name[0]}</AvatarFallback>
                 </Avatar>
                 {chat.online && (
-                  <span className="absolute bottom-0.5 right-0.5 h-3 w-3 rounded-full border-2 border-background bg-stream-success" />
+                  <span className="absolute bottom-0.5 right-0.5 h-3 w-3 rounded-full border-2 border-background bg-emerald-500" />
                 )}
               </div>
 
@@ -659,7 +709,12 @@ export default function Messages() {
   if (selectedChat) {
     return (
       <>
-        <ChatView chat={selectedChat} onBack={() => setSelectedChat(null)} onCall={handleCall} />
+        <ChatView chat={selectedChat} onBack={() => setSelectedChat(null)} onCall={handleCall} fullScreen />
+        <NewMessageDialog
+          isOpen={newMessageOpen}
+          onClose={() => setNewMessageOpen(false)}
+          onStartChat={(userId) => startChatMutation.mutate(userId)}
+        />
       </>
     );
   }
