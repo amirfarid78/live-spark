@@ -1,73 +1,80 @@
-import React from "react";
 import { cn } from "@/lib/utils";
 import { ChatMessage } from "./LiveRoomViewer";
+import { Gift, UserPlus } from "lucide-react";
 
 interface LiveChatSectionProps {
   messages: ChatMessage[];
 }
 
 export function LiveChatSection({ messages }: LiveChatSectionProps) {
+  const visibleMessages = messages.slice(-8);
+
   return (
-    <div className="px-4 mb-3 max-h-[32vh] overflow-hidden">
-      <div className="space-y-2">
-        {messages.slice(-10).map((msg, index) => {
-          const opacity = 1 - (messages.slice(-10).length - 1 - index) * 0.1;
-          
-          // System message
+    <div className="px-3 mb-2 max-h-[28vh] overflow-hidden">
+      <div className="space-y-1.5">
+        {visibleMessages.map((msg, index) => {
+          const opacity = Math.max(0.4, 0.5 + (index / visibleMessages.length) * 0.5);
+
           if (msg.isSystem) {
             return (
               <div
                 key={msg.id}
                 className="animate-fade-in"
-                style={{ opacity: Math.max(opacity, 0.4) }}
+                style={{ opacity }}
               >
-                <span className="text-xs text-white font-medium">
-                  Announcement : <span className="text-white/80">{msg.message}</span>
-                </span>
-              </div>
-            );
-          }
-
-          // Friend request message
-          if (msg.isFriendRequest) {
-            return (
-              <div
-                key={msg.id}
-                className="animate-fade-in"
-                style={{ opacity: Math.max(opacity, 0.4) }}
-              >
-                <div className="inline-flex items-center">
-                  <span className="text-xs text-stream-cyan font-medium mr-2">{msg.user}</span>
-                  <span className="text-xs bg-gradient-to-r from-stream-gold to-orange-500 text-black font-bold px-2.5 py-1 rounded-full">
-                    {msg.user} : Sent Friend Request
-                  </span>
+                <div className="inline-flex items-center gap-1.5 bg-white/10 backdrop-blur-sm rounded-full px-3 py-1">
+                  <span className="text-[11px] text-white/90 font-medium">{msg.message}</span>
                 </div>
               </div>
             );
           }
 
-          // Regular message
+          if (msg.isFriendRequest) {
+            return (
+              <div
+                key={msg.id}
+                className="animate-fade-in"
+                style={{ opacity }}
+              >
+                <div className="inline-flex items-center gap-1.5 bg-white/10 backdrop-blur-sm rounded-lg px-3 py-1.5">
+                  <UserPlus className="h-3 w-3 text-stream-gold" />
+                  <span className="text-[11px] text-stream-gold font-semibold">{msg.user}</span>
+                  <span className="text-[11px] text-white/70">sent a friend request</span>
+                </div>
+              </div>
+            );
+          }
+
+          if (msg.giftIcon) {
+            return (
+              <div
+                key={msg.id}
+                className="animate-fade-in"
+                style={{ opacity }}
+              >
+                <div className="inline-flex items-center gap-1.5 bg-gradient-to-r from-amber-500/20 to-orange-500/10 backdrop-blur-sm rounded-lg px-3 py-1.5">
+                  <span className="text-[11px] text-stream-gold font-semibold">{msg.user}</span>
+                  <span className="text-[11px] text-white/70">{msg.message}</span>
+                  <Gift className="h-3.5 w-3.5 text-stream-gold" />
+                </div>
+              </div>
+            );
+          }
+
           return (
             <div
               key={msg.id}
               className="animate-fade-in"
-              style={{ opacity: Math.max(opacity, 0.4) }}
+              style={{ opacity }}
             >
-              <div className="flex items-start gap-1.5 flex-wrap">
+              <div className="inline-flex items-start gap-1.5 max-w-[85%]">
                 <span className={cn(
-                  "text-xs font-semibold",
-                  msg.isVIP ? "text-stream-cyan" : "text-stream-cyan"
+                  "text-[11px] font-semibold flex-shrink-0",
+                  msg.isHost ? "text-stream-gold" : msg.isVIP ? "text-stream-cyan" : "text-white/60"
                 )}>
                   {msg.user}
                 </span>
-                {msg.giftIcon ? (
-                  <span className="text-xs text-white/90 flex items-center gap-1">
-                    {msg.message}
-                    <span className="text-base">{msg.giftIcon}</span>
-                  </span>
-                ) : (
-                  <span className="text-xs text-white/80">{msg.message}</span>
-                )}
+                <span className="text-[11px] text-white/90 break-words">{msg.message}</span>
               </div>
             </div>
           );
