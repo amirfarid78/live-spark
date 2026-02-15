@@ -47,6 +47,13 @@ const feedTabs = [
   { id: "live", label: "LIVE", isLive: true },
 ];
 
+let userHasInteracted = false;
+const markInteracted = () => { userHasInteracted = true; };
+if (typeof window !== 'undefined') {
+  window.addEventListener('touchstart', markInteracted, { once: true, capture: true });
+  window.addEventListener('click', markInteracted, { once: true, capture: true });
+}
+
 function formatCount(n: number): string {
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
   if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K`;
@@ -91,11 +98,35 @@ function VideoCard({ video, isActive, onAuthRequired, isAuthenticated, onOpenCom
     if (isActive) {
       setIsPaused(false);
       videoEl.currentTime = 0;
-      videoEl.play().catch(() => {
+      videoEl.muted = false;
+      setIsMuted(false);
+      const tryPlay = () => {
+        videoEl.play().then(() => {
+          if (videoEl.muted) {
+            videoEl.muted = false;
+            setIsMuted(false);
+          }
+        }).catch(() => {
+          videoEl.muted = true;
+          setIsMuted(true);
+          videoEl.play().catch(() => {});
+        });
+      };
+      if (userHasInteracted) {
+        tryPlay();
+      } else {
         videoEl.muted = true;
         setIsMuted(true);
         videoEl.play().catch(() => {});
-      });
+        const onInteract = () => {
+          if (videoEl && !videoEl.paused) {
+            videoEl.muted = false;
+            setIsMuted(false);
+          }
+        };
+        window.addEventListener('touchstart', onInteract, { once: true });
+        window.addEventListener('click', onInteract, { once: true });
+      }
     } else {
       videoEl.pause();
       videoEl.currentTime = 0;
@@ -158,13 +189,21 @@ function VideoCard({ video, isActive, onAuthRequired, isAuthenticated, onOpenCom
   };
 
   const togglePlayPause = () => {
+    const videoEl = videoRef.current;
+    if (!videoEl) return;
+    if (videoEl.muted && !isPaused) {
+      videoEl.muted = false;
+      setIsMuted(false);
+      return;
+    }
     setIsPaused(!isPaused);
   };
 
   const toggleMute = () => {
-    setIsMuted(!isMuted);
+    const newMuted = !isMuted;
+    setIsMuted(newMuted);
     if (videoRef.current) {
-      videoRef.current.muted = !isMuted;
+      videoRef.current.muted = newMuted;
     }
   };
 
@@ -211,6 +250,16 @@ function VideoCard({ video, isActive, onAuthRequired, isAuthenticated, onOpenCom
           <div className="absolute inset-0 flex items-center justify-center">
             <div className="flex h-20 w-20 items-center justify-center rounded-full bg-black/30 backdrop-blur-md animate-scale-in">
               <Play className="h-10 w-10 text-white ml-1" fill="white" />
+            </div>
+          </div>
+        )}
+
+        {/* Tap to unmute indicator */}
+        {isMuted && isActive && !isPaused && (
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none animate-fade-out-delay">
+            <div className="flex items-center gap-2 rounded-full bg-black/50 backdrop-blur-sm px-4 py-2">
+              <VolumeX className="h-4 w-4 text-white" />
+              <span className="text-white text-xs font-medium">Tap to unmute</span>
             </div>
           </div>
         )}
