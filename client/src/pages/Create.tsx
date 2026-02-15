@@ -99,7 +99,9 @@ export default function Create() {
       queryClient.invalidateQueries({ queryKey: ["videoFeed"] });
       queryClient.invalidateQueries({ queryKey: ["/api/videos/feed"] });
       queryClient.invalidateQueries({ queryKey: ["/api/videos/trending"] });
-      toast.success("Video published successfully!");
+      queryClient.invalidateQueries({ queryKey: ["/api/videos"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/users"] });
+      toast.success("Video published! It will appear in your feed now.");
       navigate("/");
     },
     onError: (error: any) => {
@@ -114,18 +116,29 @@ export default function Create() {
   }, []);
 
   const handleEditorSave = useCallback(async (editedBlob: Blob, thumbnail: Blob | null) => {
-    const videoFile = new File([editedBlob], `video_${Date.now()}.webm`, { type: editedBlob.type || "video/webm" });
+    const mimeType = editedBlob.type || "video/webm";
+    const ext = mimeType.includes("mp4") ? "mp4" : "webm";
+    const videoFile = new File([editedBlob], `video_${Date.now()}.${ext}`, { type: mimeType });
     setSelectedFile(videoFile);
     setVideoPreviewUrl(URL.createObjectURL(editedBlob));
     setStep("upload");
 
-    const result = await uploadFile(videoFile);
-    if (result) {
-      if (thumbnail) {
-        const thumbFile = new File([thumbnail], `thumb_${Date.now()}.jpg`, { type: "image/jpeg" });
-        await thumbnailUpload.uploadFile(thumbFile);
+    try {
+      const result = await uploadFile(videoFile);
+      if (result) {
+        if (thumbnail) {
+          const thumbFile = new File([thumbnail], `thumb_${Date.now()}.jpg`, { type: "image/jpeg" });
+          await thumbnailUpload.uploadFile(thumbFile);
+        }
+        setStep("details");
+      } else {
+        toast.error("Upload failed. Please try again.");
+        setStep("select");
       }
-      setStep("details");
+    } catch (err: any) {
+      console.error("Upload error:", err);
+      toast.error("Upload failed: " + (err?.message || "Unknown error"));
+      setStep("select");
     }
   }, [uploadFile, thumbnailUpload]);
 

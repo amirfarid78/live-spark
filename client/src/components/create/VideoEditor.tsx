@@ -161,30 +161,48 @@ export function VideoEditor({ videoBlob, onSave, onClose }: VideoEditorProps) {
   const generateThumbnail = useCallback((): Promise<Blob | null> => {
     return new Promise((resolve) => {
       const video = videoRef.current;
-      if (!video) return resolve(null);
+      if (!video || video.readyState < 2) return resolve(null);
 
-      const canvas = document.createElement("canvas");
-      canvas.width = video.videoWidth || 720;
-      canvas.height = video.videoHeight || 1280;
-      const ctx = canvas.getContext("2d");
-      if (!ctx) return resolve(null);
+      try {
+        const canvas = document.createElement("canvas");
+        canvas.width = video.videoWidth || 720;
+        canvas.height = video.videoHeight || 1280;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) return resolve(null);
 
-      ctx.filter = getFilterCss();
-      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        const seekTo = Math.min(1, video.duration * 0.1);
+        video.currentTime = seekTo;
 
-      textOverlays.forEach(overlay => {
-        ctx.filter = "none";
-        ctx.font = `${overlay.fontWeight} ${overlay.fontSize}px sans-serif`;
-        ctx.fillStyle = overlay.color;
-        ctx.textAlign = "center";
-        ctx.shadowColor = "rgba(0,0,0,0.7)";
-        ctx.shadowBlur = 4;
-        const x = (overlay.x / 100) * canvas.width;
-        const y = (overlay.y / 100) * canvas.height;
-        ctx.fillText(overlay.text, x, y);
-      });
+        const onSeeked = () => {
+          video.removeEventListener("seeked", onSeeked);
+          ctx.filter = getFilterCss();
+          ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-      canvas.toBlob((blob) => resolve(blob), "image/jpeg", 0.85);
+          textOverlays.forEach(overlay => {
+            ctx.filter = "none";
+            ctx.font = `${overlay.fontWeight} ${overlay.fontSize}px sans-serif`;
+            ctx.fillStyle = overlay.color;
+            ctx.textAlign = "center";
+            ctx.shadowColor = "rgba(0,0,0,0.7)";
+            ctx.shadowBlur = 4;
+            const x = (overlay.x / 100) * canvas.width;
+            const y = (overlay.y / 100) * canvas.height;
+            ctx.fillText(overlay.text, x, y);
+          });
+
+          canvas.toBlob((blob) => resolve(blob), "image/jpeg", 0.85);
+        };
+
+        video.addEventListener("seeked", onSeeked);
+        setTimeout(() => {
+          video.removeEventListener("seeked", onSeeked);
+          ctx.filter = getFilterCss();
+          ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+          canvas.toBlob((blob) => resolve(blob), "image/jpeg", 0.85);
+        }, 2000);
+      } catch {
+        resolve(null);
+      }
     });
   }, [getFilterCss, textOverlays]);
 
