@@ -4,6 +4,9 @@ import path from "path";
 
 export default defineConfig(({ mode }) => ({
   plugins: [react()],
+  server: {
+    allowedHosts: true,
+  },
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "client", "src"),
