@@ -9,7 +9,7 @@ import {
   type Agency, type InsertAgency, type Gift, type Campaign, type InsertCampaign,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc, and, sql, ilike, ne, inArray, asc } from "drizzle-orm";
+import { eq, desc, and, sql, ilike, ne, inArray, asc, isNull } from "drizzle-orm";
 
 export interface IStorage {
   getUser(id: number): Promise<User | undefined>;
@@ -55,8 +55,9 @@ export interface IStorage {
   createPartyRoom(room: InsertPartyRoom): Promise<PartyRoom>;
   getPartyRoom(id: number): Promise<PartyRoom | undefined>;
 
-  getActivePKBattles(limit?: number): Promise<(PKBattle & { host: Pick<User, "id" | "username" | "displayName" | "avatarUrl">; opponent: Pick<User, "id" | "username" | "displayName" | "avatarUrl"> })[]>;
+  getActivePKBattles(limit?: number): Promise<(PKBattle & { host: Pick<User, "id" | "username" | "displayName" | "avatarUrl">; opponent: Pick<User, "id" | "username" | "displayName" | "avatarUrl"> | null })[]>;
   createPKBattle(battle: InsertPKBattle): Promise<PKBattle>;
+  joinPKBattle(battleId: number, userId: number): Promise<PKBattle | undefined>;
 
   getConversations(userId: number): Promise<any[]>;
   getOrCreateDirectConversation(userId: number, targetId: number): Promise<Conversation>;
@@ -403,16 +404,19 @@ export class DatabaseStorage implements IStorage {
       })
       .from(pkBattles)
       .innerJoin(users, eq(pkBattles.hostId, users.id))
-      .where(eq(pkBattles.status, "live"))
+      .where(sql`${pkBattles.status} IN ('live', 'pending')`)
       .orderBy(desc(pkBattles.createdAt))
       .limit(limit);
 
     const battlesWithOpponents = await Promise.all(
       result.map(async (battle) => {
-        const [opponent] = await db.select({
-          id: users.id, username: users.username, displayName: users.displayName, avatarUrl: users.avatarUrl,
-        }).from(users).where(eq(users.id, battle.opponentId));
-        return { ...battle, opponent: opponent || { id: 0, username: "Unknown", displayName: "Unknown", avatarUrl: null } };
+        if (battle.opponentId) {
+          const [opponent] = await db.select({
+            id: users.id, username: users.username, displayName: users.displayName, avatarUrl: users.avatarUrl,
+          }).from(users).where(eq(users.id, battle.opponentId));
+          return { ...battle, opponent: opponent || null };
+        }
+        return { ...battle, opponent: null };
       })
     );
     return battlesWithOpponents as any;
@@ -421,6 +425,23 @@ export class DatabaseStorage implements IStorage {
   async createPKBattle(battle: InsertPKBattle): Promise<PKBattle> {
     const [created] = await db.insert(pkBattles).values(battle).returning();
     return created;
+  }
+
+  async joinPKBattle(battleId: number, userId: number): Promise<PKBattle | undefined> {
+    const [battle] = await db.select().from(pkBattles).where(
+      and(
+        eq(pkBattles.id, battleId),
+        eq(pkBattles.status, "pending"),
+        isNull(pkBattles.opponentId)
+      )
+    );
+    if (!battle) return undefined;
+    if (battle.hostId === userId) return undefined;
+    const [updated] = await db.update(pkBattles)
+      .set({ opponentId: userId, status: "live", startedAt: new Date() })
+      .where(eq(pkBattles.id, battleId))
+      .returning();
+    return updated;
   }
 
   async getConversations(userId: number): Promise<any[]> {

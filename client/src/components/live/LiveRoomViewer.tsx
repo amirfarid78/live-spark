@@ -13,7 +13,9 @@ interface LiveRoomViewerProps {
   hostAvatar: string;
   viewerCount: number;
   thumbnail: string;
+  isHost?: boolean;
   onClose: () => void;
+  onEndStream?: (streamId: string) => void;
 }
 
 export interface ChatMessage {
@@ -52,7 +54,7 @@ const topViewers = [
   { id: "5", avatar: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=50", isVIP: false, level: 1 },
 ];
 
-export function LiveRoomViewer({ streamId, hostName, hostAvatar, viewerCount, thumbnail, onClose }: LiveRoomViewerProps) {
+export function LiveRoomViewer({ streamId, hostName, hostAvatar, viewerCount, thumbnail, isHost, onClose, onEndStream }: LiveRoomViewerProps) {
   const [showOpeningAnimation, setShowOpeningAnimation] = useState(true);
   const [isLoaded, setIsLoaded] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
@@ -213,6 +215,18 @@ export function LiveRoomViewer({ streamId, hostName, hostAvatar, viewerCount, th
         onMuteToggle={() => setIsMuted(!isMuted)}
         onClose={onClose}
       />
+
+      {isHost && onEndStream && (
+        <div className="absolute top-16 right-3 z-20">
+          <button
+            onClick={() => onEndStream(streamId)}
+            className="px-4 py-2 rounded-full bg-red-600/90 text-white text-xs font-semibold backdrop-blur-sm press-effect"
+            data-testid="button-end-stream"
+          >
+            End Stream
+          </button>
+        </div>
+      )}
 
       {/* Bottom Section */}
       <div className="absolute bottom-0 left-0 right-0 z-10">

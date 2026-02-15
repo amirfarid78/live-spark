@@ -5,6 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Search, Filter, Swords, Globe } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { PKBattleCard, PKBattle } from "./PKBattleCard";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import api from "@/lib/api";
 
 interface Country {
   id: string;
@@ -23,48 +25,32 @@ const countries: Country[] = [
   { id: "ae", name: "UAE", flag: "🇦🇪" },
 ];
 
-const mockBattles: PKBattle[] = [
-  {
-    id: "1",
-    player1: { id: "p1", name: "Priya✨🔥", avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100", score: 6354, winStreak: 2 },
-    player2: { id: "p2", name: "vijeta_sings🔥", avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100", score: 264, winStreak: 1 },
-    type: "random",
-    isLive: true,
-    viewerCount: 1234,
-  },
-  {
-    id: "2",
-    player1: { id: "p3", name: "@_Niknik_@", avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100", score: 5298, winStreak: 2 },
-    player2: { id: "p4", name: "@_Mistu02", avatar: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100", score: 2368, winStreak: 1 },
-    type: "random",
-    isLive: true,
-    viewerCount: 892,
-  },
-  {
-    id: "3",
-    player1: { id: "p5", name: "✨Riya_02✨💕", avatar: "https://images.unsplash.com/photo-1517841905240-472988babdf9?w=100", score: 5436, winStreak: 1 },
-    player2: { id: "p6", name: "@SM_Khan🔥", avatar: "https://images.unsplash.com/photo-1556910103-1c02745aae4d?w=100", score: 840, winStreak: 2 },
-    type: "random",
-    isLive: true,
-    viewerCount: 567,
-  },
-  {
-    id: "4",
-    player1: { id: "p7", name: "Luving_@💚", avatar: "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=100", score: 1240, winStreak: 2 },
-    player2: { id: "p8", name: "🌟Hanna_S✨", avatar: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=100", score: 980, winStreak: 1 },
-    type: "ranked",
-    isLive: true,
-    viewerCount: 345,
-  },
-  {
-    id: "5",
-    player1: { id: "p9", name: "DJ_Mike🎵", avatar: "https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=100", score: 8900, winStreak: 3 },
-    player2: { id: "p10", name: "BeatMaster", avatar: "https://images.unsplash.com/photo-1478737270239-2f02b77fc618?w=100", score: 7200, winStreak: 1 },
-    type: "challenge",
-    isLive: true,
-    viewerCount: 2341,
-  },
-];
+function mapApiBattles(data: any[]): PKBattle[] {
+  return data.map((b: any) => {
+    const isPending = b.status === 'pending';
+    return {
+      id: String(b.id),
+      player1: {
+        id: String(b.hostId),
+        name: b.host?.displayName || b.host?.username || 'Player 1',
+        avatar: b.host?.avatarUrl || '',
+        score: b.hostScore || 0,
+        winStreak: 0,
+      },
+      player2: {
+        id: b.opponentId ? String(b.opponentId) : '0',
+        name: (isPending || !b.opponent) ? 'Waiting...' : (b.opponent?.displayName || b.opponent?.username || 'Player 2'),
+        avatar: (isPending || !b.opponent) ? '' : (b.opponent?.avatarUrl || ''),
+        score: b.opponentScore || 0,
+        winStreak: 0,
+      },
+      type: "random" as const,
+      isLive: b.status === 'live',
+      isPending,
+      viewerCount: b.viewerCount || 0,
+    };
+  });
+}
 
 interface PKBattleListProps {
   onBattleClick?: (battle: PKBattle) => void;
@@ -74,6 +60,24 @@ interface PKBattleListProps {
 export function PKBattleList({ onBattleClick, onJoinBattle }: PKBattleListProps) {
   const [selectedCountry, setSelectedCountry] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
+  const queryClient = useQueryClient();
+
+  const { data: battles = [] } = useQuery<PKBattle[]>({
+    queryKey: ['/api/pk-battles'],
+    queryFn: async () => {
+      const res = await api.get('/pk-battles');
+      return mapApiBattles(res.data || []);
+    },
+  });
+
+  const handleJoinBattle = async (battleId: string) => {
+    try {
+      await api.post(`/pk-battles/${battleId}/join`);
+      queryClient.invalidateQueries({ queryKey: ['/api/pk-battles'] });
+    } catch (error) {
+      console.error("Failed to join battle:", error);
+    }
+  };
 
   return (
     <div className="flex flex-col h-full">
@@ -113,13 +117,20 @@ export function PKBattleList({ onBattleClick, onJoinBattle }: PKBattleListProps)
 
       {/* Battle Cards */}
       <div className="flex-1 px-4 pb-4 space-y-3 overflow-y-auto">
-        {mockBattles.map((battle, index) => (
+        {battles.length === 0 && (
+          <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
+            <Swords className="h-12 w-12 mb-4 opacity-50" />
+            <p className="text-lg font-medium">No active battles</p>
+            <p className="text-sm">Start one or check back later!</p>
+          </div>
+        )}
+        {battles.map((battle, index) => (
           <div 
             key={battle.id} 
             className="animate-fade-in-up"
             style={{ animationDelay: `${index * 0.05}s` }}
           >
-            <PKBattleCard battle={battle} onClick={() => onBattleClick?.(battle)} />
+            <PKBattleCard battle={battle} onClick={() => onBattleClick?.(battle)} onJoinBattle={handleJoinBattle} />
           </div>
         ))}
       </div>

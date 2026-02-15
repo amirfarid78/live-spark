@@ -125,14 +125,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
           user = user!;
         } else {
           const generatedUsername = clientUsername || (clientDisplayName ? clientDisplayName.toLowerCase().replace(/\s+/g, "_") : `user_${firebaseUid.slice(0, 8)}`);
-          user = await storage.createUser({
-            email: userEmail,
-            password: "firebase_auth",
-            firebaseUid,
-            phoneNumber,
-            username: generatedUsername,
-            displayName: clientDisplayName || generatedUsername,
-          });
+          try {
+            user = await storage.createUser({
+              email: userEmail,
+              password: "firebase_auth",
+              firebaseUid,
+              phoneNumber,
+              username: generatedUsername,
+              displayName: clientDisplayName || generatedUsername,
+            });
+          } catch (createErr: any) {
+            if (createErr?.cause?.code === '23505') {
+              user = await storage.getUserByEmail(userEmail) || await storage.getUserByFirebaseUid(firebaseUid);
+              if (user && !user.firebaseUid) {
+                user = await storage.updateUser(user.id, { firebaseUid }) || user;
+              }
+            }
+            if (!user) throw createErr;
+          }
         }
       }
 
@@ -505,8 +515,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/pk-battles", requireAuth, async (req, res) => {
     try {
       const userId = (req.session as any).userId;
-      const battle = await storage.createPKBattle({ ...req.body, hostId: userId });
+      const battleData: any = { hostId: userId, status: "pending" };
+      if (req.body.opponentId) {
+        battleData.opponentId = req.body.opponentId;
+        battleData.status = "live";
+        battleData.startedAt = new Date();
+      }
+      if (req.body.duration) battleData.duration = req.body.duration;
+      const battle = await storage.createPKBattle(battleData);
       res.status(201).json(battle);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.post("/api/pk-battles/:id/join", requireAuth, async (req, res) => {
+    try {
+      const userId = (req.session as any).userId;
+      const battleId = parseInt(req.params.id);
+      const battle = await storage.joinPKBattle(battleId, userId);
+      if (!battle) return res.status(404).json({ message: "Battle not found or already full" });
+      res.json(battle);
     } catch (error: any) {
       res.status(500).json({ message: error.message });
     }

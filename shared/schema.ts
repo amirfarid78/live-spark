@@ -182,7 +182,7 @@ export const partyRoomsRelations = relations(partyRooms, ({ one }) => ({
 export const pkBattles = pgTable("pk_battles", {
   id: serial("id").primaryKey(),
   hostId: integer("host_id").notNull().references(() => users.id, { onDelete: "cascade" }),
-  opponentId: integer("opponent_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  opponentId: integer("opponent_id").references(() => users.id, { onDelete: "cascade" }),
   status: battleStatusEnum("status").default("pending"),
   hostScore: integer("host_score").default(0),
   opponentScore: integer("opponent_score").default(0),

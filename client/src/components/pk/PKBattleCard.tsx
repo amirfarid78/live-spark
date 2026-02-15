@@ -2,7 +2,8 @@ import React from "react";
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { Sparkles } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Sparkles, Swords, Users } from "lucide-react";
 
 export interface PKBattle {
   id: string;
@@ -24,15 +25,17 @@ export interface PKBattle {
   };
   type: "random" | "ranked" | "challenge";
   isLive: boolean;
+  isPending?: boolean;
   viewerCount: number;
 }
 
 interface PKBattleCardProps {
   battle: PKBattle;
   onClick?: () => void;
+  onJoinBattle?: (battleId: string) => void;
 }
 
-export function PKBattleCard({ battle, onClick }: PKBattleCardProps) {
+export function PKBattleCard({ battle, onClick, onJoinBattle }: PKBattleCardProps) {
   const totalScore = battle.player1.score + battle.player2.score;
   const p1Percentage = totalScore > 0 ? (battle.player1.score / totalScore) * 100 : 50;
   const p2Percentage = totalScore > 0 ? (battle.player2.score / totalScore) * 100 : 50;
@@ -142,34 +145,50 @@ export function PKBattleCard({ battle, onClick }: PKBattleCardProps) {
           </div>
         </div>
 
-        {/* Score Progress Bar */}
-        <div className="mt-4">
-          <div className="relative h-6 rounded-full overflow-hidden bg-gradient-to-r from-stream-purple/20 via-transparent to-stream-coral/20">
-            {/* P1 Score Bar */}
-            <div 
-              className="absolute left-0 top-0 h-full bg-gradient-to-r from-stream-purple to-stream-purple-light transition-all duration-500 flex items-center"
-              style={{ width: `${p1Percentage}%` }}
-            >
-              <div className="flex items-center gap-1 px-2">
-                <span className="text-[10px] font-bold text-white flex items-center">
-                  ⭐ {formatScore(battle.player1.score)}
-                </span>
-              </div>
+        {battle.isPending ? (
+          <div className="mt-4 flex items-center justify-between">
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <Users className="h-4 w-4" />
+              <span className="text-xs">Waiting for opponent...</span>
             </div>
-            
-            {/* P2 Score Bar */}
-            <div 
-              className="absolute right-0 top-0 h-full bg-gradient-to-l from-stream-coral to-stream-coral-light transition-all duration-500 flex items-center justify-end"
-              style={{ width: `${p2Percentage}%` }}
-            >
-              <div className="flex items-center gap-1 px-2">
-                <span className="text-[10px] font-bold text-white flex items-center">
-                  {formatScore(battle.player2.score)} ⭐
-                </span>
+            {onJoinBattle && (
+              <Button
+                size="sm"
+                onClick={(e) => { e.stopPropagation(); onJoinBattle(battle.id); }}
+                className="bg-gradient-to-r from-stream-purple to-stream-coral text-white border-0"
+                data-testid={`button-join-battle-${battle.id}`}
+              >
+                <Swords className="h-4 w-4 mr-1" />
+                Join
+              </Button>
+            )}
+          </div>
+        ) : (
+          <div className="mt-4">
+            <div className="relative h-6 rounded-full overflow-hidden bg-gradient-to-r from-stream-purple/20 via-transparent to-stream-coral/20">
+              <div 
+                className="absolute left-0 top-0 h-full bg-gradient-to-r from-stream-purple to-stream-purple-light transition-all duration-500 flex items-center"
+                style={{ width: `${p1Percentage}%` }}
+              >
+                <div className="flex items-center gap-1 px-2">
+                  <span className="text-[10px] font-bold text-white flex items-center">
+                    <Sparkles className="h-2.5 w-2.5 mr-0.5" /> {formatScore(battle.player1.score)}
+                  </span>
+                </div>
+              </div>
+              <div 
+                className="absolute right-0 top-0 h-full bg-gradient-to-l from-stream-coral to-stream-coral-light transition-all duration-500 flex items-center justify-end"
+                style={{ width: `${p2Percentage}%` }}
+              >
+                <div className="flex items-center gap-1 px-2">
+                  <span className="text-[10px] font-bold text-white flex items-center">
+                    {formatScore(battle.player2.score)} <Sparkles className="h-2.5 w-2.5 ml-0.5" />
+                  </span>
+                </div>
               </div>
             </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );

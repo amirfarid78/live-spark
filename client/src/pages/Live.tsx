@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useAuth } from "@/contexts/AuthContext";
 import { Radio, Search, Bell, Flame, Swords, Headphones, Users, ChevronRight, Play, Mic2, Plus, TrendingUp, Crown, Star, Settings, Home } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -14,7 +15,7 @@ import { PartyRoomViewer } from "@/components/party/PartyRoomViewer";
 import { CreatePartySheet, PartySettings } from "@/components/party/CreatePartySheet";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { PKBattleList, PKBattleLiveRoom, PKBattle } from "@/components/pk";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import api from "@/lib/api";
 
 const categories = [
@@ -35,6 +36,7 @@ const sidebarNavItems = [
 
 interface MappedStream {
   id: number;
+  hostId: number;
   title: string;
   host: string;
   hostAvatar: string;
@@ -148,6 +150,8 @@ function StreamCard({ stream, onClick, className }: { stream: MappedStream; onCl
 
 export default function Live() {
   const isMobile = useIsMobile();
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
   const [activeCategory, setActiveCategory] = useState("all");
   const [activeSidebarItem, setActiveSidebarItem] = useState("home");
   const [selectedStream, setSelectedStream] = useState<MappedStream | null>(null);
@@ -179,6 +183,7 @@ export default function Live() {
       const res = await api.get(`/live/streams${params}`);
       return (res.data || []).map((s: any) => ({
         id: s.id,
+        hostId: s.hostId,
         title: s.title || '',
         host: s.host?.displayName || s.host?.username || 'Unknown',
         hostAvatar: s.host?.avatarUrl || '',
@@ -219,14 +224,49 @@ export default function Live() {
     setSelectedPartyRoom(room);
   };
 
-  const handleGoLive = (settings: any) => {
-    console.log("Going live with settings:", settings);
-    setShowGoLive(false);
+  const handleGoLive = async (settings: any) => {
+    try {
+      await api.post('/live/streams', {
+        title: settings.title,
+        category: settings.category,
+        isPK: settings.enablePK,
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/live/streams'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/live/featured'] });
+      setShowGoLive(false);
+    } catch (error) {
+      console.error("Failed to start stream:", error);
+    }
   };
 
-  const handleCreateParty = (settings: PartySettings) => {
-    console.log("Creating party with settings:", settings);
-    setShowCreateParty(false);
+  const handleEndStream = async (streamId: string) => {
+    try {
+      await api.post(`/live/streams/${streamId}/end`);
+      queryClient.invalidateQueries({ queryKey: ['/api/live/streams'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/live/featured'] });
+      setSelectedStream(null);
+    } catch (error) {
+      console.error("Failed to end stream:", error);
+    }
+  };
+
+  const handleCreateParty = async (settings: PartySettings) => {
+    try {
+      await api.post('/party-rooms', {
+        name: settings.name,
+        category: settings.category || 'chat',
+        maxSpeakers: settings.maxSpeakers || 8,
+        isPrivate: settings.isPrivate || false,
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/party-rooms'] });
+      setShowCreateParty(false);
+    } catch (error) {
+      console.error("Failed to create party room:", error);
+    }
+  };
+
+  const handleStartBattle = () => {
+    setShowGoLive(true);
   };
 
   const handlePKBattleClick = (battle: PKBattle) => {
@@ -385,7 +425,9 @@ export default function Live() {
           hostAvatar={selectedStream.hostAvatar}
           viewerCount={selectedStream.viewers}
           thumbnail={selectedStream.thumbnail}
+          isHost={user?.id === selectedStream.hostId}
           onClose={() => setSelectedStream(null)}
+          onEndStream={handleEndStream}
         />
       )}
       {selectedPartyRoom && (
@@ -489,7 +531,7 @@ export default function Live() {
                 <div className="relative">
                   <PKBattleList
                     onBattleClick={handlePKBattleClick}
-                    onJoinBattle={() => setShowGoLive(true)}
+                    onJoinBattle={handleStartBattle}
                   />
                 </div>
               </>
@@ -609,7 +651,7 @@ export default function Live() {
         <div className="relative flex-1 pb-24">
           <PKBattleList
             onBattleClick={handlePKBattleClick}
-            onJoinBattle={() => setShowGoLive(true)}
+            onJoinBattle={handleStartBattle}
           />
         </div>
       ) : showPartyRooms ? (
