@@ -7,6 +7,12 @@ import bcrypt from "bcryptjs";
 
 const SessionStore = MemoryStore(session);
 
+function requireAuth(req: any, res: any, next: any) {
+  const userId = req.session?.userId;
+  if (!userId) return res.status(401).json({ message: "Not authenticated" });
+  next();
+}
+
 export async function registerRoutes(app: Express): Promise<Server> {
   app.use(
     session({
@@ -22,6 +28,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       },
     })
   );
+
+  // ==================== AUTH ====================
 
   app.post("/api/auth/register", async (req, res) => {
     try {
@@ -102,6 +110,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json({ user: userWithoutPassword });
   });
 
+  // ==================== VIDEOS ====================
+
   app.get("/api/videos/feed", async (req, res) => {
     try {
       const page = parseInt(req.query.page as string) || 1;
@@ -109,6 +119,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const offset = (page - 1) * limit;
       const feedVideos = await storage.getVideos(limit, offset);
       res.json(feedVideos);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.get("/api/videos/trending", async (req, res) => {
+    try {
+      const limit = parseInt(req.query.limit as string) || 20;
+      const trendingVideos = await storage.getTrendingVideos(limit);
+      res.json(trendingVideos);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.post("/api/videos", requireAuth, async (req, res) => {
+    try {
+      const userId = (req.session as any).userId;
+      const video = await storage.createVideo({ ...req.body, userId });
+      res.status(201).json(video);
     } catch (error: any) {
       res.status(500).json({ message: error.message });
     }
@@ -160,6 +190,95 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // ==================== USERS & PROFILES ====================
+
+  app.get("/api/users/search", async (req, res) => {
+    try {
+      const query = (req.query.q as string) || "";
+      const limit = parseInt(req.query.limit as string) || 20;
+      const results = await storage.searchUsers(query, limit);
+      const sanitized = results.map(({ password: _, ...u }) => u);
+      res.json(sanitized);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.get("/api/users/suggested", async (req, res) => {
+    try {
+      const userId = (req.session as any)?.userId || 0;
+      const limit = parseInt(req.query.limit as string) || 10;
+      const results = await storage.getSuggestedUsers(userId, limit);
+      const sanitized = results.map(({ password: _, ...u }) => u);
+      res.json(sanitized);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.get("/api/users/:id", async (req, res) => {
+    try {
+      const user = await storage.getUser(parseInt(req.params.id));
+      if (!user) return res.status(404).json({ message: "User not found" });
+      const { password: _, ...userWithoutPassword } = user;
+
+      const userId = (req.session as any)?.userId;
+      let isFollowing = false;
+      if (userId && userId !== user.id) {
+        isFollowing = await storage.isFollowing(userId, user.id);
+      }
+
+      res.json({ ...userWithoutPassword, isFollowing });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.get("/api/users/:id/videos", async (req, res) => {
+    try {
+      const page = parseInt(req.query.page as string) || 1;
+      const limit = 20;
+      const offset = (page - 1) * limit;
+      const userVideos = await storage.getUserVideos(parseInt(req.params.id), limit, offset);
+      res.json(userVideos);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.get("/api/users/:id/followers", async (req, res) => {
+    try {
+      const userFollowers = await storage.getFollowers(parseInt(req.params.id));
+      const sanitized = userFollowers.map(({ password: _, ...u }) => u);
+      res.json(sanitized);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.get("/api/users/:id/following", async (req, res) => {
+    try {
+      const following = await storage.getFollowing(parseInt(req.params.id));
+      const sanitized = following.map(({ password: _, ...u }) => u);
+      res.json(sanitized);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.patch("/api/users/profile", async (req, res) => {
+    const userId = (req.session as any)?.userId;
+    if (!userId) return res.status(401).json({ message: "Not authenticated" });
+    try {
+      const user = await storage.updateUser(userId, req.body);
+      if (!user) return res.status(404).json({ message: "User not found" });
+      const { password: _, ...userWithoutPassword } = user;
+      res.json(userWithoutPassword);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
   app.post("/api/users/:id/follow", async (req, res) => {
     const userId = (req.session as any)?.userId;
     if (!userId) return res.status(401).json({ message: "Not authenticated" });
@@ -182,25 +301,350 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/users/:id", async (req, res) => {
+  // ==================== HASHTAGS / DISCOVER ====================
+
+  app.get("/api/hashtags", async (req, res) => {
     try {
-      const user = await storage.getUser(parseInt(req.params.id));
-      if (!user) return res.status(404).json({ message: "User not found" });
-      const { password: _, ...userWithoutPassword } = user;
-      res.json(userWithoutPassword);
+      const limit = parseInt(req.query.limit as string) || 50;
+      const result = await storage.getHashtags(limit);
+      res.json(result);
     } catch (error: any) {
       res.status(500).json({ message: error.message });
     }
   });
 
-  app.patch("/api/users/profile", async (req, res) => {
-    const userId = (req.session as any)?.userId;
-    if (!userId) return res.status(401).json({ message: "Not authenticated" });
+  app.get("/api/hashtags/trending", async (req, res) => {
     try {
-      const user = await storage.updateUser(userId, req.body);
-      if (!user) return res.status(404).json({ message: "User not found" });
-      const { password: _, ...userWithoutPassword } = user;
-      res.json(userWithoutPassword);
+      const limit = parseInt(req.query.limit as string) || 20;
+      const result = await storage.getTrendingHashtags(limit);
+      res.json(result);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.get("/api/hashtags/featured", async (req, res) => {
+    try {
+      const limit = parseInt(req.query.limit as string) || 10;
+      const result = await storage.getFeaturedHashtags(limit);
+      res.json(result);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.get("/api/hashtags/search", async (req, res) => {
+    try {
+      const query = (req.query.q as string) || "";
+      const limit = parseInt(req.query.limit as string) || 20;
+      const result = await storage.searchHashtags(query, limit);
+      res.json(result);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.get("/api/hashtags/:name", async (req, res) => {
+    try {
+      const tag = await storage.getHashtagByName(req.params.name);
+      if (!tag) return res.status(404).json({ message: "Hashtag not found" });
+      res.json(tag);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.post("/api/hashtags", requireAuth, async (req, res) => {
+    try {
+      const hashtag = await storage.createHashtag(req.body);
+      res.status(201).json(hashtag);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // ==================== LIVE STREAMS ====================
+
+  app.get("/api/live/streams", async (req, res) => {
+    try {
+      const limit = parseInt(req.query.limit as string) || 20;
+      const offset = parseInt(req.query.offset as string) || 0;
+      const category = req.query.category as string | undefined;
+      const streams = await storage.getActiveLiveStreams(limit, offset, category);
+      res.json(streams);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.get("/api/live/featured", async (req, res) => {
+    try {
+      const limit = parseInt(req.query.limit as string) || 5;
+      const featured = await storage.getFeaturedLiveStreams(limit);
+      res.json(featured);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.post("/api/live/streams", requireAuth, async (req, res) => {
+    try {
+      const userId = (req.session as any).userId;
+      const stream = await storage.createLiveStream({ ...req.body, hostId: userId });
+      res.status(201).json(stream);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.post("/api/live/streams/:id/end", requireAuth, async (req, res) => {
+    try {
+      const userId = (req.session as any).userId;
+      const stream = await storage.endLiveStream(parseInt(req.params.id), userId);
+      if (!stream) return res.status(404).json({ message: "Stream not found" });
+      res.json(stream);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // ==================== PARTY ROOMS ====================
+
+  app.get("/api/party-rooms", async (req, res) => {
+    try {
+      const limit = parseInt(req.query.limit as string) || 20;
+      const offset = parseInt(req.query.offset as string) || 0;
+      const category = req.query.category as string | undefined;
+      const rooms = await storage.getActivePartyRooms(limit, offset, category);
+      res.json(rooms);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.post("/api/party-rooms", requireAuth, async (req, res) => {
+    try {
+      const userId = (req.session as any).userId;
+      const room = await storage.createPartyRoom({ ...req.body, hostId: userId });
+      res.status(201).json(room);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.get("/api/party-rooms/:id", async (req, res) => {
+    try {
+      const room = await storage.getPartyRoom(parseInt(req.params.id));
+      if (!room) return res.status(404).json({ message: "Party room not found" });
+      res.json(room);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // ==================== PK BATTLES ====================
+
+  app.get("/api/pk-battles", async (req, res) => {
+    try {
+      const limit = parseInt(req.query.limit as string) || 20;
+      const battles = await storage.getActivePKBattles(limit);
+      res.json(battles);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.post("/api/pk-battles", requireAuth, async (req, res) => {
+    try {
+      const userId = (req.session as any).userId;
+      const battle = await storage.createPKBattle({ ...req.body, hostId: userId });
+      res.status(201).json(battle);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // ==================== MESSAGES ====================
+
+  app.get("/api/conversations", requireAuth, async (req, res) => {
+    try {
+      const userId = (req.session as any).userId;
+      const convos = await storage.getConversations(userId);
+      res.json(convos);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.post("/api/conversations/direct", requireAuth, async (req, res) => {
+    try {
+      const userId = (req.session as any).userId;
+      const { targetUserId } = req.body;
+      if (!targetUserId) return res.status(400).json({ message: "targetUserId is required" });
+      const convo = await storage.getOrCreateDirectConversation(userId, targetUserId);
+      res.json(convo);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.get("/api/conversations/:id/messages", requireAuth, async (req, res) => {
+    try {
+      const userId = (req.session as any).userId;
+      const limit = parseInt(req.query.limit as string) || 50;
+      const offset = parseInt(req.query.offset as string) || 0;
+      const msgs = await storage.getMessages(parseInt(req.params.id), userId, limit, offset);
+      res.json(msgs);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.post("/api/conversations/:id/messages", requireAuth, async (req, res) => {
+    try {
+      const userId = (req.session as any).userId;
+      const { content } = req.body;
+      if (!content) return res.status(400).json({ message: "Content is required" });
+      const msg = await storage.sendMessage(parseInt(req.params.id), userId, content);
+      res.status(201).json(msg);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // ==================== AGENCIES ====================
+
+  app.post("/api/agencies", requireAuth, async (req, res) => {
+    try {
+      const userId = (req.session as any).userId;
+      const existing = await storage.getMyAgency(userId);
+      if (existing) return res.status(409).json({ message: "You already have an agency application" });
+      const agency = await storage.createAgency({ ...req.body, ownerId: userId });
+      res.status(201).json(agency);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.get("/api/agencies/mine", requireAuth, async (req, res) => {
+    try {
+      const userId = (req.session as any).userId;
+      const agency = await storage.getMyAgency(userId);
+      res.json(agency || null);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.get("/api/agencies/stats", async (req, res) => {
+    try {
+      const stats = await storage.getAgencyStats();
+      res.json(stats);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.get("/api/agencies", async (req, res) => {
+    try {
+      const limit = parseInt(req.query.limit as string) || 20;
+      const offset = parseInt(req.query.offset as string) || 0;
+      const agencyList = await storage.getAgencies(limit, offset);
+      res.json(agencyList);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // ==================== GIFTS ====================
+
+  app.get("/api/gifts", async (req, res) => {
+    try {
+      const category = req.query.category as string | undefined;
+      const giftList = await storage.getGiftCatalog(category);
+      res.json(giftList);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // ==================== CAMPAIGNS (Creator Studio) ====================
+
+  app.get("/api/campaigns", requireAuth, async (req, res) => {
+    try {
+      const userId = (req.session as any).userId;
+      const campaignList = await storage.getUserCampaigns(userId);
+      res.json(campaignList);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.post("/api/campaigns", requireAuth, async (req, res) => {
+    try {
+      const userId = (req.session as any).userId;
+      const campaign = await storage.createCampaign({ ...req.body, userId });
+      res.status(201).json(campaign);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // ==================== WALLET ====================
+
+  app.get("/api/wallet/balance", requireAuth, async (req, res) => {
+    try {
+      const userId = (req.session as any).userId;
+      const balance = await storage.getWalletBalance(userId);
+      res.json(balance);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.get("/api/wallet/transactions", requireAuth, async (req, res) => {
+    try {
+      const userId = (req.session as any).userId;
+      const limit = parseInt(req.query.limit as string) || 50;
+      const offset = parseInt(req.query.offset as string) || 0;
+      const txns = await storage.getTransactionHistory(userId, limit, offset);
+      res.json(txns);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // ==================== CREATOR STUDIO (analytics) ====================
+
+  app.get("/api/creator/stats", requireAuth, async (req, res) => {
+    try {
+      const userId = (req.session as any).userId;
+      const userVideos = await storage.getUserVideos(userId, 100);
+      const totalViews = userVideos.reduce((sum, v) => sum + (v.viewsCount || 0), 0);
+      const totalLikes = userVideos.reduce((sum, v) => sum + (v.likesCount || 0), 0);
+      const totalComments = userVideos.reduce((sum, v) => sum + (v.commentsCount || 0), 0);
+      const totalShares = userVideos.reduce((sum, v) => sum + (v.sharesCount || 0), 0);
+      const user = await storage.getUser(userId);
+
+      res.json({
+        totalViews,
+        totalLikes,
+        totalComments,
+        totalShares,
+        followerCount: user?.followersCount || 0,
+        diamondsEarned: user?.diamondsBalance || 0,
+        videoCount: userVideos.length,
+        videos: userVideos.map(v => ({
+          id: v.id,
+          description: v.description,
+          thumbnailUrl: v.thumbnailUrl,
+          views: v.viewsCount || 0,
+          likes: v.likesCount || 0,
+          comments: v.commentsCount || 0,
+          shares: v.sharesCount || 0,
+          createdAt: v.createdAt,
+        })),
+      });
     } catch (error: any) {
       res.status(500).json({ message: error.message });
     }

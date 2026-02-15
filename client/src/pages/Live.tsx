@@ -1,9 +1,10 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { Radio, Search, Bell, Flame, Swords, Headphones, Users, ChevronRight, Play, Mic2, Plus, TrendingUp, Crown, Star, Settings, Home } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { LiveRoomViewer } from "@/components/live/LiveRoomViewer";
 import { GoLiveSheet } from "@/components/live/GoLiveSheet";
@@ -13,6 +14,8 @@ import { PartyRoomViewer } from "@/components/party/PartyRoomViewer";
 import { CreatePartySheet, PartySettings } from "@/components/party/CreatePartySheet";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { PKBattleList, PKBattleLiveRoom, PKBattle } from "@/components/pk";
+import { useQuery } from "@tanstack/react-query";
+import api from "@/lib/api";
 
 const categories = [
   { id: "all", label: "All", icon: Flame },
@@ -30,47 +33,185 @@ const sidebarNavItems = [
   { id: "settings", label: "Settings", icon: Settings },
 ];
 
-const featuredStreamers = [
-  { id: 1, name: "Sarah M.", avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100", isLive: true, viewers: 1243 },
-  { id: 2, name: "Alex", avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100", isLive: true, viewers: 892 },
-  { id: 3, name: "Luna", avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100", isLive: false, viewers: 0 },
-  { id: 4, name: "Mike", avatar: "https://images.unsplash.com/photo-1556910103-1c02745aae4d?w=100", isLive: true, viewers: 567 },
-  { id: 5, name: "Jade", avatar: "https://images.unsplash.com/photo-1517841905240-472988babdf9?w=100", isLive: true, viewers: 2341 },
-  { id: 6, name: "Emma", avatar: "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=100", isLive: true, viewers: 1892 },
-  { id: 7, name: "Chris", avatar: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100", isLive: true, viewers: 756 },
-];
+interface MappedStream {
+  id: number;
+  title: string;
+  host: string;
+  hostAvatar: string;
+  viewers: number;
+  thumbnail: string;
+  isLive: boolean;
+  isPK: boolean;
+  category: string;
+}
 
-const mockStreams = [
-  { id: 1, title: "Late Night Vibes 🌙", host: "Sarah M.", viewers: 1243, thumbnail: "https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?w=400&h=600&fit=crop", isLive: true, isPK: false, category: "Music" },
-  { id: 2, title: "Music & Chill", host: "DJ Alex", viewers: 892, thumbnail: "https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=400&h=600&fit=crop", isLive: true, isPK: true, category: "DJ" },
-  { id: 3, title: "Cooking Stream 🍳", host: "Chef Mike", viewers: 567, thumbnail: "https://images.unsplash.com/photo-1556910103-1c02745aae4d?w=400&h=600&fit=crop", isLive: true, isPK: false, category: "Food" },
-  { id: 4, title: "Gaming Night", host: "ProGamer", viewers: 2341, thumbnail: "https://images.unsplash.com/photo-1542751371-adc38448a05e?w=400&h=600&fit=crop", isLive: true, isPK: false, category: "Gaming" },
-  { id: 5, title: "Dance Party 💃", host: "Luna Dance", viewers: 1567, thumbnail: "https://images.unsplash.com/photo-1504609773096-104ff2c73ba4?w=400&h=600&fit=crop", isLive: true, isPK: true, category: "Dance" },
-  { id: 6, title: "Art Stream", host: "Creative K", viewers: 432, thumbnail: "https://images.unsplash.com/photo-1460661419201-fd4cecdf8a8b?w=400&h=600&fit=crop", isLive: true, isPK: false, category: "Art" },
-  { id: 7, title: "Talk Show", host: "Host Pro", viewers: 1123, thumbnail: "https://images.unsplash.com/photo-1478737270239-2f02b77fc618?w=400&h=600&fit=crop", isLive: true, isPK: false, category: "Talk" },
-  { id: 8, title: "Fitness Live", host: "FitGuru", viewers: 876, thumbnail: "https://images.unsplash.com/photo-1517836357463-d25dfeac3438?w=400&h=600&fit=crop", isLive: true, isPK: false, category: "Fitness" },
-];
+interface FeaturedStreamer {
+  id: number;
+  name: string;
+  avatar: string;
+  isLive: boolean;
+  viewers: number;
+}
 
-const mockPartyRooms: PartyRoom[] = [
-  { id: "party-1", name: "🎭 Miss Anaya Khan 🎭", hostName: "Miss Anaya Khan", hostAvatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100", viewerCount: 168, speakerCount: 5, maxSpeakers: 8, isPrivate: false, isLive: true, category: "Chat", tags: ["chatting", "fun"], topViewers: ["https://i.pravatar.cc/40?u=1", "https://i.pravatar.cc/40?u=2", "https://i.pravatar.cc/40?u=3", "https://i.pravatar.cc/40?u=4"] },
-  { id: "party-2", name: "👻 Saniya lieo Love 👻🌟", hostName: "Saniya lieo", hostAvatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100", viewerCount: 148, speakerCount: 6, maxSpeakers: 8, isPrivate: false, isLive: true, category: "Dating", tags: ["couple", "dating"], topViewers: ["https://i.pravatar.cc/40?u=5", "https://i.pravatar.cc/40?u=6", "https://i.pravatar.cc/40?u=7"] },
-  { id: "party-3", name: "💃 Mandeli Rao 🥳💃", hostName: "Mandeli Rao", hostAvatar: "https://images.unsplash.com/photo-1517841905240-472988babdf9?w=100", viewerCount: 263, speakerCount: 4, maxSpeakers: 6, isPrivate: false, isLive: true, category: "Music", tags: ["music", "party"], topViewers: ["https://i.pravatar.cc/40?u=8", "https://i.pravatar.cc/40?u=9", "https://i.pravatar.cc/40?u=10", "https://i.pravatar.cc/40?u=11"] },
-  { id: "party-4", name: "🥳 Miss Pinky Pandey 🥳🥳", hostName: "Miss Pinky Pandey", hostAvatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100", viewerCount: 426, speakerCount: 8, maxSpeakers: 12, isPrivate: false, isLive: true, category: "Chat", tags: ["new friends"], topViewers: ["https://i.pravatar.cc/40?u=12", "https://i.pravatar.cc/40?u=13", "https://i.pravatar.cc/40?u=14"] },
-  { id: "party-5", name: "🥳 Miss Ninja Girl 🥳🥳🥳", hostName: "Miss Ninja Girl", hostAvatar: "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=100", viewerCount: 298, speakerCount: 3, maxSpeakers: 8, isPrivate: false, isLive: true, category: "Music", tags: ["music", "dance"], topViewers: ["https://i.pravatar.cc/40?u=15", "https://i.pravatar.cc/40?u=16", "https://i.pravatar.cc/40?u=17", "https://i.pravatar.cc/40?u=18"] },
-  { id: "party-6", name: "🎤 Lady Andrew 🎤🎤", hostName: "Lady Andrew", hostAvatar: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100", viewerCount: 368, speakerCount: 5, maxSpeakers: 8, isPrivate: false, isLive: true, category: "Talent", tags: ["local", "party"], topViewers: ["https://i.pravatar.cc/40?u=19", "https://i.pravatar.cc/40?u=20", "https://i.pravatar.cc/40?u=21"] },
-];
+function FeaturedStreamersSkeleton({ count, size }: { count: number; size: "sm" | "lg" }) {
+  const h = size === "lg" ? "h-20 w-20" : "h-16 w-16";
+  const textW = size === "lg" ? "w-14" : "w-12";
+  return (
+    <div className={cn("flex pb-2", size === "lg" ? "gap-6" : "gap-4")}>
+      {[...Array(count)].map((_, i) => (
+        <div key={i} className="flex flex-col items-center gap-2">
+          <Skeleton className={cn(h, "rounded-full")} />
+          <Skeleton className={cn("h-3", textW)} />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function StreamGridSkeleton({ count, className }: { count: number; className: string }) {
+  return (
+    <div className={className}>
+      {[...Array(count)].map((_, i) => (
+        <Skeleton key={i} className="aspect-[3/4] rounded-2xl" />
+      ))}
+    </div>
+  );
+}
+
+function EmptyStreams() {
+  return (
+    <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
+      <Radio className="h-12 w-12 mb-4 opacity-50" />
+      <p className="text-lg font-medium">No live streams right now</p>
+      <p className="text-sm">Check back later or go live yourself!</p>
+    </div>
+  );
+}
+
+function EmptyPartyRooms() {
+  return (
+    <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
+      <Mic2 className="h-12 w-12 mb-4 opacity-50" />
+      <p className="text-lg font-medium">No party rooms active</p>
+      <p className="text-sm">Be the first to create one!</p>
+    </div>
+  );
+}
+
+function StreamCard({ stream, onClick, className }: { stream: MappedStream; onClick: () => void; className?: string }) {
+  return (
+    <div
+      onClick={onClick}
+      className={cn("group relative aspect-[3/4] overflow-hidden rounded-2xl bg-muted cursor-pointer", className)}
+    >
+      <img
+        src={stream.thumbnail}
+        alt={stream.title}
+        className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+      />
+      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-black/30" />
+      <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+        <div className="h-14 w-14 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center">
+          <Play className="h-7 w-7 text-white fill-white ml-1" />
+        </div>
+      </div>
+      <div className="absolute left-2 top-2 flex items-center gap-1.5">
+        <Badge className="bg-stream-live text-white border-0 px-2 py-0.5 text-[10px] font-bold shadow-lg">
+          <span className="mr-1 h-1.5 w-1.5 rounded-full bg-white animate-pulse" />
+          LIVE
+        </Badge>
+        {stream.isPK && (
+          <Badge className="bg-gradient-gold text-black border-0 px-2 py-0.5 text-[10px] font-bold shadow-lg">
+            <Swords className="mr-1 h-3 w-3" />
+            PK
+          </Badge>
+        )}
+      </div>
+      <div className="absolute right-2 top-2">
+        <Badge variant="secondary" className="bg-black/50 text-white border-0 text-[10px] backdrop-blur-sm">
+          {stream.category}
+        </Badge>
+      </div>
+      <div className="absolute left-2 bottom-14">
+        <Badge variant="secondary" className="bg-black/50 text-white border-0 text-[10px] backdrop-blur-sm">
+          <Users className="mr-1 h-3 w-3" />
+          {stream.viewers.toLocaleString()}
+        </Badge>
+      </div>
+      <div className="absolute bottom-0 left-0 right-0 p-3">
+        <p className="line-clamp-1 text-sm font-semibold text-white mb-0.5">{stream.title}</p>
+        <p className="text-xs text-white/70">{stream.host}</p>
+      </div>
+    </div>
+  );
+}
 
 export default function Live() {
   const isMobile = useIsMobile();
   const [activeCategory, setActiveCategory] = useState("all");
   const [activeSidebarItem, setActiveSidebarItem] = useState("home");
-  const [selectedStream, setSelectedStream] = useState<typeof mockStreams[0] | null>(null);
+  const [selectedStream, setSelectedStream] = useState<MappedStream | null>(null);
   const [selectedPartyRoom, setSelectedPartyRoom] = useState<PartyRoom | null>(null);
   const [selectedPKBattle, setSelectedPKBattle] = useState<PKBattle | null>(null);
   const [showGoLive, setShowGoLive] = useState(false);
   const [showCreateParty, setShowCreateParty] = useState(false);
 
-  const handleStreamClick = (stream: typeof mockStreams[0]) => {
+  const { data: featuredStreamers = [], isLoading: isFeaturedLoading } = useQuery<FeaturedStreamer[]>({
+    queryKey: ['/api/live/featured'],
+    queryFn: async () => {
+      const res = await api.get('/live/featured');
+      return (res.data || []).map((s: any) => ({
+        id: s.id,
+        name: s.host?.displayName || s.host?.username || 'Unknown',
+        avatar: s.host?.avatarUrl || '',
+        isLive: s.status === 'live',
+        viewers: s.viewerCount || 0,
+      }));
+    },
+  });
+
+  const categoryParam = activeCategory !== 'all' && activeCategory !== 'pk' && activeCategory !== 'party' && activeCategory !== 'audio' ? activeCategory : undefined;
+
+  const { data: streams = [], isLoading: isStreamsLoading } = useQuery<MappedStream[]>({
+    queryKey: ['/api/live/streams', categoryParam],
+    queryFn: async () => {
+      const params = categoryParam ? `?category=${categoryParam}` : '';
+      const res = await api.get(`/live/streams${params}`);
+      return (res.data || []).map((s: any) => ({
+        id: s.id,
+        title: s.title || '',
+        host: s.host?.displayName || s.host?.username || 'Unknown',
+        hostAvatar: s.host?.avatarUrl || '',
+        viewers: s.viewerCount || 0,
+        thumbnail: s.thumbnailUrl || '',
+        isLive: s.status === 'live',
+        isPK: s.isPK || false,
+        category: s.category || '',
+      }));
+    },
+  });
+
+  const { data: partyRooms = [], isLoading: isPartyLoading } = useQuery<PartyRoom[]>({
+    queryKey: ['/api/party-rooms'],
+    queryFn: async () => {
+      const res = await api.get('/party-rooms');
+      return (res.data || []).map((r: any) => ({
+        id: String(r.id),
+        name: r.name || '',
+        hostName: r.host?.displayName || r.host?.username || 'Unknown',
+        hostAvatar: r.host?.avatarUrl || '',
+        viewerCount: r.viewerCount || 0,
+        speakerCount: r.speakerCount || 0,
+        maxSpeakers: r.maxSpeakers || 8,
+        isPrivate: r.isPrivate || false,
+        isLive: true,
+        category: r.category || '',
+        tags: r.tags || [],
+      }));
+    },
+  });
+
+  const handleStreamClick = (stream: MappedStream) => {
     setSelectedStream(stream);
   };
 
@@ -95,49 +236,193 @@ export default function Live() {
   const showPartyRooms = activeCategory === "party" || activeCategory === "audio";
   const showPKBattles = activeCategory === "pk";
 
-  // Desktop Layout
+  const renderFeaturedStreamers = (size: "sm" | "lg") => {
+    const avatarSize = size === "lg" ? "h-20 w-20" : "h-16 w-16";
+    const gapSize = size === "lg" ? "gap-6" : "gap-4";
+    const nameClass = size === "lg" ? "text-sm font-medium" : "text-xs font-medium truncate max-w-[64px]";
+
+    if (isFeaturedLoading) {
+      return <FeaturedStreamersSkeleton count={size === "lg" ? 7 : 5} size={size} />;
+    }
+
+    if (featuredStreamers.length === 0) {
+      return (
+        <div className={cn("flex items-center justify-center text-muted-foreground", size === "lg" ? "py-8" : "py-6")}>
+          <p className={size === "lg" ? "text-sm" : "text-xs"}>No featured streamers right now</p>
+        </div>
+      );
+    }
+
+    return (
+      <div className={cn("flex overflow-x-auto hide-scrollbar pb-2", gapSize)}>
+        {featuredStreamers.map((streamer, index) => (
+          <div
+            key={streamer.id}
+            className={cn(
+              "flex flex-col items-center gap-2 cursor-pointer group",
+              size === "sm" && cn("animate-fade-in-up", `stagger-${index + 1}`)
+            )}
+          >
+            <div className="relative">
+              <Avatar className={cn(
+                avatarSize,
+                "ring-offset-2 ring-offset-background transition-all",
+                size === "lg" ? "ring-3 group-hover:scale-105" : "ring-2",
+                streamer.isLive ? (size === "lg" ? "ring-stream-live" : "ring-stream-live ring-pulse") : "ring-border"
+              )}>
+                <AvatarImage src={streamer.avatar} />
+                <AvatarFallback>{streamer.name[0]}</AvatarFallback>
+              </Avatar>
+              {streamer.isLive && (
+                <span className={cn(
+                  "absolute -bottom-1 left-1/2 -translate-x-1/2 rounded-full bg-stream-live font-bold text-white shadow-lg",
+                  size === "lg" ? "px-3 py-0.5 text-[11px]" : "px-2 py-0.5 text-[10px]"
+                )}>
+                  LIVE
+                </span>
+              )}
+            </div>
+            <span className={nameClass}>{streamer.name}</span>
+            {size === "lg" && streamer.isLive && (
+              <span className="text-[11px] text-muted-foreground">{streamer.viewers.toLocaleString()} viewers</span>
+            )}
+          </div>
+        ))}
+      </div>
+    );
+  };
+
+  const renderDesktopPartyContent = () => {
+    if (isPartyLoading) {
+      return (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          {[...Array(4)].map((_, i) => (
+            <Skeleton key={i} className="h-24 rounded-2xl" />
+          ))}
+        </div>
+      );
+    }
+    if (partyRooms.length === 0) {
+      return <EmptyPartyRooms />;
+    }
+    return (
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <PartyRoomList rooms={partyRooms} onRoomClick={handlePartyRoomClick} />
+      </div>
+    );
+  };
+
+  const renderDesktopStreamContent = () => {
+    if (isStreamsLoading) {
+      return <StreamGridSkeleton count={8} className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4" />;
+    }
+    if (streams.length === 0) {
+      return <EmptyStreams />;
+    }
+    return (
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+        {streams.map((stream) => (
+          <StreamCard
+            key={stream.id}
+            stream={stream}
+            onClick={() => handleStreamClick(stream)}
+            className="transition-all hover:scale-[1.02] hover:shadow-xl"
+          />
+        ))}
+      </div>
+    );
+  };
+
+  const renderMobilePartyContent = () => {
+    if (isPartyLoading) {
+      return (
+        <div className="space-y-3">
+          {[...Array(4)].map((_, i) => (
+            <Skeleton key={i} className="h-24 rounded-2xl" />
+          ))}
+        </div>
+      );
+    }
+    if (partyRooms.length === 0) {
+      return <EmptyPartyRooms />;
+    }
+    return <PartyRoomList rooms={partyRooms} onRoomClick={handlePartyRoomClick} />;
+  };
+
+  const renderMobileStreamContent = () => {
+    if (isStreamsLoading) {
+      return <StreamGridSkeleton count={6} className="grid grid-cols-2 gap-3 px-4 pb-24" />;
+    }
+    if (streams.length === 0) {
+      return (
+        <div className="flex flex-col items-center justify-center py-16 pb-24 text-muted-foreground">
+          <Radio className="h-10 w-10 mb-3 opacity-50" />
+          <p className="text-sm font-medium">No live streams right now</p>
+          <p className="text-xs">Check back later!</p>
+        </div>
+      );
+    }
+    return (
+      <div className="grid grid-cols-2 gap-3 px-4 pb-24">
+        {streams.map((stream, index) => (
+          <StreamCard
+            key={stream.id}
+            stream={stream}
+            onClick={() => handleStreamClick(stream)}
+            className={cn("card-hover animate-fade-in-up", `stagger-${(index % 6) + 1}`)}
+          />
+        ))}
+      </div>
+    );
+  };
+
+  const renderModals = () => (
+    <>
+      {selectedStream && (
+        <LiveRoomViewer
+          streamId={selectedStream.id.toString()}
+          hostName={selectedStream.host}
+          hostAvatar={selectedStream.hostAvatar}
+          viewerCount={selectedStream.viewers}
+          thumbnail={selectedStream.thumbnail}
+          onClose={() => setSelectedStream(null)}
+        />
+      )}
+      {selectedPartyRoom && (
+        <PartyRoomViewer
+          room={selectedPartyRoom}
+          onClose={() => setSelectedPartyRoom(null)}
+        />
+      )}
+      {selectedPKBattle && (
+        <PKBattleLiveRoom
+          battle={selectedPKBattle}
+          onClose={() => setSelectedPKBattle(null)}
+        />
+      )}
+      {showGoLive && (
+        <GoLiveSheet
+          onClose={() => setShowGoLive(false)}
+          onGoLive={handleGoLive}
+        />
+      )}
+      {showCreateParty && (
+        <CreatePartySheet
+          onClose={() => setShowCreateParty(false)}
+          onCreate={handleCreateParty}
+        />
+      )}
+    </>
+  );
+
   if (!isMobile) {
     return (
       <div className="min-h-screen bg-background">
-        {/* Modals */}
-        {selectedStream && (
-          <LiveRoomViewer
-            streamId={selectedStream.id.toString()}
-            hostName={selectedStream.host}
-            hostAvatar={featuredStreamers.find(s => s.name === selectedStream.host.split(" ")[0])?.avatar || "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100"}
-            viewerCount={selectedStream.viewers}
-            thumbnail={selectedStream.thumbnail}
-            onClose={() => setSelectedStream(null)}
-          />
-        )}
+        {renderModals()}
 
-        {selectedPartyRoom && (
-          <PartyRoomViewer
-            room={selectedPartyRoom}
-            onClose={() => setSelectedPartyRoom(null)}
-          />
-        )}
-
-        {showGoLive && (
-          <GoLiveSheet
-            onClose={() => setShowGoLive(false)}
-            onGoLive={handleGoLive}
-          />
-        )}
-
-        {showCreateParty && (
-          <CreatePartySheet
-            onClose={() => setShowCreateParty(false)}
-            onCreate={handleCreateParty}
-          />
-        )}
-
-        {/* Main Content */}
         <main className="flex-1 min-w-0">
-          {/* Desktop Header */}
           <header className="sticky top-0 z-40 glass border-b border-border/50">
             <div className="flex items-center justify-between px-6 py-4">
-              {/* Search Bar */}
               <div className="flex-1 max-w-xl">
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -148,7 +433,6 @@ export default function Live() {
                 </div>
               </div>
 
-              {/* Categories */}
               <div className="flex gap-2 ml-6">
                 {categories.map((cat) => {
                   const Icon = cat.icon;
@@ -171,7 +455,6 @@ export default function Live() {
                 })}
               </div>
 
-              {/* Actions */}
               <div className="flex items-center gap-2 ml-6">
                 <Button variant="ghost" size="icon" className="h-10 w-10 rounded-xl">
                   <Bell className="h-5 w-5" />
@@ -184,11 +467,9 @@ export default function Live() {
             </div>
           </header>
 
-          {/* Content Area */}
           <div className="p-6">
             {showPKBattles ? (
               <>
-                {/* PK Battles Header */}
                 <div className="flex items-center justify-between mb-6">
                   <div>
                     <h2 className="text-2xl font-bold flex items-center gap-2">
@@ -205,10 +486,8 @@ export default function Live() {
                     Start Battle
                   </Button>
                 </div>
-
-                {/* PK Battle List */}
                 <div className="relative">
-                  <PKBattleList 
+                  <PKBattleList
                     onBattleClick={handlePKBattleClick}
                     onJoinBattle={() => setShowGoLive(true)}
                   />
@@ -216,11 +495,10 @@ export default function Live() {
               </>
             ) : showPartyRooms ? (
               <>
-                {/* Party Header */}
                 <div className="flex items-center justify-between mb-6">
                   <div>
                     <h2 className="text-2xl font-bold">Party Rooms</h2>
-                    <p className="text-sm text-muted-foreground">{mockPartyRooms.length} rooms active</p>
+                    <p className="text-sm text-muted-foreground">{partyRooms.length} rooms active</p>
                   </div>
                   <Button
                     onClick={() => setShowCreateParty(true)}
@@ -230,18 +508,10 @@ export default function Live() {
                     Create Room
                   </Button>
                 </div>
-
-                {/* Desktop Party Grid - 2 columns */}
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                  <PartyRoomList 
-                    rooms={mockPartyRooms} 
-                    onRoomClick={handlePartyRoomClick}
-                  />
-                </div>
+                {renderDesktopPartyContent()}
               </>
             ) : (
               <>
-                {/* Featured Streamers - Desktop */}
                 <section className="mb-8">
                   <div className="flex items-center justify-between mb-4">
                     <h2 className="text-lg font-semibold">Featured Streamers</h2>
@@ -249,100 +519,18 @@ export default function Live() {
                       See all <ChevronRight className="h-4 w-4" />
                     </button>
                   </div>
-                  <div className="flex gap-6 overflow-x-auto hide-scrollbar pb-2">
-                    {featuredStreamers.map((streamer, index) => (
-                      <div 
-                        key={streamer.id} 
-                        className="flex flex-col items-center gap-2 cursor-pointer group"
-                      >
-                        <div className="relative">
-                          <Avatar className={cn(
-                            "h-20 w-20 ring-3 ring-offset-2 ring-offset-background transition-all group-hover:scale-105",
-                            streamer.isLive ? "ring-stream-live" : "ring-border"
-                          )}>
-                            <AvatarImage src={streamer.avatar} />
-                            <AvatarFallback>{streamer.name[0]}</AvatarFallback>
-                          </Avatar>
-                          {streamer.isLive && (
-                            <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 rounded-full bg-stream-live px-3 py-0.5 text-[11px] font-bold text-white shadow-lg">
-                              LIVE
-                            </span>
-                          )}
-                        </div>
-                        <span className="text-sm font-medium">{streamer.name}</span>
-                        {streamer.isLive && (
-                          <span className="text-[11px] text-muted-foreground">{streamer.viewers.toLocaleString()} viewers</span>
-                        )}
-                      </div>
-                    ))}
-                  </div>
+                  {renderFeaturedStreamers("lg")}
                 </section>
 
-                {/* Stream Grid - Desktop 4 columns */}
                 <section>
                   <h2 className="text-lg font-semibold mb-4">Live Now</h2>
-                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-                    {mockStreams.map((stream) => (
-                      <div
-                        key={stream.id}
-                        onClick={() => handleStreamClick(stream)}
-                        className="group relative aspect-[3/4] overflow-hidden rounded-2xl bg-muted cursor-pointer transition-all hover:scale-[1.02] hover:shadow-xl"
-                      >
-                        <img
-                          src={stream.thumbnail}
-                          alt={stream.title}
-                          className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
-                        />
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-black/30" />
-                        
-                        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                          <div className="h-14 w-14 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center">
-                            <Play className="h-7 w-7 text-white fill-white ml-1" />
-                          </div>
-                        </div>
-                        
-                        <div className="absolute left-2 top-2 flex items-center gap-1.5">
-                          <Badge className="bg-stream-live text-white border-0 px-2 py-0.5 text-[10px] font-bold shadow-lg">
-                            <span className="mr-1 h-1.5 w-1.5 rounded-full bg-white animate-pulse" />
-                            LIVE
-                          </Badge>
-                          {stream.isPK && (
-                            <Badge className="bg-gradient-gold text-black border-0 px-2 py-0.5 text-[10px] font-bold shadow-lg">
-                              <Swords className="mr-1 h-3 w-3" />
-                              PK
-                            </Badge>
-                          )}
-                        </div>
-
-                        <div className="absolute right-2 top-2">
-                          <Badge variant="secondary" className="bg-black/50 text-white border-0 text-[10px] backdrop-blur-sm">
-                            {stream.category}
-                          </Badge>
-                        </div>
-
-                        <div className="absolute left-2 bottom-14">
-                          <Badge variant="secondary" className="bg-black/50 text-white border-0 text-[10px] backdrop-blur-sm">
-                            <Users className="mr-1 h-3 w-3" />
-                            {stream.viewers.toLocaleString()}
-                          </Badge>
-                        </div>
-
-                        <div className="absolute bottom-0 left-0 right-0 p-3">
-                          <p className="line-clamp-1 text-sm font-semibold text-white mb-0.5">
-                            {stream.title}
-                          </p>
-                          <p className="text-xs text-white/70">{stream.host}</p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+                  {renderDesktopStreamContent()}
                 </section>
               </>
             )}
           </div>
         </main>
 
-        {/* Right Sidebar - Chat/Activity */}
         <aside className="hidden xl:flex flex-col w-80 border-l border-border/50 bg-card/50 backdrop-blur-sm sticky top-0 h-screen">
           <div className="p-4 border-b border-border/50">
             <h3 className="font-semibold">Activity Feed</h3>
@@ -366,54 +554,12 @@ export default function Live() {
             ))}
           </div>
         </aside>
-
-        {/* Modals */}
-        {selectedStream && (
-          <LiveRoomViewer
-            streamId={selectedStream.id.toString()}
-            hostName={selectedStream.host}
-            hostAvatar={featuredStreamers.find(s => s.name === selectedStream.host.split(" ")[0])?.avatar || "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100"}
-            viewerCount={selectedStream.viewers}
-            thumbnail={selectedStream.thumbnail}
-            onClose={() => setSelectedStream(null)}
-          />
-        )}
-
-        {selectedPartyRoom && (
-          <PartyRoomViewer
-            room={selectedPartyRoom}
-            onClose={() => setSelectedPartyRoom(null)}
-          />
-        )}
-
-        {selectedPKBattle && (
-          <PKBattleLiveRoom
-            battle={selectedPKBattle}
-            onClose={() => setSelectedPKBattle(null)}
-          />
-        )}
-
-        {showGoLive && (
-          <GoLiveSheet
-            onClose={() => setShowGoLive(false)}
-            onGoLive={handleGoLive}
-          />
-        )}
-
-        {showCreateParty && (
-          <CreatePartySheet
-            onClose={() => setShowCreateParty(false)}
-            onCreate={handleCreateParty}
-          />
-        )}
       </div>
     );
   }
 
-  // Mobile Layout (existing)
   return (
     <div className="flex flex-col min-h-screen bg-background">
-      {/* Header */}
       <header className="sticky top-0 z-40 glass border-b border-border/50">
         <div className="flex items-center justify-between px-4 py-3">
           <div className="flex items-center gap-3">
@@ -436,7 +582,6 @@ export default function Live() {
           </div>
         </div>
 
-        {/* Categories */}
         <div className="flex gap-2 overflow-x-auto px-4 pb-3 hide-scrollbar">
           {categories.map((cat) => {
             const Icon = cat.icon;
@@ -460,10 +605,9 @@ export default function Live() {
         </div>
       </header>
 
-      {/* PK Battles Section */}
       {showPKBattles ? (
         <div className="relative flex-1 pb-24">
-          <PKBattleList 
+          <PKBattleList
             onBattleClick={handlePKBattleClick}
             onJoinBattle={() => setShowGoLive(true)}
           />
@@ -473,7 +617,7 @@ export default function Live() {
           <div className="flex items-center justify-between mb-4">
             <div>
               <h2 className="text-lg font-semibold">Party Rooms</h2>
-              <p className="text-xs text-muted-foreground">{mockPartyRooms.length} rooms active</p>
+              <p className="text-xs text-muted-foreground">{partyRooms.length} rooms active</p>
             </div>
             <Button
               onClick={() => setShowCreateParty(true)}
@@ -483,11 +627,10 @@ export default function Live() {
               Create
             </Button>
           </div>
-          <PartyRoomList rooms={mockPartyRooms} onRoomClick={handlePartyRoomClick} />
+          {renderMobilePartyContent()}
         </div>
       ) : (
         <>
-          {/* Featured Streamers */}
           <section className="px-4 py-4">
             <div className="flex items-center justify-between mb-3">
               <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Featured</h2>
@@ -495,68 +638,13 @@ export default function Live() {
                 See all <ChevronRight className="h-3 w-3" />
               </button>
             </div>
-            <div className="flex gap-4 overflow-x-auto hide-scrollbar pb-2">
-              {featuredStreamers.map((streamer, index) => (
-                <div key={streamer.id} className={cn("flex flex-col items-center gap-2 animate-fade-in-up", `stagger-${index + 1}`)}>
-                  <div className="relative">
-                    <Avatar className={cn("h-16 w-16 ring-2 ring-offset-2 ring-offset-background transition-all", streamer.isLive ? "ring-stream-live ring-pulse" : "ring-border")}>
-                      <AvatarImage src={streamer.avatar} />
-                      <AvatarFallback>{streamer.name[0]}</AvatarFallback>
-                    </Avatar>
-                    {streamer.isLive && (
-                      <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 rounded-full bg-stream-live px-2 py-0.5 text-[10px] font-bold text-white shadow-lg">LIVE</span>
-                    )}
-                  </div>
-                  <span className="text-xs font-medium truncate max-w-[64px]">{streamer.name}</span>
-                </div>
-              ))}
-            </div>
+            {renderFeaturedStreamers("sm")}
           </section>
 
-          {/* Stream Grid */}
-          <div className="grid grid-cols-2 gap-3 px-4 pb-24">
-            {mockStreams.map((stream, index) => (
-              <div
-                key={stream.id}
-                onClick={() => handleStreamClick(stream)}
-                className={cn("group relative aspect-[3/4] overflow-hidden rounded-2xl bg-muted cursor-pointer card-hover animate-fade-in-up", `stagger-${(index % 6) + 1}`)}
-              >
-                <img src={stream.thumbnail} alt={stream.title} className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105" />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-black/30" />
-                <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                  <div className="h-14 w-14 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center">
-                    <Play className="h-7 w-7 text-white fill-white ml-1" />
-                  </div>
-                </div>
-                <div className="absolute left-2 top-2 flex items-center gap-1.5">
-                  <Badge className="bg-stream-live text-white border-0 px-2 py-0.5 text-[10px] font-bold shadow-lg">
-                    <span className="mr-1 h-1.5 w-1.5 rounded-full bg-white animate-pulse" />LIVE
-                  </Badge>
-                  {stream.isPK && (
-                    <Badge className="bg-gradient-gold text-black border-0 px-2 py-0.5 text-[10px] font-bold shadow-lg">
-                      <Swords className="mr-1 h-3 w-3" />PK
-                    </Badge>
-                  )}
-                </div>
-                <div className="absolute right-2 top-2">
-                  <Badge variant="secondary" className="bg-black/50 text-white border-0 text-[10px] backdrop-blur-sm">{stream.category}</Badge>
-                </div>
-                <div className="absolute left-2 bottom-14">
-                  <Badge variant="secondary" className="bg-black/50 text-white border-0 text-[10px] backdrop-blur-sm">
-                    <Users className="mr-1 h-3 w-3" />{stream.viewers.toLocaleString()}
-                  </Badge>
-                </div>
-                <div className="absolute bottom-0 left-0 right-0 p-3">
-                  <p className="line-clamp-1 text-sm font-semibold text-white mb-0.5">{stream.title}</p>
-                  <p className="text-xs text-white/70">{stream.host}</p>
-                </div>
-              </div>
-            ))}
-          </div>
+          {renderMobileStreamContent()}
         </>
       )}
 
-      {/* Go Live FAB */}
       {!showPKBattles && (
         <button
           onClick={() => showPartyRooms ? setShowCreateParty(true) : setShowGoLive(true)}
@@ -567,36 +655,7 @@ export default function Live() {
         </button>
       )}
 
-      {/* Modals */}
-      {selectedStream && (
-        <LiveRoomViewer
-          streamId={selectedStream.id.toString()}
-          hostName={selectedStream.host}
-          hostAvatar={featuredStreamers.find(s => s.name === selectedStream.host.split(" ")[0])?.avatar || "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100"}
-          viewerCount={selectedStream.viewers}
-          thumbnail={selectedStream.thumbnail}
-          onClose={() => setSelectedStream(null)}
-        />
-      )}
-
-      {selectedPartyRoom && (
-        <PartyRoomViewer room={selectedPartyRoom} onClose={() => setSelectedPartyRoom(null)} />
-      )}
-
-      {selectedPKBattle && (
-        <PKBattleLiveRoom
-          battle={selectedPKBattle}
-          onClose={() => setSelectedPKBattle(null)}
-        />
-      )}
-
-      {showGoLive && (
-        <GoLiveSheet onClose={() => setShowGoLive(false)} onGoLive={handleGoLive} />
-      )}
-
-      {showCreateParty && (
-        <CreatePartySheet onClose={() => setShowCreateParty(false)} onCreate={handleCreateParty} />
-      )}
+      {renderModals()}
     </div>
   );
 }
