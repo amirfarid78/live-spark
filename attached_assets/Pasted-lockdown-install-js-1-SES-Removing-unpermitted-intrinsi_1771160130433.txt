@@ -1,0 +1,425 @@
+lockdown-install.js:1 SES Removing unpermitted intrinsics
+chunk-T2SWDQEL.js?v=0a787007:21551 Download the React DevTools for a better development experience: https://reactjs.org/link/react-devtools
+agora-rtc-sdk-ng.js?v=0a787007:7316 04:53:15:306 Agora-SDK [DEBUG]: Loading global parameters from cache {USE_NEW_RENDER_FREEZE_TIME: {…}}
+agora-rtc-sdk-ng.js?v=0a787007:7316 04:53:15:407 Agora-SDK [DEBUG]: browser ua:  Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Mobile Safari/537.36
+agora-rtc-sdk-ng.js?v=0a787007:7319 04:53:15:407 Agora-SDK [INFO]: browser info:  {name: 'Chrome', version: '144', os: 'Android', osVersion: '13', browserVersion: '144.0.0.0', …}
+agora-rtc-sdk-ng.js?v=0a787007:7319 04:53:15:408 Agora-SDK [INFO]: browser compatibility:  {getDisplayMedia: true, getStreamFromExtension: true, supportUnifiedPlan: true, supportMinBitrate: true, supportSetRtpSenderParameters: true, …}
+react-router-dom.js?v=0a787007:4393 ⚠️ React Router Future Flag Warning: React Router will begin wrapping state updates in `React.startTransition` in v7. You can use the `v7_startTransition` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_starttransition.
+warnOnce @ react-router-dom.js?v=0a787007:4393
+logDeprecation @ react-router-dom.js?v=0a787007:4396
+logV6DeprecationWarnings @ react-router-dom.js?v=0a787007:4399
+(anonymous) @ react-router-dom.js?v=0a787007:5271
+commitHookEffectListMount @ chunk-T2SWDQEL.js?v=0a787007:16915
+commitPassiveMountOnFiber @ chunk-T2SWDQEL.js?v=0a787007:18156
+commitPassiveMountEffects_complete @ chunk-T2SWDQEL.js?v=0a787007:18129
+commitPassiveMountEffects_begin @ chunk-T2SWDQEL.js?v=0a787007:18119
+commitPassiveMountEffects @ chunk-T2SWDQEL.js?v=0a787007:18109
+flushPassiveEffectsImpl @ chunk-T2SWDQEL.js?v=0a787007:19490
+flushPassiveEffects @ chunk-T2SWDQEL.js?v=0a787007:19447
+(anonymous) @ chunk-T2SWDQEL.js?v=0a787007:19328
+workLoop @ chunk-T2SWDQEL.js?v=0a787007:197
+flushWork @ chunk-T2SWDQEL.js?v=0a787007:176
+performWorkUntilDeadline @ chunk-T2SWDQEL.js?v=0a787007:384
+react-router-dom.js?v=0a787007:4393 ⚠️ React Router Future Flag Warning: Relative route resolution within Splat routes is changing in v7. You can use the `v7_relativeSplatPath` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_relativesplatpath.
+warnOnce @ react-router-dom.js?v=0a787007:4393
+logDeprecation @ react-router-dom.js?v=0a787007:4396
+logV6DeprecationWarnings @ react-router-dom.js?v=0a787007:4402
+(anonymous) @ react-router-dom.js?v=0a787007:5271
+commitHookEffectListMount @ chunk-T2SWDQEL.js?v=0a787007:16915
+commitPassiveMountOnFiber @ chunk-T2SWDQEL.js?v=0a787007:18156
+commitPassiveMountEffects_complete @ chunk-T2SWDQEL.js?v=0a787007:18129
+commitPassiveMountEffects_begin @ chunk-T2SWDQEL.js?v=0a787007:18119
+commitPassiveMountEffects @ chunk-T2SWDQEL.js?v=0a787007:18109
+flushPassiveEffectsImpl @ chunk-T2SWDQEL.js?v=0a787007:19490
+flushPassiveEffects @ chunk-T2SWDQEL.js?v=0a787007:19447
+(anonymous) @ chunk-T2SWDQEL.js?v=0a787007:19328
+workLoop @ chunk-T2SWDQEL.js?v=0a787007:197
+flushWork @ chunk-T2SWDQEL.js?v=0a787007:176
+performWorkUntilDeadline @ chunk-T2SWDQEL.js?v=0a787007:384
+agora-rtc-sdk-ng.js?v=0a787007:7316 04:53:15:598 Agora-SDK [DEBUG]: [device-check] default input Default - Microphone (Realtek(R) Audio) and output Default - Speakers (Realtek(R) Audio) is not the same group
+AuthContext.tsx:82  GET https://f6f8eacb-6d35-4eaa-818b-604217eb27ee-00-3ak4dwso4d5c.spock.replit.dev/api/auth/me 401 (Unauthorized)
+checkSession @ AuthContext.tsx:82
+(anonymous) @ AuthContext.tsx:105
+commitHookEffectListMount @ chunk-T2SWDQEL.js?v=0a787007:16915
+commitPassiveMountOnFiber @ chunk-T2SWDQEL.js?v=0a787007:18156
+commitPassiveMountEffects_complete @ chunk-T2SWDQEL.js?v=0a787007:18129
+commitPassiveMountEffects_begin @ chunk-T2SWDQEL.js?v=0a787007:18119
+commitPassiveMountEffects @ chunk-T2SWDQEL.js?v=0a787007:18109
+flushPassiveEffectsImpl @ chunk-T2SWDQEL.js?v=0a787007:19490
+flushPassiveEffects @ chunk-T2SWDQEL.js?v=0a787007:19447
+performSyncWorkOnRoot @ chunk-T2SWDQEL.js?v=0a787007:18868
+flushSyncCallbacks @ chunk-T2SWDQEL.js?v=0a787007:9119
+commitRootImpl @ chunk-T2SWDQEL.js?v=0a787007:19432
+commitRoot @ chunk-T2SWDQEL.js?v=0a787007:19277
+finishConcurrentRender @ chunk-T2SWDQEL.js?v=0a787007:18805
+performConcurrentWorkOnRoot @ chunk-T2SWDQEL.js?v=0a787007:18718
+workLoop @ chunk-T2SWDQEL.js?v=0a787007:197
+flushWork @ chunk-T2SWDQEL.js?v=0a787007:176
+performWorkUntilDeadline @ chunk-T2SWDQEL.js?v=0a787007:384
+AuthContext.tsx:82  GET https://f6f8eacb-6d35-4eaa-818b-604217eb27ee-00-3ak4dwso4d5c.spock.replit.dev/api/auth/me 401 (Unauthorized)
+checkSession @ AuthContext.tsx:82
+(anonymous) @ AuthContext.tsx:105
+commitHookEffectListMount @ chunk-T2SWDQEL.js?v=0a787007:16915
+invokePassiveEffectMountInDEV @ chunk-T2SWDQEL.js?v=0a787007:18324
+invokeEffectsInDev @ chunk-T2SWDQEL.js?v=0a787007:19701
+commitDoubleInvokeEffectsInDEV @ chunk-T2SWDQEL.js?v=0a787007:19686
+flushPassiveEffectsImpl @ chunk-T2SWDQEL.js?v=0a787007:19503
+flushPassiveEffects @ chunk-T2SWDQEL.js?v=0a787007:19447
+performSyncWorkOnRoot @ chunk-T2SWDQEL.js?v=0a787007:18868
+flushSyncCallbacks @ chunk-T2SWDQEL.js?v=0a787007:9119
+commitRootImpl @ chunk-T2SWDQEL.js?v=0a787007:19432
+commitRoot @ chunk-T2SWDQEL.js?v=0a787007:19277
+finishConcurrentRender @ chunk-T2SWDQEL.js?v=0a787007:18805
+performConcurrentWorkOnRoot @ chunk-T2SWDQEL.js?v=0a787007:18718
+workLoop @ chunk-T2SWDQEL.js?v=0a787007:197
+flushWork @ chunk-T2SWDQEL.js?v=0a787007:176
+performWorkUntilDeadline @ chunk-T2SWDQEL.js?v=0a787007:384
+lockdown-install.js:1 SES Removing unpermitted intrinsics
+iframe.js:311 Info: The current domain is not authorized for OAuth operations. This will prevent signInWithPopup, signInWithRedirect, linkWithPopup and linkWithRedirect from working. Add your domain (f6f8eacb-6d35-4eaa-818b-604217eb27ee-00-3ak4dwso4d5c.spock.replit.dev) to the OAuth redirect domains list in the Firebase console -> Authentication -> Settings -> Authorized domains tab.
+kl @ iframe.js:311
+(anonymous) @ iframe.js:580
+a @ iframe.js:155
+(anonymous) @ iframe.js:155
+c @ iframe.js:155
+e.xd @ iframe.js:163
+hg @ iframe.js:166
+dg @ iframe.js:166
+F.Bk @ iframe.js:165
+a @ iframe.js:155
+(anonymous) @ iframe.js:155
+c @ iframe.js:155
+Mf @ iframe.js:156
+a
+Ff @ iframe.js:156
+Zf @ iframe.js:162
+k.l @ iframe.js:160
+ns @ iframe.js:579
+(anonymous) @ iframe.js:580
+Yi @ iframe.js:240
+b @ iframe.js:238
+manifest.json:1 Manifest: Line: 1, column: 1, Syntax error.
+Profile.tsx:36 [["/api/users/3/videos"]]: No queryFn was passed as an option, and no default queryFn was found. The queryFn parameter is only optional when using a default queryFn. More info here: https://tanstack.com/query/latest/docs/framework/react/guides/default-query-function
+useBaseQuery @ @tanstack_react-query.js?v=0a787007:3363
+useQuery @ @tanstack_react-query.js?v=0a787007:3431
+Profile @ Profile.tsx:36
+renderWithHooks @ chunk-T2SWDQEL.js?v=0a787007:11548
+mountIndeterminateComponent @ chunk-T2SWDQEL.js?v=0a787007:14926
+beginWork @ chunk-T2SWDQEL.js?v=0a787007:15914
+beginWork$1 @ chunk-T2SWDQEL.js?v=0a787007:19753
+performUnitOfWork @ chunk-T2SWDQEL.js?v=0a787007:19198
+workLoopSync @ chunk-T2SWDQEL.js?v=0a787007:19137
+renderRootSync @ chunk-T2SWDQEL.js?v=0a787007:19116
+performSyncWorkOnRoot @ chunk-T2SWDQEL.js?v=0a787007:18874
+flushSyncCallbacks @ chunk-T2SWDQEL.js?v=0a787007:9119
+(anonymous) @ chunk-T2SWDQEL.js?v=0a787007:18627
+Profile.tsx:36 [["/api/users/3/videos"]]: No queryFn was passed as an option, and no default queryFn was found. The queryFn parameter is only optional when using a default queryFn. More info here: https://tanstack.com/query/latest/docs/framework/react/guides/default-query-function
+useBaseQuery @ @tanstack_react-query.js?v=0a787007:3363
+useQuery @ @tanstack_react-query.js?v=0a787007:3431
+Profile @ Profile.tsx:36
+renderWithHooks @ chunk-T2SWDQEL.js?v=0a787007:11548
+mountIndeterminateComponent @ chunk-T2SWDQEL.js?v=0a787007:14976
+beginWork @ chunk-T2SWDQEL.js?v=0a787007:15914
+beginWork$1 @ chunk-T2SWDQEL.js?v=0a787007:19753
+performUnitOfWork @ chunk-T2SWDQEL.js?v=0a787007:19198
+workLoopSync @ chunk-T2SWDQEL.js?v=0a787007:19137
+renderRootSync @ chunk-T2SWDQEL.js?v=0a787007:19116
+performSyncWorkOnRoot @ chunk-T2SWDQEL.js?v=0a787007:18874
+flushSyncCallbacks @ chunk-T2SWDQEL.js?v=0a787007:9119
+(anonymous) @ chunk-T2SWDQEL.js?v=0a787007:18627
+Profile.tsx:36 [["/api/users/3/videos"]]: No queryFn was passed as an option, and no default queryFn was found. The queryFn parameter is only optional when using a default queryFn. More info here: https://tanstack.com/query/latest/docs/framework/react/guides/default-query-function
+useBaseQuery @ @tanstack_react-query.js?v=0a787007:3363
+useQuery @ @tanstack_react-query.js?v=0a787007:3431
+Profile @ Profile.tsx:36
+renderWithHooks @ chunk-T2SWDQEL.js?v=0a787007:11548
+updateFunctionComponent @ chunk-T2SWDQEL.js?v=0a787007:14582
+beginWork @ chunk-T2SWDQEL.js?v=0a787007:15924
+beginWork$1 @ chunk-T2SWDQEL.js?v=0a787007:19753
+performUnitOfWork @ chunk-T2SWDQEL.js?v=0a787007:19198
+workLoopSync @ chunk-T2SWDQEL.js?v=0a787007:19137
+renderRootSync @ chunk-T2SWDQEL.js?v=0a787007:19116
+performConcurrentWorkOnRoot @ chunk-T2SWDQEL.js?v=0a787007:18678
+workLoop @ chunk-T2SWDQEL.js?v=0a787007:197
+flushWork @ chunk-T2SWDQEL.js?v=0a787007:176
+performWorkUntilDeadline @ chunk-T2SWDQEL.js?v=0a787007:384
+Profile.tsx:36 [["/api/users/3/videos"]]: No queryFn was passed as an option, and no default queryFn was found. The queryFn parameter is only optional when using a default queryFn. More info here: https://tanstack.com/query/latest/docs/framework/react/guides/default-query-function
+useBaseQuery @ @tanstack_react-query.js?v=0a787007:3363
+useQuery @ @tanstack_react-query.js?v=0a787007:3431
+Profile @ Profile.tsx:36
+renderWithHooks @ chunk-T2SWDQEL.js?v=0a787007:11548
+updateFunctionComponent @ chunk-T2SWDQEL.js?v=0a787007:14587
+beginWork @ chunk-T2SWDQEL.js?v=0a787007:15924
+beginWork$1 @ chunk-T2SWDQEL.js?v=0a787007:19753
+performUnitOfWork @ chunk-T2SWDQEL.js?v=0a787007:19198
+workLoopSync @ chunk-T2SWDQEL.js?v=0a787007:19137
+renderRootSync @ chunk-T2SWDQEL.js?v=0a787007:19116
+performConcurrentWorkOnRoot @ chunk-T2SWDQEL.js?v=0a787007:18678
+workLoop @ chunk-T2SWDQEL.js?v=0a787007:197
+flushWork @ chunk-T2SWDQEL.js?v=0a787007:176
+performWorkUntilDeadline @ chunk-T2SWDQEL.js?v=0a787007:384
+Profile.tsx:36 [["/api/users/3/videos"]]: No queryFn was passed as an option, and no default queryFn was found. The queryFn parameter is only optional when using a default queryFn. More info here: https://tanstack.com/query/latest/docs/framework/react/guides/default-query-function
+useBaseQuery @ @tanstack_react-query.js?v=0a787007:3363
+useQuery @ @tanstack_react-query.js?v=0a787007:3431
+Profile @ Profile.tsx:36
+renderWithHooks @ chunk-T2SWDQEL.js?v=0a787007:11548
+updateFunctionComponent @ chunk-T2SWDQEL.js?v=0a787007:14582
+beginWork @ chunk-T2SWDQEL.js?v=0a787007:15924
+beginWork$1 @ chunk-T2SWDQEL.js?v=0a787007:19753
+performUnitOfWork @ chunk-T2SWDQEL.js?v=0a787007:19198
+workLoopSync @ chunk-T2SWDQEL.js?v=0a787007:19137
+renderRootSync @ chunk-T2SWDQEL.js?v=0a787007:19116
+performSyncWorkOnRoot @ chunk-T2SWDQEL.js?v=0a787007:18874
+flushSyncCallbacks @ chunk-T2SWDQEL.js?v=0a787007:9119
+(anonymous) @ chunk-T2SWDQEL.js?v=0a787007:18627
+setTimeout
+systemSetTimeoutZero @ @tanstack_react-query.js?v=0a787007:103
+flush @ @tanstack_react-query.js?v=0a787007:637
+batch @ @tanstack_react-query.js?v=0a787007:655
+dispatch_fn @ @tanstack_react-query.js?v=0a787007:1285
+setData @ @tanstack_react-query.js?v=0a787007:957
+fetch @ @tanstack_react-query.js?v=0a787007:1179
+await in fetch
+executeFetch_fn @ @tanstack_react-query.js?v=0a787007:1678
+onSubscribe @ @tanstack_react-query.js?v=0a787007:1369
+subscribe @ @tanstack_react-query.js?v=0a787007:24
+(anonymous) @ @tanstack_react-query.js?v=0a787007:3384
+subscribeToStore @ chunk-T2SWDQEL.js?v=0a787007:11984
+commitHookEffectListMount @ chunk-T2SWDQEL.js?v=0a787007:16915
+commitPassiveMountOnFiber @ chunk-T2SWDQEL.js?v=0a787007:18156
+commitPassiveMountEffects_complete @ chunk-T2SWDQEL.js?v=0a787007:18129
+commitPassiveMountEffects_begin @ chunk-T2SWDQEL.js?v=0a787007:18119
+commitPassiveMountEffects @ chunk-T2SWDQEL.js?v=0a787007:18109
+flushPassiveEffectsImpl @ chunk-T2SWDQEL.js?v=0a787007:19490
+flushPassiveEffects @ chunk-T2SWDQEL.js?v=0a787007:19447
+commitRootImpl @ chunk-T2SWDQEL.js?v=0a787007:19416
+commitRoot @ chunk-T2SWDQEL.js?v=0a787007:19277
+performSyncWorkOnRoot @ chunk-T2SWDQEL.js?v=0a787007:18895
+flushSyncCallbacks @ chunk-T2SWDQEL.js?v=0a787007:9119
+(anonymous) @ chunk-T2SWDQEL.js?v=0a787007:18627
+Profile.tsx:36 [["/api/users/3/videos"]]: No queryFn was passed as an option, and no default queryFn was found. The queryFn parameter is only optional when using a default queryFn. More info here: https://tanstack.com/query/latest/docs/framework/react/guides/default-query-function
+useBaseQuery @ @tanstack_react-query.js?v=0a787007:3363
+useQuery @ @tanstack_react-query.js?v=0a787007:3431
+Profile @ Profile.tsx:36
+renderWithHooks @ chunk-T2SWDQEL.js?v=0a787007:11548
+updateFunctionComponent @ chunk-T2SWDQEL.js?v=0a787007:14587
+beginWork @ chunk-T2SWDQEL.js?v=0a787007:15924
+beginWork$1 @ chunk-T2SWDQEL.js?v=0a787007:19753
+performUnitOfWork @ chunk-T2SWDQEL.js?v=0a787007:19198
+workLoopSync @ chunk-T2SWDQEL.js?v=0a787007:19137
+renderRootSync @ chunk-T2SWDQEL.js?v=0a787007:19116
+performSyncWorkOnRoot @ chunk-T2SWDQEL.js?v=0a787007:18874
+flushSyncCallbacks @ chunk-T2SWDQEL.js?v=0a787007:9119
+(anonymous) @ chunk-T2SWDQEL.js?v=0a787007:18627
+setTimeout
+systemSetTimeoutZero @ @tanstack_react-query.js?v=0a787007:103
+flush @ @tanstack_react-query.js?v=0a787007:637
+batch @ @tanstack_react-query.js?v=0a787007:655
+dispatch_fn @ @tanstack_react-query.js?v=0a787007:1285
+setData @ @tanstack_react-query.js?v=0a787007:957
+fetch @ @tanstack_react-query.js?v=0a787007:1179
+await in fetch
+executeFetch_fn @ @tanstack_react-query.js?v=0a787007:1678
+onSubscribe @ @tanstack_react-query.js?v=0a787007:1369
+subscribe @ @tanstack_react-query.js?v=0a787007:24
+(anonymous) @ @tanstack_react-query.js?v=0a787007:3384
+subscribeToStore @ chunk-T2SWDQEL.js?v=0a787007:11984
+commitHookEffectListMount @ chunk-T2SWDQEL.js?v=0a787007:16915
+commitPassiveMountOnFiber @ chunk-T2SWDQEL.js?v=0a787007:18156
+commitPassiveMountEffects_complete @ chunk-T2SWDQEL.js?v=0a787007:18129
+commitPassiveMountEffects_begin @ chunk-T2SWDQEL.js?v=0a787007:18119
+commitPassiveMountEffects @ chunk-T2SWDQEL.js?v=0a787007:18109
+flushPassiveEffectsImpl @ chunk-T2SWDQEL.js?v=0a787007:19490
+flushPassiveEffects @ chunk-T2SWDQEL.js?v=0a787007:19447
+commitRootImpl @ chunk-T2SWDQEL.js?v=0a787007:19416
+commitRoot @ chunk-T2SWDQEL.js?v=0a787007:19277
+performSyncWorkOnRoot @ chunk-T2SWDQEL.js?v=0a787007:18895
+flushSyncCallbacks @ chunk-T2SWDQEL.js?v=0a787007:9119
+(anonymous) @ chunk-T2SWDQEL.js?v=0a787007:18627
+Profile.tsx:36 [["/api/users/3/videos"]]: No queryFn was passed as an option, and no default queryFn was found. The queryFn parameter is only optional when using a default queryFn. More info here: https://tanstack.com/query/latest/docs/framework/react/guides/default-query-function
+useBaseQuery @ @tanstack_react-query.js?v=0a787007:3363
+useQuery @ @tanstack_react-query.js?v=0a787007:3431
+Profile @ Profile.tsx:36
+renderWithHooks @ chunk-T2SWDQEL.js?v=0a787007:11548
+updateFunctionComponent @ chunk-T2SWDQEL.js?v=0a787007:14582
+beginWork @ chunk-T2SWDQEL.js?v=0a787007:15924
+beginWork$1 @ chunk-T2SWDQEL.js?v=0a787007:19753
+performUnitOfWork @ chunk-T2SWDQEL.js?v=0a787007:19198
+workLoopSync @ chunk-T2SWDQEL.js?v=0a787007:19137
+renderRootSync @ chunk-T2SWDQEL.js?v=0a787007:19116
+performSyncWorkOnRoot @ chunk-T2SWDQEL.js?v=0a787007:18874
+flushSyncCallbacks @ chunk-T2SWDQEL.js?v=0a787007:9119
+(anonymous) @ chunk-T2SWDQEL.js?v=0a787007:18627
+setTimeout
+systemSetTimeoutZero @ @tanstack_react-query.js?v=0a787007:103
+flush @ @tanstack_react-query.js?v=0a787007:637
+batch @ @tanstack_react-query.js?v=0a787007:655
+dispatch_fn @ @tanstack_react-query.js?v=0a787007:1285
+setData @ @tanstack_react-query.js?v=0a787007:957
+fetch @ @tanstack_react-query.js?v=0a787007:1179
+await in fetch
+executeFetch_fn @ @tanstack_react-query.js?v=0a787007:1678
+onSubscribe @ @tanstack_react-query.js?v=0a787007:1369
+subscribe @ @tanstack_react-query.js?v=0a787007:24
+(anonymous) @ @tanstack_react-query.js?v=0a787007:3384
+subscribeToStore @ chunk-T2SWDQEL.js?v=0a787007:11984
+commitHookEffectListMount @ chunk-T2SWDQEL.js?v=0a787007:16915
+commitPassiveMountOnFiber @ chunk-T2SWDQEL.js?v=0a787007:18156
+commitPassiveMountEffects_complete @ chunk-T2SWDQEL.js?v=0a787007:18129
+commitPassiveMountEffects_begin @ chunk-T2SWDQEL.js?v=0a787007:18119
+commitPassiveMountEffects @ chunk-T2SWDQEL.js?v=0a787007:18109
+flushPassiveEffectsImpl @ chunk-T2SWDQEL.js?v=0a787007:19490
+flushPassiveEffects @ chunk-T2SWDQEL.js?v=0a787007:19447
+commitRootImpl @ chunk-T2SWDQEL.js?v=0a787007:19416
+commitRoot @ chunk-T2SWDQEL.js?v=0a787007:19277
+performSyncWorkOnRoot @ chunk-T2SWDQEL.js?v=0a787007:18895
+flushSyncCallbacks @ chunk-T2SWDQEL.js?v=0a787007:9119
+(anonymous) @ chunk-T2SWDQEL.js?v=0a787007:18627
+Profile.tsx:36 [["/api/users/3/videos"]]: No queryFn was passed as an option, and no default queryFn was found. The queryFn parameter is only optional when using a default queryFn. More info here: https://tanstack.com/query/latest/docs/framework/react/guides/default-query-function
+useBaseQuery @ @tanstack_react-query.js?v=0a787007:3363
+useQuery @ @tanstack_react-query.js?v=0a787007:3431
+Profile @ Profile.tsx:36
+renderWithHooks @ chunk-T2SWDQEL.js?v=0a787007:11548
+updateFunctionComponent @ chunk-T2SWDQEL.js?v=0a787007:14587
+beginWork @ chunk-T2SWDQEL.js?v=0a787007:15924
+beginWork$1 @ chunk-T2SWDQEL.js?v=0a787007:19753
+performUnitOfWork @ chunk-T2SWDQEL.js?v=0a787007:19198
+workLoopSync @ chunk-T2SWDQEL.js?v=0a787007:19137
+renderRootSync @ chunk-T2SWDQEL.js?v=0a787007:19116
+performSyncWorkOnRoot @ chunk-T2SWDQEL.js?v=0a787007:18874
+flushSyncCallbacks @ chunk-T2SWDQEL.js?v=0a787007:9119
+(anonymous) @ chunk-T2SWDQEL.js?v=0a787007:18627
+setTimeout
+systemSetTimeoutZero @ @tanstack_react-query.js?v=0a787007:103
+flush @ @tanstack_react-query.js?v=0a787007:637
+batch @ @tanstack_react-query.js?v=0a787007:655
+dispatch_fn @ @tanstack_react-query.js?v=0a787007:1285
+setData @ @tanstack_react-query.js?v=0a787007:957
+fetch @ @tanstack_react-query.js?v=0a787007:1179
+await in fetch
+executeFetch_fn @ @tanstack_react-query.js?v=0a787007:1678
+onSubscribe @ @tanstack_react-query.js?v=0a787007:1369
+subscribe @ @tanstack_react-query.js?v=0a787007:24
+(anonymous) @ @tanstack_react-query.js?v=0a787007:3384
+subscribeToStore @ chunk-T2SWDQEL.js?v=0a787007:11984
+commitHookEffectListMount @ chunk-T2SWDQEL.js?v=0a787007:16915
+commitPassiveMountOnFiber @ chunk-T2SWDQEL.js?v=0a787007:18156
+commitPassiveMountEffects_complete @ chunk-T2SWDQEL.js?v=0a787007:18129
+commitPassiveMountEffects_begin @ chunk-T2SWDQEL.js?v=0a787007:18119
+commitPassiveMountEffects @ chunk-T2SWDQEL.js?v=0a787007:18109
+flushPassiveEffectsImpl @ chunk-T2SWDQEL.js?v=0a787007:19490
+flushPassiveEffects @ chunk-T2SWDQEL.js?v=0a787007:19447
+commitRootImpl @ chunk-T2SWDQEL.js?v=0a787007:19416
+commitRoot @ chunk-T2SWDQEL.js?v=0a787007:19277
+performSyncWorkOnRoot @ chunk-T2SWDQEL.js?v=0a787007:18895
+flushSyncCallbacks @ chunk-T2SWDQEL.js?v=0a787007:9119
+(anonymous) @ chunk-T2SWDQEL.js?v=0a787007:18627
+Discover.tsx:347 Uncaught TypeError: Cannot read properties of undefined (reading '0')
+    at Discover.tsx:347:57
+    at Array.map (<anonymous>)
+    at Discover (Discover.tsx:332:38)
+    at renderWithHooks (chunk-T2SWDQEL.js?v=0a787007:11548:26)
+    at mountIndeterminateComponent (chunk-T2SWDQEL.js?v=0a787007:14926:21)
+    at beginWork (chunk-T2SWDQEL.js?v=0a787007:15914:22)
+    at HTMLUnknownElement.callCallback2 (chunk-T2SWDQEL.js?v=0a787007:3674:22)
+    at Object.invokeGuardedCallbackDev (chunk-T2SWDQEL.js?v=0a787007:3699:24)
+    at invokeGuardedCallback (chunk-T2SWDQEL.js?v=0a787007:3733:39)
+    at beginWork$1 (chunk-T2SWDQEL.js?v=0a787007:19765:15)
+(anonymous) @ Discover.tsx:347
+Discover @ Discover.tsx:332
+renderWithHooks @ chunk-T2SWDQEL.js?v=0a787007:11548
+mountIndeterminateComponent @ chunk-T2SWDQEL.js?v=0a787007:14926
+beginWork @ chunk-T2SWDQEL.js?v=0a787007:15914
+callCallback2 @ chunk-T2SWDQEL.js?v=0a787007:3674
+invokeGuardedCallbackDev @ chunk-T2SWDQEL.js?v=0a787007:3699
+invokeGuardedCallback @ chunk-T2SWDQEL.js?v=0a787007:3733
+beginWork$1 @ chunk-T2SWDQEL.js?v=0a787007:19765
+performUnitOfWork @ chunk-T2SWDQEL.js?v=0a787007:19198
+workLoopSync @ chunk-T2SWDQEL.js?v=0a787007:19137
+renderRootSync @ chunk-T2SWDQEL.js?v=0a787007:19116
+performSyncWorkOnRoot @ chunk-T2SWDQEL.js?v=0a787007:18874
+flushSyncCallbacks @ chunk-T2SWDQEL.js?v=0a787007:9119
+(anonymous) @ chunk-T2SWDQEL.js?v=0a787007:18627
+Discover.tsx:347 Uncaught TypeError: Cannot read properties of undefined (reading '0')
+    at Discover.tsx:347:57
+    at Array.map (<anonymous>)
+    at Discover (Discover.tsx:332:38)
+    at renderWithHooks (chunk-T2SWDQEL.js?v=0a787007:11548:26)
+    at mountIndeterminateComponent (chunk-T2SWDQEL.js?v=0a787007:14926:21)
+    at beginWork (chunk-T2SWDQEL.js?v=0a787007:15914:22)
+    at HTMLUnknownElement.callCallback2 (chunk-T2SWDQEL.js?v=0a787007:3674:22)
+    at Object.invokeGuardedCallbackDev (chunk-T2SWDQEL.js?v=0a787007:3699:24)
+    at invokeGuardedCallback (chunk-T2SWDQEL.js?v=0a787007:3733:39)
+    at beginWork$1 (chunk-T2SWDQEL.js?v=0a787007:19765:15)
+(anonymous) @ Discover.tsx:347
+Discover @ Discover.tsx:332
+renderWithHooks @ chunk-T2SWDQEL.js?v=0a787007:11548
+mountIndeterminateComponent @ chunk-T2SWDQEL.js?v=0a787007:14926
+beginWork @ chunk-T2SWDQEL.js?v=0a787007:15914
+callCallback2 @ chunk-T2SWDQEL.js?v=0a787007:3674
+invokeGuardedCallbackDev @ chunk-T2SWDQEL.js?v=0a787007:3699
+invokeGuardedCallback @ chunk-T2SWDQEL.js?v=0a787007:3733
+beginWork$1 @ chunk-T2SWDQEL.js?v=0a787007:19765
+performUnitOfWork @ chunk-T2SWDQEL.js?v=0a787007:19198
+workLoopSync @ chunk-T2SWDQEL.js?v=0a787007:19137
+renderRootSync @ chunk-T2SWDQEL.js?v=0a787007:19116
+recoverFromConcurrentError @ chunk-T2SWDQEL.js?v=0a787007:18736
+performSyncWorkOnRoot @ chunk-T2SWDQEL.js?v=0a787007:18879
+flushSyncCallbacks @ chunk-T2SWDQEL.js?v=0a787007:9119
+(anonymous) @ chunk-T2SWDQEL.js?v=0a787007:18627
+chunk-T2SWDQEL.js?v=0a787007:14032 The above error occurred in the <Discover> component:
+
+    at Discover (https://f6f8eacb-6d35-4eaa-818b-604217eb27ee-00-3ak4dwso4d5c.spock.replit.dev/src/pages/Discover.tsx:77:22)
+    at RenderedRoute (https://f6f8eacb-6d35-4eaa-818b-604217eb27ee-00-3ak4dwso4d5c.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/react-router-dom.js?v=0a787007:4088:5)
+    at Outlet (https://f6f8eacb-6d35-4eaa-818b-604217eb27ee-00-3ak4dwso4d5c.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/react-router-dom.js?v=0a787007:4494:26)
+    at main
+    at div
+    at AppShell (https://f6f8eacb-6d35-4eaa-818b-604217eb27ee-00-3ak4dwso4d5c.spock.replit.dev/src/components/layout/AppShell.tsx:27:28)
+    at RenderedRoute (https://f6f8eacb-6d35-4eaa-818b-604217eb27ee-00-3ak4dwso4d5c.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/react-router-dom.js?v=0a787007:4088:5)
+    at Routes (https://f6f8eacb-6d35-4eaa-818b-604217eb27ee-00-3ak4dwso4d5c.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/react-router-dom.js?v=0a787007:4558:5)
+    at Router (https://f6f8eacb-6d35-4eaa-818b-604217eb27ee-00-3ak4dwso4d5c.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/react-router-dom.js?v=0a787007:4501:15)
+    at BrowserRouter (https://f6f8eacb-6d35-4eaa-818b-604217eb27ee-00-3ak4dwso4d5c.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/react-router-dom.js?v=0a787007:5247:5)
+    at AppContent (https://f6f8eacb-6d35-4eaa-818b-604217eb27ee-00-3ak4dwso4d5c.spock.replit.dev/src/App.tsx:180:5)
+    at Provider (https://f6f8eacb-6d35-4eaa-818b-604217eb27ee-00-3ak4dwso4d5c.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-OXZDJRWN.js?v=0a787007:38:15)
+    at TooltipProvider (https://f6f8eacb-6d35-4eaa-818b-604217eb27ee-00-3ak4dwso4d5c.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@radix-ui_react-tooltip.js?v=0a787007:65:5)
+    at AuthProvider (https://f6f8eacb-6d35-4eaa-818b-604217eb27ee-00-3ak4dwso4d5c.spock.replit.dev/src/contexts/AuthContext.tsx:25:32)
+    at QueryClientProvider (https://f6f8eacb-6d35-4eaa-818b-604217eb27ee-00-3ak4dwso4d5c.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@tanstack_react-query.js?v=0a787007:3168:3)
+    at App
+
+Consider adding an error boundary to your tree to customize error handling behavior.
+Visit https://reactjs.org/link/error-boundaries to learn more about error boundaries.
+logCapturedError @ chunk-T2SWDQEL.js?v=0a787007:14032
+update.callback @ chunk-T2SWDQEL.js?v=0a787007:14052
+callCallback @ chunk-T2SWDQEL.js?v=0a787007:11248
+commitUpdateQueue @ chunk-T2SWDQEL.js?v=0a787007:11265
+commitLayoutEffectOnFiber @ chunk-T2SWDQEL.js?v=0a787007:17093
+commitLayoutMountEffects_complete @ chunk-T2SWDQEL.js?v=0a787007:17980
+commitLayoutEffects_begin @ chunk-T2SWDQEL.js?v=0a787007:17969
+commitLayoutEffects @ chunk-T2SWDQEL.js?v=0a787007:17920
+commitRootImpl @ chunk-T2SWDQEL.js?v=0a787007:19353
+commitRoot @ chunk-T2SWDQEL.js?v=0a787007:19277
+performSyncWorkOnRoot @ chunk-T2SWDQEL.js?v=0a787007:18895
+flushSyncCallbacks @ chunk-T2SWDQEL.js?v=0a787007:9119
+(anonymous) @ chunk-T2SWDQEL.js?v=0a787007:18627
+chunk-T2SWDQEL.js?v=0a787007:9129 Uncaught TypeError: Cannot read properties of undefined (reading '0')
+    at Discover.tsx:347:57
+    at Array.map (<anonymous>)
+    at Discover (Discover.tsx:332:38)
+    at renderWithHooks (chunk-T2SWDQEL.js?v=0a787007:11548:26)
+    at mountIndeterminateComponent (chunk-T2SWDQEL.js?v=0a787007:14926:21)
+    at beginWork (chunk-T2SWDQEL.js?v=0a787007:15914:22)
+    at beginWork$1 (chunk-T2SWDQEL.js?v=0a787007:19753:22)
+    at performUnitOfWork (chunk-T2SWDQEL.js?v=0a787007:19198:20)
+    at workLoopSync (chunk-T2SWDQEL.js?v=0a787007:19137:13)
+    at renderRootSync (chunk-T2SWDQEL.js?v=0a787007:19116:15)
+(anonymous) @ Discover.tsx:347
+Discover @ Discover.tsx:332
+renderWithHooks @ chunk-T2SWDQEL.js?v=0a787007:11548
+mountIndeterminateComponent @ chunk-T2SWDQEL.js?v=0a787007:14926
+beginWork @ chunk-T2SWDQEL.js?v=0a787007:15914
+beginWork$1 @ chunk-T2SWDQEL.js?v=0a787007:19753
+performUnitOfWork @ chunk-T2SWDQEL.js?v=0a787007:19198
+workLoopSync @ chunk-T2SWDQEL.js?v=0a787007:19137
+renderRootSync @ chunk-T2SWDQEL.js?v=0a787007:19116
+recoverFromConcurrentError @ chunk-T2SWDQEL.js?v=0a787007:18736
+performSyncWorkOnRoot @ chunk-T2SWDQEL.js?v=0a787007:18879
+flushSyncCallbacks @ chunk-T2SWDQEL.js?v=0a787007:9119
+(anonymous) @ chunk-T2SWDQEL.js?v=0a787007:18627
