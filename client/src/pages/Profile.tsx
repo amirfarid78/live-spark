@@ -2,6 +2,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { Settings, LogOut, UserPlus, Grid3X3, Heart, Bookmark, Building2, Store } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/contexts/AuthContext";
 import { useProfile } from "@/hooks/useProfile";
 import { toast } from "@/hooks/use-toast";
@@ -13,22 +14,22 @@ import { LevelProgress } from "@/components/profile/LevelProgress";
 import { QuickActions } from "@/components/profile/QuickActions";
 import { VideoGrid } from "@/components/profile/VideoGrid";
 
-const userVideos = [
-  { id: 1, thumbnail: "https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?w=300&h=400&fit=crop", views: "12K", likes: "1.2K", isPinned: true },
-  { id: 2, thumbnail: "https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=300&h=400&fit=crop", views: "8.5K", likes: "890" },
-  { id: 3, thumbnail: "https://images.unsplash.com/photo-1504609773096-104ff2c73ba4?w=300&h=400&fit=crop", views: "23K", likes: "2.3K" },
-  { id: 4, thumbnail: "https://images.unsplash.com/photo-1517841905240-472988babdf9?w=300&h=400&fit=crop", views: "5.2K", likes: "456" },
-  { id: 5, thumbnail: "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=300&h=400&fit=crop", views: "15K", likes: "1.5K" },
-  { id: 6, thumbnail: "https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=300&h=400&fit=crop", views: "9.8K", likes: "980" },
-  { id: 7, thumbnail: "https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?w=300&h=400&fit=crop", views: "18K", likes: "1.8K" },
-  { id: 8, thumbnail: "https://images.unsplash.com/photo-1542751371-adc38448a05e?w=300&h=400&fit=crop", views: "32K", likes: "3.2K" },
-];
+function formatCount(n: number): string {
+  if (n >= 1000000) return (n / 1000000).toFixed(1) + "M";
+  if (n >= 1000) return (n / 1000).toFixed(1) + "K";
+  return String(n);
+}
 
 export default function Profile() {
   const isMobile = useIsMobile();
   const { user, signOut } = useAuth();
   const { profile, loading } = useProfile();
   const navigate = useNavigate();
+
+  const { data: myVideos = [] } = useQuery<any[]>({
+    queryKey: [`/api/users/${user?.id}/videos`],
+    enabled: !!user?.id,
+  });
 
   const handleSignOut = async () => {
     await signOut();
@@ -101,16 +102,16 @@ export default function Profile() {
         />
 
         <ProfileStats
-          following={profile?.following_count || 0}
-          followers={profile?.followers_count || 0}
-          likes={profile?.likes_count || 0}
+          following={profile?.followingCount || 0}
+          followers={profile?.followersCount || 0}
+          likes={profile?.likesCount || 0}
           className="mt-5 mx-4 rounded-xl bg-card/50"
         />
 
         <div className="px-4 mt-5">
           <WalletCards
-            coinsBalance={profile?.coins_balance || 0}
-            diamondsBalance={profile?.diamonds_balance || 0}
+            coinsBalance={profile?.coinsBalance || 0}
+            diamondsBalance={profile?.diamondsBalance || 0}
             onTopUp={() => toast({ title: "Top Up", description: "Opening coin store..." })}
             onWithdraw={() => toast({ title: "Withdraw", description: "Withdrawal coming soon!" })}
           />
@@ -149,7 +150,7 @@ export default function Profile() {
         </div>
 
         <div className="px-4 mt-5">
-          <QuickActions followersCount={profile?.followers_count || 0} savedCount={0} />
+          <QuickActions followersCount={profile?.followersCount || 0} savedCount={0} />
         </div>
 
         <Tabs defaultValue="videos" className="mt-6">
@@ -166,7 +167,15 @@ export default function Profile() {
           </TabsList>
 
           <TabsContent value="videos" className="mt-0">
-            <VideoGrid videos={userVideos} columns={isMobile ? 3 : 4} />
+            <VideoGrid 
+              videos={myVideos.map((v: any) => ({
+                id: v.id,
+                thumbnail: v.thumbnailUrl || "https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?w=300&h=400&fit=crop",
+                views: formatCount(v.viewsCount || 0),
+                likes: formatCount(v.likesCount || 0),
+              }))} 
+              columns={isMobile ? 3 : 4} 
+            />
           </TabsContent>
           <TabsContent value="liked" className="mt-0 flex items-center justify-center py-16">
             <div className="text-center text-muted-foreground animate-fade-in">

@@ -32,15 +32,15 @@ export function ProfileHeader({ profile, userEmail, onEditProfile, onShare }: Pr
   
   const currentLevel = profile?.level || "bronze";
   const levelInfo = levelConfig[currentLevel];
-  const joinDate = profile?.created_at ? format(new Date(profile.created_at), "MMMM yyyy") : null;
+  const joinDate = null;
 
   return (
     <div className="relative">
       {/* Cover Photo */}
       <div className="relative h-32 sm:h-44 lg:h-56 overflow-hidden bg-gradient-primary">
-        {profile?.cover_url ? (
+        {profile?.coverUrl ? (
           <img
-            src={profile.cover_url}
+            src={profile.coverUrl}
             alt="Cover"
             className={cn(
               "w-full h-full object-cover transition-opacity duration-500",
@@ -72,11 +72,11 @@ export function ProfileHeader({ profile, userEmail, onEditProfile, onShare }: Pr
           <div className="relative flex-shrink-0">
             <Avatar className="h-24 w-24 sm:h-28 sm:w-28 lg:h-36 lg:w-36 ring-4 ring-background shadow-xl">
               <AvatarImage 
-                src={profile?.avatar_url || `https://api.dicebear.com/7.x/initials/svg?seed=${profile?.display_name || 'User'}`} 
-                alt={profile?.display_name || "User"} 
+                src={profile?.avatarUrl || `https://api.dicebear.com/7.x/initials/svg?seed=${profile?.displayName || 'User'}`} 
+                alt={profile?.displayName || "User"} 
               />
               <AvatarFallback className="text-3xl sm:text-4xl lg:text-5xl bg-secondary">
-                {(profile?.display_name || userEmail || "U")[0].toUpperCase()}
+                {(profile?.displayName || userEmail || "U")[0].toUpperCase()}
               </AvatarFallback>
             </Avatar>
             
@@ -98,9 +98,9 @@ export function ProfileHeader({ profile, userEmail, onEditProfile, onShare }: Pr
           <div className="flex-1 min-w-0 pb-1 sm:pb-2">
             <div className="flex items-center gap-2 flex-wrap">
               <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold truncate">
-                {profile?.display_name || "User"}
+                {profile?.displayName || "User"}
               </h1>
-              {profile?.is_verified && (
+              {profile?.isVerified && (
                 <div className="flex h-5 w-5 sm:h-6 sm:w-6 items-center justify-center rounded-full bg-primary text-white flex-shrink-0">
                   <svg className="h-3 w-3 sm:h-4 sm:w-4" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
@@ -125,7 +125,7 @@ export function ProfileHeader({ profile, userEmail, onEditProfile, onShare }: Pr
               Joined {joinDate}
             </span>
           )}
-          {profile?.is_online && (
+          {profile?.isOnline && (
             <span className="flex items-center gap-1 text-green-500">
               <span className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
               Online now
@@ -134,7 +134,7 @@ export function ProfileHeader({ profile, userEmail, onEditProfile, onShare }: Pr
         </div>
 
         {/* Badges */}
-        {profile?.is_verified && (
+        {profile?.isVerified && (
           <div className="mt-4 flex flex-wrap gap-2">
             {badges.map((badge, index) => (
               <div 
