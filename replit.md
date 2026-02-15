@@ -82,12 +82,24 @@ Key tables:
 - **Note**: This backend runs separately and is NOT the default dev server
 
 ### Authentication Flow
-The Express server uses session-based auth:
+The Express server supports both session-based auth and Firebase auth:
 1. `POST /api/auth/register` - Creates user with hashed password, assigns "user" role
 2. `POST /api/auth/login` - Validates credentials, sets session
-3. `GET /api/auth/me` - Returns current session user
-4. Frontend `AuthContext` checks `/api/auth/me` on load, provides `signIn`/`signUp`/`signOut` methods
-5. `ProtectedRoute` component redirects unauthenticated users to `/login`
+3. `POST /api/auth/firebase` - Verifies Firebase ID token, creates/updates user, sets session. Handles phone OTP and email/password auth via Firebase. Race-condition safe with duplicate key handling.
+4. `GET /api/auth/me` - Returns current session user
+5. Frontend `AuthContext` checks `/api/auth/me` on load, provides `signIn`/`signUp`/`signOut` methods and Firebase phone OTP flow
+6. `ProtectedRoute` component redirects unauthenticated users to `/login`
+7. Firebase Admin SDK initialized in `server/firebase-admin.ts` using `VITE_FIREBASE_*` env vars
+
+### Video Upload Flow
+- `POST /api/uploads/request-url` - Returns signed upload URL from Replit Object Storage
+- Frontend uploads directly to signed URL, then posts video metadata to `POST /api/videos`
+- Videos stored in Replit Object Storage, served via `/objects/*` proxy
+
+### PK Battle Flow
+- `POST /api/pk-battles` - Creates pending battle (opponentId=null) or direct challenge (opponentId set)
+- `GET /api/pk-battles` - Lists active/pending battles with host/opponent user info
+- `POST /api/pk-battles/:id/join` - Joins a pending battle (sets opponentId, status→live). Prevents host self-join and validates opponentId is null.
 
 ### Storage Pattern
 - `IStorage` interface defines all data access methods
