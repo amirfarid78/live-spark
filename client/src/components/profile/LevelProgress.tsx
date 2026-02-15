@@ -1,4 +1,4 @@
-import { Sparkles, ChevronRight } from "lucide-react";
+import { Sparkles, ChevronRight, Award, Crown, Gem, Check } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
@@ -11,7 +11,7 @@ interface LevelProgressProps {
 
 const levelConfig = {
   bronze: { 
-    emoji: "🥉", 
+    icon: Award, 
     label: "Bronze",
     color: "from-amber-600 to-amber-800", 
     bgColor: "bg-amber-500/10",
@@ -21,7 +21,7 @@ const levelConfig = {
     benefits: ["Basic profile badge", "Access to live streams"]
   },
   silver: { 
-    emoji: "🥈", 
+    icon: Award, 
     label: "Silver",
     color: "from-slate-300 to-slate-500", 
     bgColor: "bg-slate-400/10",
@@ -31,7 +31,7 @@ const levelConfig = {
     benefits: ["Exclusive emotes", "Priority support"]
   },
   gold: { 
-    emoji: "🥇", 
+    icon: Crown, 
     label: "Gold",
     color: "from-yellow-400 to-amber-500", 
     bgColor: "bg-yellow-500/10",
@@ -41,7 +41,7 @@ const levelConfig = {
     benefits: ["Custom profile frame", "VIP chat badge"]
   },
   platinum: { 
-    emoji: "🏆", 
+    icon: Crown, 
     label: "Platinum",
     color: "from-cyan-400 to-blue-500", 
     bgColor: "bg-cyan-500/10",
@@ -51,7 +51,7 @@ const levelConfig = {
     benefits: ["Exclusive features", "Creator perks"]
   },
   diamond: { 
-    emoji: "💎", 
+    icon: Gem, 
     label: "Diamond",
     color: "from-purple-400 to-pink-500", 
     bgColor: "bg-purple-500/10",
@@ -82,10 +82,10 @@ export function LevelProgress({ level, currentXP = 0, className }: LevelProgress
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
             <div className={cn(
-              "flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-r text-xl",
+              "flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-r text-white",
               currentConfig.color
             )}>
-              {currentConfig.emoji}
+              <currentConfig.icon className="h-5 w-5" />
             </div>
             <div>
               <p className="font-bold text-lg">{currentConfig.label} Level</p>
@@ -116,10 +116,12 @@ export function LevelProgress({ level, currentXP = 0, className }: LevelProgress
             </div>
             <div className="flex items-center justify-between text-xs text-muted-foreground">
               <span className="flex items-center gap-1">
-                {currentConfig.emoji} {currentConfig.label}
+                <currentConfig.icon className="h-4 w-4" />
+                {currentConfig.label}
               </span>
               <span className="flex items-center gap-1">
-                {nextLevel.emoji} {nextLevel.label}
+                <nextLevel.icon className="h-4 w-4" />
+                {nextLevel.label}
               </span>
             </div>
           </div>
@@ -131,11 +133,12 @@ export function LevelProgress({ level, currentXP = 0, className }: LevelProgress
             <span 
               key={index}
               className={cn(
-                "text-xs px-2.5 py-1 rounded-full font-medium",
+                "text-xs px-2.5 py-1 rounded-full font-medium flex items-center gap-1",
                 currentConfig.bgColor
               )}
             >
-              ✓ {benefit}
+              <Check className="h-3 w-3" />
+              {benefit}
             </span>
           ))}
         </div>

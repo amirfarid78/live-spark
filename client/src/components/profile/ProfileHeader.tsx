@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Camera, Edit2, Share2, MapPin, Link as LinkIcon, Calendar } from "lucide-react";
+import { Camera, Edit2, Share2, MapPin, Link as LinkIcon, Calendar, Star, Gift, ShieldCheck, Award, Crown, Gem } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
@@ -14,17 +14,17 @@ interface ProfileHeaderProps {
 }
 
 const badges = [
-  { icon: "⭐", label: "Top Creator", color: "from-amber-400 to-orange-500" },
-  { icon: "🎁", label: "Generous", color: "from-pink-400 to-rose-500" },
-  { icon: "✨", label: "Verified", color: "from-purple-400 to-indigo-500" },
+  { icon: Star, label: "Top Creator", color: "from-amber-400 to-orange-500" },
+  { icon: Gift, label: "Generous", color: "from-pink-400 to-rose-500" },
+  { icon: ShieldCheck, label: "Verified", color: "from-purple-400 to-indigo-500" },
 ];
 
 const levelConfig = {
-  bronze: { emoji: "🥉", color: "from-amber-600 to-amber-800", next: "silver", threshold: 100 },
-  silver: { emoji: "🥈", color: "from-slate-300 to-slate-500", next: "gold", threshold: 500 },
-  gold: { emoji: "🥇", color: "from-yellow-400 to-amber-500", next: "platinum", threshold: 2000 },
-  platinum: { emoji: "🏆", color: "from-cyan-400 to-blue-500", next: "diamond", threshold: 10000 },
-  diamond: { emoji: "💎", color: "from-purple-400 to-pink-500", next: null, threshold: null },
+  bronze: { icon: Award, color: "from-amber-600 to-amber-800", next: "silver", threshold: 100 },
+  silver: { icon: Award, color: "from-slate-300 to-slate-500", next: "gold", threshold: 500 },
+  gold: { icon: Crown, color: "from-yellow-400 to-amber-500", next: "platinum", threshold: 2000 },
+  platinum: { icon: Crown, color: "from-cyan-400 to-blue-500", next: "diamond", threshold: 10000 },
+  diamond: { icon: Gem, color: "from-purple-400 to-pink-500", next: null, threshold: null },
 };
 
 export function ProfileHeader({ profile, userEmail, onEditProfile, onShare }: ProfileHeaderProps) {
@@ -90,7 +90,7 @@ export function ProfileHeader({ profile, userEmail, onEditProfile, onShare }: Pr
               "absolute -top-1 -right-1 flex h-8 w-8 sm:h-9 sm:w-9 items-center justify-center rounded-full text-sm sm:text-base font-bold shadow-lg ring-2 ring-background bg-gradient-to-r",
               levelInfo.color
             )}>
-              {levelInfo.emoji}
+              <levelInfo.icon className="h-4 w-4 text-white" />
             </div>
           </div>
 
@@ -136,19 +136,22 @@ export function ProfileHeader({ profile, userEmail, onEditProfile, onShare }: Pr
         {/* Badges */}
         {profile?.isVerified && (
           <div className="mt-4 flex flex-wrap gap-2">
-            {badges.map((badge, index) => (
-              <div 
-                key={badge.label}
-                className={cn(
-                  "flex items-center gap-1.5 rounded-full bg-gradient-to-r px-3 py-1.5 text-white text-xs font-medium animate-fade-in-up shadow-sm",
-                  badge.color,
-                  `stagger-${index + 1}`
-                )}
-              >
-                <span>{badge.icon}</span>
-                {badge.label}
-              </div>
-            ))}
+            {badges.map((badge, index) => {
+              const Icon = badge.icon;
+              return (
+                <div 
+                  key={badge.label}
+                  className={cn(
+                    "flex items-center gap-1.5 rounded-full bg-gradient-to-r px-3 py-1.5 text-white text-xs font-medium animate-fade-in-up shadow-sm",
+                    badge.color,
+                    `stagger-${index + 1}`
+                  )}
+                >
+                  <Icon className="h-3.5 w-3.5" />
+                  {badge.label}
+                </div>
+              );
+            })}
           </div>
         )}
 

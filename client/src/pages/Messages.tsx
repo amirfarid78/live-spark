@@ -8,6 +8,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useToast } from "@/hooks/use-toast";
 import api from "@/lib/api";
 
 const stories = [
@@ -75,9 +76,79 @@ function mapConversation(convo: any): MappedConversation {
   };
 }
 
+function NewMessageDialog({ isOpen, onClose, onStartChat }: { isOpen: boolean; onClose: () => void; onStartChat: (userId: number) => void }) {
+  const [searchQuery, setSearchQuery] = useState("");
+  
+  const { data: searchResults = [], isLoading } = useQuery<any[]>({
+    queryKey: ["/api/users/search", searchQuery],
+    queryFn: async () => {
+      if (!searchQuery.trim()) return [];
+      const res = await api.get(`/users/search?q=${encodeURIComponent(searchQuery)}`);
+      return res.data;
+    },
+    enabled: isOpen && searchQuery.trim().length > 0,
+  });
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 bg-background animate-fade-in flex flex-col">
+      <div className="flex items-center gap-3 px-4 py-3 border-b">
+        <button onClick={onClose} data-testid="button-close-new-message">
+          <ArrowLeft className="h-5 w-5" />
+        </button>
+        <h2 className="font-bold text-lg">New Message</h2>
+      </div>
+      <div className="px-4 py-3">
+        <div className="relative">
+          <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            placeholder="Search users..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-11 h-11 bg-secondary border-0 rounded-xl"
+            autoFocus
+            data-testid="input-search-users"
+          />
+        </div>
+      </div>
+      <div className="flex-1 overflow-y-auto">
+        {isLoading ? (
+          <div className="flex items-center justify-center py-8">
+            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+          </div>
+        ) : searchResults.length === 0 && searchQuery.trim() ? (
+          <div className="flex items-center justify-center py-8 text-muted-foreground">
+            No users found
+          </div>
+        ) : (
+          searchResults.map((user: any) => (
+            <button
+              key={user.id}
+              onClick={() => onStartChat(user.id)}
+              className="flex items-center gap-3 px-4 py-3 w-full hover:bg-secondary transition-colors"
+              data-testid={`user-search-result-${user.id}`}
+            >
+              <Avatar className="h-12 w-12">
+                <AvatarImage src={user.avatarUrl} />
+                <AvatarFallback>{(user.displayName || user.username || "U")[0]}</AvatarFallback>
+              </Avatar>
+              <div className="text-left">
+                <p className="font-semibold">{user.displayName || user.username}</p>
+                <p className="text-sm text-muted-foreground">@{user.username}</p>
+              </div>
+            </button>
+          ))
+        )}
+      </div>
+    </div>
+  );
+}
+
 function ChatView({ chat, onBack }: { chat: MappedConversation; onBack: () => void }) {
   const [message, setMessage] = useState("");
   const queryClient = useQueryClient();
+  const { toast } = useToast();
 
   const { data: messages = [], isLoading: messagesLoading } = useQuery<ApiMessage[]>({
     queryKey: ["/api/conversations", chat.id, "messages"],
@@ -85,6 +156,7 @@ function ChatView({ chat, onBack }: { chat: MappedConversation; onBack: () => vo
       const res = await api.get(`/conversations/${chat.id}/messages`);
       return res.data;
     },
+    refetchInterval: 5000,
   });
 
   const sendMutation = useMutation({
@@ -143,10 +215,14 @@ function ChatView({ chat, onBack }: { chat: MappedConversation; onBack: () => vo
           </p>
         </div>
         <div className="flex gap-1">
-          <Button variant="ghost" size="icon" className="h-10 w-10 rounded-xl" data-testid="button-chat-call">
+          <Button variant="ghost" size="icon" className="h-10 w-10 rounded-xl"
+            onClick={() => toast({ title: "Audio Call", description: "Audio calling requires real-time infrastructure and will be available soon" })}
+            data-testid="button-chat-call">
             <Phone className="h-5 w-5" />
           </Button>
-          <Button variant="ghost" size="icon" className="h-10 w-10 rounded-xl" data-testid="button-chat-video">
+          <Button variant="ghost" size="icon" className="h-10 w-10 rounded-xl"
+            onClick={() => toast({ title: "Video Call", description: "Video calling requires real-time infrastructure and will be available soon" })}
+            data-testid="button-chat-video">
             <Video className="h-5 w-5" />
           </Button>
           <Button variant="ghost" size="icon" className="h-10 w-10 rounded-xl" data-testid="button-chat-more">
@@ -228,7 +304,7 @@ function ChatView({ chat, onBack }: { chat: MappedConversation; onBack: () => vo
   );
 }
 
-function ConversationList({ conversations, isLoading, onSelectChat, selectedChatId }: { conversations: MappedConversation[]; isLoading: boolean; onSelectChat: (chat: MappedConversation) => void; selectedChatId?: number }) {
+function ConversationList({ conversations, isLoading, onSelectChat, selectedChatId, onNewMessage }: { conversations: MappedConversation[]; isLoading: boolean; onSelectChat: (chat: MappedConversation) => void; selectedChatId?: number; onNewMessage?: () => void }) {
   const isMobile = useIsMobile();
 
   return (
@@ -240,7 +316,7 @@ function ConversationList({ conversations, isLoading, onSelectChat, selectedChat
             <Button variant="ghost" size="icon" className="h-10 w-10 rounded-xl press-effect" data-testid="button-video-call">
               <Video className="h-5 w-5" />
             </Button>
-            <Button variant="ghost" size="icon" className="h-10 w-10 rounded-xl press-effect" data-testid="button-new-message">
+            <Button variant="ghost" size="icon" className="h-10 w-10 rounded-xl press-effect" onClick={onNewMessage} data-testid="button-new-message">
               <Edit className="h-5 w-5" />
             </Button>
           </div>
@@ -406,12 +482,37 @@ function ConversationList({ conversations, isLoading, onSelectChat, selectedChat
 export default function Messages() {
   const isMobile = useIsMobile();
   const [selectedChat, setSelectedChat] = useState<MappedConversation | null>(null);
+  const [newMessageOpen, setNewMessageOpen] = useState(false);
+  const queryClient = useQueryClient();
 
   const { data: conversations = [], isLoading } = useQuery<MappedConversation[]>({
     queryKey: ["/api/conversations"],
     queryFn: async () => {
       const res = await api.get("/conversations");
       return (res.data || []).map(mapConversation);
+    },
+  });
+
+  const startChatMutation = useMutation({
+    mutationFn: async (targetId: number) => {
+      const res = await api.post("/conversations/direct", { targetId });
+      return res.data;
+    },
+    onSuccess: (data: any) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/conversations"] });
+      setNewMessageOpen(false);
+      setSelectedChat({
+        id: data.id,
+        name: "New Chat",
+        avatar: "",
+        lastMessage: "",
+        time: "",
+        unread: 0,
+        online: false,
+        isVerified: false,
+        isGroup: false,
+        typing: false,
+      });
     },
   });
 
@@ -424,6 +525,7 @@ export default function Messages() {
             isLoading={isLoading}
             onSelectChat={setSelectedChat} 
             selectedChatId={selectedChat?.id}
+            onNewMessage={() => setNewMessageOpen(true)}
           />
         </div>
 
@@ -444,6 +546,11 @@ export default function Messages() {
             </div>
           )}
         </div>
+        <NewMessageDialog 
+          isOpen={newMessageOpen}
+          onClose={() => setNewMessageOpen(false)}
+          onStartChat={(userId) => startChatMutation.mutate(userId)}
+        />
       </div>
     );
   }
@@ -459,6 +566,12 @@ export default function Messages() {
         isLoading={isLoading}
         onSelectChat={setSelectedChat} 
         selectedChatId={selectedChat?.id}
+        onNewMessage={() => setNewMessageOpen(true)}
+      />
+      <NewMessageDialog 
+        isOpen={newMessageOpen}
+        onClose={() => setNewMessageOpen(false)}
+        onStartChat={(userId) => startChatMutation.mutate(userId)}
       />
     </div>
   );

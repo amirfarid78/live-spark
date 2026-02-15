@@ -8,10 +8,12 @@ import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { CommentsSheet } from "@/components/video/CommentsSheet";
 import { ShareSheet } from "@/components/video/ShareSheet";
+import { GiftSheet } from "@/components/video/GiftSheet";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useVideoFeed, useVideoLike, useVideoSave } from "@/hooks/useApi";
 import { toast } from "@/hooks/use-toast";
 import logo from "@/assets/logo.png";
+import api from "@/lib/api";
 
 interface Video {
   id: string;
@@ -61,9 +63,10 @@ interface VideoCardProps {
   onLike: (videoId: string) => void;
   onSave: (videoId: string) => void;
   onDownload: (videoUrl: string, videoId: string) => void;
+  onOpenGift?: (videoId: string) => void;
 }
 
-function VideoCard({ video, isActive, onAuthRequired, isAuthenticated, onOpenComments, onOpenShare, onLike, onSave, onDownload }: VideoCardProps) {
+function VideoCard({ video, isActive, onAuthRequired, isAuthenticated, onOpenComments, onOpenShare, onLike, onSave, onDownload, onOpenGift }: VideoCardProps) {
   const [isLiked, setIsLiked] = useState(video.isLiked);
   const [isSaved, setIsSaved] = useState(video.isSaved);
   const [likesCount, setLikesCount] = useState(video.likesCount);
@@ -260,6 +263,13 @@ function VideoCard({ video, isActive, onAuthRequired, isAuthenticated, onOpenCom
           </div>
         </button>
 
+        {/* Gift */}
+        <button onClick={() => handleAuthAction(() => onOpenGift?.(video.id))} className="flex flex-col items-center gap-0.5 press-effect">
+          <div className="flex h-11 w-11 items-center justify-center">
+            <Gift className="h-7 w-7 text-white drop-shadow-lg" />
+          </div>
+        </button>
+
         {/* Share */}
         <button onClick={() => onOpenShare(video.id)} className="flex flex-col items-center gap-0.5 press-effect">
           <div className="flex h-11 w-11 items-center justify-center">
@@ -394,7 +404,8 @@ function DesktopVideoPlayer({
   isAuthenticated,
   onLike,
   onSave,
-  onDownload
+  onDownload,
+  onOpenGift
 }: {
   video: Video;
   onPrev: () => void;
@@ -408,6 +419,7 @@ function DesktopVideoPlayer({
   onLike: (videoId: string) => void;
   onSave: (videoId: string) => void;
   onDownload: (videoUrl: string, videoId: string) => void;
+  onOpenGift: (videoId: string) => void;
 }) {
   const [isLiked, setIsLiked] = useState(video.isLiked);
   const [isSaved, setIsSaved] = useState(video.isSaved);
@@ -585,7 +597,7 @@ function DesktopVideoPlayer({
       <div className="flex flex-col items-center gap-4">
         {/* Gift */}
         <button 
-          onClick={() => handleAuthAction(() => {})}
+          onClick={() => handleAuthAction(() => onOpenGift(video.id))}
           className="flex flex-col items-center gap-1 group"
         >
           <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-r from-pink-500 to-orange-400 shadow-lg transition-transform group-hover:scale-110">
@@ -698,6 +710,9 @@ export default function Feed() {
   const [showAuthPrompt, setShowAuthPrompt] = useState(false);
   const [commentsOpen, setCommentsOpen] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
+  const [giftOpen, setGiftOpen] = useState(false);
+  const [giftVideoId, setGiftVideoId] = useState<string>("");
+  const [giftRecipientId, setGiftRecipientId] = useState<number | undefined>();
   const [selectedVideoId, setSelectedVideoId] = useState<string>("");
   const [selectedCommentCount, setSelectedCommentCount] = useState("");
   const containerRef = useRef<HTMLDivElement>(null);
@@ -709,6 +724,7 @@ export default function Feed() {
   const { data: feedData, isLoading: feedLoading, refetch: refetchFeed } = useVideoFeed(1);
   const likeMutation = useVideoLike();
   const saveMutation = useVideoSave();
+  const viewedVideosRef = useRef<Set<string>>(new Set());
 
   // Map API data to Video format
   const videos: Video[] = (feedData?.items || feedData?.data || (Array.isArray(feedData) ? feedData : []))?.map((v: any) => ({
@@ -767,6 +783,20 @@ export default function Feed() {
     });
   }, [saveMutation]);
 
+  // View tracking with 2-second debounce
+  useEffect(() => {
+    if (videos.length === 0) return;
+    const currentVideo = videos[activeIndex];
+    if (!currentVideo || viewedVideosRef.current.has(currentVideo.id)) return;
+    
+    const timer = setTimeout(() => {
+      viewedVideosRef.current.add(currentVideo.id);
+      api.post(`/videos/${currentVideo.id}/view`).catch(() => {});
+    }, 2000);
+    
+    return () => clearTimeout(timer);
+  }, [activeIndex, videos]);
+
   // Handle download
   const handleDownload = useCallback(async (videoUrl: string, videoId: string) => {
     if (!videoUrl) {
@@ -814,7 +844,19 @@ export default function Feed() {
   const handleOpenShare = (videoId: string) => {
     setSelectedVideoId(videoId);
     setShareOpen(true);
+    api.post(`/videos/${videoId}/share`).catch(() => {});
   };
+
+  const handleGift = useCallback((videoId: string) => {
+    if (!user) {
+      setShowAuthPrompt(true);
+      return;
+    }
+    setGiftVideoId(videoId);
+    const video = videos.find(v => v.id === videoId);
+    setGiftRecipientId(video ? parseInt(video.id) : undefined);
+    setGiftOpen(true);
+  }, [user, videos]);
 
   // IntersectionObserver to detect which video is in view
   useEffect(() => {
@@ -931,6 +973,14 @@ export default function Feed() {
           videoId={Number(selectedVideoId) || 0}
         />
 
+        {/* Gift Sheet */}
+        <GiftSheet
+          isOpen={giftOpen}
+          onClose={() => setGiftOpen(false)}
+          videoId={parseInt(giftVideoId) || 0}
+          recipientId={giftRecipientId}
+        />
+
         {/* Auth Prompt Modal */}
         {showAuthPrompt && <AuthPrompt onClose={() => setShowAuthPrompt(false)} />}
 
@@ -949,6 +999,7 @@ export default function Feed() {
             onLike={handleLike}
             onSave={handleSave}
             onDownload={handleDownload}
+            onOpenGift={handleGift}
           />
         </div>
 
@@ -984,6 +1035,14 @@ export default function Feed() {
         isOpen={shareOpen}
         onClose={() => setShareOpen(false)}
         videoId={Number(selectedVideoId) || 0}
+      />
+
+      {/* Gift Sheet */}
+      <GiftSheet
+        isOpen={giftOpen}
+        onClose={() => setGiftOpen(false)}
+        videoId={parseInt(giftVideoId) || 0}
+        recipientId={giftRecipientId}
       />
 
       {/* Auth Prompt Modal */}
@@ -1043,6 +1102,7 @@ export default function Feed() {
               onLike={handleLike}
               onSave={handleSave}
               onDownload={handleDownload}
+              onOpenGift={handleGift}
             />
           </div>
         ))}

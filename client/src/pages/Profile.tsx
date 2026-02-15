@@ -1,5 +1,6 @@
 import { Link, useNavigate } from "react-router-dom";
-import { Settings, LogOut, UserPlus, Grid3X3, Heart, Bookmark, Building2, Store } from "lucide-react";
+import { Settings, LogOut, UserPlus, Grid3X3, Heart, Bookmark, Building2, Store, Loader2 } from "lucide-react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { useQuery } from "@tanstack/react-query";
@@ -9,10 +10,13 @@ import { toast } from "@/hooks/use-toast";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { ProfileHeader } from "@/components/profile/ProfileHeader";
 import { ProfileStats } from "@/components/profile/ProfileStats";
+import { FollowersSheet } from "@/components/profile/FollowersSheet";
 import { WalletCards } from "@/components/profile/WalletCards";
 import { LevelProgress } from "@/components/profile/LevelProgress";
 import { QuickActions } from "@/components/profile/QuickActions";
 import { VideoGrid } from "@/components/profile/VideoGrid";
+import { EditProfileDialog } from "@/components/profile/EditProfileDialog";
+import api from "@/lib/api";
 
 function formatCount(n: number): string {
   if (n >= 1000000) return (n / 1000000).toFixed(1) + "M";
@@ -25,9 +29,30 @@ export default function Profile() {
   const { user, signOut } = useAuth();
   const { profile, loading } = useProfile();
   const navigate = useNavigate();
+  const [editProfileOpen, setEditProfileOpen] = useState(false);
+  const [followersSheetOpen, setFollowersSheetOpen] = useState(false);
+  const [followersTab, setFollowersTab] = useState<"followers" | "following">("followers");
 
   const { data: myVideos = [] } = useQuery<any[]>({
     queryKey: [`/api/users/${user?.id}/videos`],
+    enabled: !!user?.id,
+  });
+
+  const { data: likedVideos = [], isLoading: likedLoading } = useQuery<any[]>({
+    queryKey: ['/api/users', user?.id, 'liked-videos'],
+    queryFn: async () => {
+      const res = await api.get(`/users/${user?.id}/liked-videos`);
+      return res.data;
+    },
+    enabled: !!user?.id,
+  });
+
+  const { data: savedVideos = [], isLoading: savedLoading } = useQuery<any[]>({
+    queryKey: ['/api/users', user?.id, 'saved-videos'],
+    queryFn: async () => {
+      const res = await api.get(`/users/${user?.id}/saved-videos`);
+      return res.data;
+    },
     enabled: !!user?.id,
   });
 
@@ -97,7 +122,7 @@ export default function Profile() {
         <ProfileHeader
           profile={profile}
           userEmail={user?.email}
-          onEditProfile={() => toast({ title: "Edit Profile", description: "Profile editing coming soon!" })}
+          onEditProfile={() => setEditProfileOpen(true)}
           onShare={() => toast({ title: "Share", description: "Share link copied!" })}
         />
 
@@ -105,6 +130,8 @@ export default function Profile() {
           following={profile?.followingCount || 0}
           followers={profile?.followersCount || 0}
           likes={profile?.likesCount || 0}
+          onFollowersClick={() => { setFollowersTab("followers"); setFollowersSheetOpen(true); }}
+          onFollowingClick={() => { setFollowersTab("following"); setFollowersSheetOpen(true); }}
           className="mt-5 mx-4 rounded-xl bg-card/50"
         />
 
@@ -177,22 +204,55 @@ export default function Profile() {
               columns={isMobile ? 3 : 4} 
             />
           </TabsContent>
-          <TabsContent value="liked" className="mt-0 flex items-center justify-center py-16">
-            <div className="text-center text-muted-foreground animate-fade-in">
-              <div className="mx-auto h-16 w-16 rounded-full bg-secondary flex items-center justify-center mb-4"><Heart className="h-8 w-8 opacity-50" /></div>
-              <p className="font-semibold">Liked videos will appear here</p>
-              <p className="text-sm mt-1">Videos you've liked will be saved here</p>
-            </div>
+          <TabsContent value="liked" className="mt-0" data-testid="tab-liked-videos">
+            {likedLoading ? (
+              <div className="flex items-center justify-center py-16">
+                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+              </div>
+            ) : (
+              <VideoGrid 
+                videos={likedVideos.map((v: any) => ({
+                  id: v.id,
+                  thumbnail: v.thumbnailUrl || v.thumbnail_url || "",
+                  views: formatCount(v.viewsCount || v.views_count || 0),
+                  likes: formatCount(v.likesCount || v.likes_count || 0),
+                }))} 
+                columns={isMobile ? 3 : 4} 
+              />
+            )}
           </TabsContent>
-          <TabsContent value="saved" className="mt-0 flex items-center justify-center py-16">
-            <div className="text-center text-muted-foreground animate-fade-in">
-              <div className="mx-auto h-16 w-16 rounded-full bg-secondary flex items-center justify-center mb-4"><Bookmark className="h-8 w-8 opacity-50" /></div>
-              <p className="font-semibold">Saved videos will appear here</p>
-              <p className="text-sm mt-1">Bookmark videos to watch later</p>
-            </div>
+          <TabsContent value="saved" className="mt-0" data-testid="tab-saved-videos">
+            {savedLoading ? (
+              <div className="flex items-center justify-center py-16">
+                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+              </div>
+            ) : (
+              <VideoGrid 
+                videos={savedVideos.map((v: any) => ({
+                  id: v.id,
+                  thumbnail: v.thumbnailUrl || v.thumbnail_url || "",
+                  views: formatCount(v.viewsCount || v.views_count || 0),
+                  likes: formatCount(v.likesCount || v.likes_count || 0),
+                }))} 
+                columns={isMobile ? 3 : 4} 
+              />
+            )}
           </TabsContent>
         </Tabs>
       </div>
+
+      <EditProfileDialog 
+        isOpen={editProfileOpen} 
+        onClose={() => setEditProfileOpen(false)} 
+        profile={profile}
+      />
+
+      <FollowersSheet
+        isOpen={followersSheetOpen}
+        onClose={() => setFollowersSheetOpen(false)}
+        userId={user?.id || 0}
+        initialTab={followersTab}
+      />
     </div>
   );
 }

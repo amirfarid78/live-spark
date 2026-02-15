@@ -5,6 +5,8 @@ interface ProfileStatsProps {
   followers: number;
   likes: number;
   className?: string;
+  onFollowersClick?: () => void;
+  onFollowingClick?: () => void;
 }
 
 const formatNumber = (num: number) => {
@@ -13,11 +15,11 @@ const formatNumber = (num: number) => {
   return num.toString();
 };
 
-export function ProfileStats({ following, followers, likes, className }: ProfileStatsProps) {
+export function ProfileStats({ following, followers, likes, className, onFollowersClick, onFollowingClick }: ProfileStatsProps) {
   const stats = [
-    { label: "Following", value: formatNumber(following) },
-    { label: "Followers", value: formatNumber(followers) },
-    { label: "Likes", value: formatNumber(likes) },
+    { label: "Following", value: formatNumber(following), onClick: onFollowingClick },
+    { label: "Followers", value: formatNumber(followers), onClick: onFollowersClick },
+    { label: "Likes", value: formatNumber(likes), onClick: undefined },
   ];
 
   return (
@@ -25,6 +27,7 @@ export function ProfileStats({ following, followers, likes, className }: Profile
       {stats.map((stat, index) => (
         <button 
           key={stat.label} 
+          onClick={stat.onClick}
           className={cn(
             "text-center press-effect animate-fade-in-up flex-1",
             `stagger-${index + 1}`

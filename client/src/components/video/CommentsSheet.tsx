@@ -1,24 +1,26 @@
-import React, { useState } from "react";
-import { X, Send, Heart, MoreHorizontal, ChevronUp } from "lucide-react";
+import { useState } from "react";
+import { X, Send, Heart, MoreHorizontal, Loader2 } from "lucide-react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import api from "@/lib/api";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
 
-interface Comment {
-  id: string;
+interface ApiComment {
+  id: number;
+  userId: number;
+  videoId: number;
+  content: string;
+  likesCount: number;
+  createdAt: string;
   user: {
-    name: string;
+    id: number;
     username: string;
-    avatar: string;
-    isVerified: boolean;
+    displayName: string;
+    avatarUrl: string | null;
   };
-  text: string;
-  likes: number;
-  timestamp: string;
-  isLiked: boolean;
-  replies?: Comment[];
 }
 
 interface CommentsSheetProps {
@@ -28,125 +30,55 @@ interface CommentsSheetProps {
   commentCount: string;
 }
 
-const mockComments: Comment[] = [
-  {
-    id: '1',
-    user: { name: 'Emma', username: '@emma_style', avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=100', isVerified: true },
-    text: 'This is absolutely amazing! 🔥🔥',
-    likes: 234,
-    timestamp: '2h ago',
-    isLiked: false,
-    replies: [
-      {
-        id: '1-1',
-        user: { name: 'Jake', username: '@jake_m', avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100', isVerified: false },
-        text: 'Totally agree! 💯',
-        likes: 12,
-        timestamp: '1h ago',
-        isLiked: false,
-      }
-    ]
-  },
-  {
-    id: '2',
-    user: { name: 'Mike', username: '@mike_dev', avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100', isVerified: false },
-    text: 'How did you do that transition? Please make a tutorial!',
-    likes: 89,
-    timestamp: '3h ago',
-    isLiked: true,
-  },
-  {
-    id: '3',
-    user: { name: 'Sophia', username: '@sophia_creates', avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100', isVerified: true },
-    text: 'The lighting is perfect ✨',
-    likes: 156,
-    timestamp: '5h ago',
-    isLiked: false,
-  },
-  {
-    id: '4',
-    user: { name: 'Alex', username: '@alex_photo', avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100', isVerified: false },
-    text: 'Saved this for later! Great content as always 🙌',
-    likes: 45,
-    timestamp: '6h ago',
-    isLiked: false,
-  },
-];
+function formatRelativeTime(date: string): string {
+  const now = Date.now();
+  const d = new Date(date).getTime();
+  const diff = now - d;
+  const mins = Math.floor(diff / 60000);
+  const hrs = Math.floor(diff / 3600000);
+  const days = Math.floor(diff / 86400000);
+  if (mins < 1) return "Just now";
+  if (mins < 60) return `${mins}m ago`;
+  if (hrs < 24) return `${hrs}h ago`;
+  if (days < 7) return `${days}d ago`;
+  return new Date(date).toLocaleDateString();
+}
 
-function CommentItem({ comment, isReply = false }: { comment: Comment; isReply?: boolean }) {
-  const [isLiked, setIsLiked] = useState(comment.isLiked);
-  const [likes, setLikes] = useState(comment.likes);
-  const [showReplies, setShowReplies] = useState(false);
+function CommentItem({ comment }: { comment: ApiComment }) {
+  const [isLiked, setIsLiked] = useState(false);
 
   const handleLike = () => {
-    if (isLiked) {
-      setLikes(likes - 1);
-    } else {
-      setLikes(likes + 1);
-    }
     setIsLiked(!isLiked);
   };
 
+  const displayName = comment.user.displayName || comment.user.username;
+  const fallbackChar = displayName.charAt(0).toUpperCase();
+
   return (
-    <div className={cn("flex gap-3", isReply && "ml-10")}>
+    <div className="flex gap-3" data-testid={`comment-item-${comment.id}`}>
       <Avatar className="h-9 w-9 flex-shrink-0">
-        <AvatarImage src={comment.user.avatar} />
-        <AvatarFallback>{comment.user.name[0]}</AvatarFallback>
+        <AvatarImage src={comment.user.avatarUrl || undefined} />
+        <AvatarFallback>{fallbackChar}</AvatarFallback>
       </Avatar>
       
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-1.5 mb-0.5">
-          <span className="font-semibold text-sm truncate">{comment.user.name}</span>
-          {comment.user.isVerified && (
-            <div className="flex h-3.5 w-3.5 items-center justify-center rounded-full bg-primary flex-shrink-0">
-              <svg className="h-2 w-2 text-white" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-              </svg>
-            </div>
-          )}
-          <span className="text-xs text-muted-foreground">{comment.timestamp}</span>
+          <span className="font-semibold text-sm truncate">{displayName}</span>
+          <span className="text-xs text-muted-foreground">{formatRelativeTime(comment.createdAt)}</span>
         </div>
         
-        <p className="text-sm text-foreground/90 leading-relaxed">{comment.text}</p>
+        <p className="text-sm text-foreground/90 leading-relaxed">{comment.content}</p>
         
         <div className="flex items-center gap-4 mt-1.5">
-          <button onClick={handleLike} className="flex items-center gap-1 press-effect">
+          <button onClick={handleLike} className="flex items-center gap-1 press-effect" data-testid={`button-like-comment-${comment.id}`}>
             <Heart className={cn("h-4 w-4", isLiked ? "text-stream-coral fill-stream-coral" : "text-muted-foreground")} />
-            <span className="text-xs text-muted-foreground">{likes}</span>
+            <span className="text-xs text-muted-foreground">{comment.likesCount}</span>
           </button>
-          <button className="text-xs text-muted-foreground font-medium press-effect">Reply</button>
-          <button className="press-effect">
+          <button className="text-xs text-muted-foreground font-medium press-effect" data-testid={`button-reply-comment-${comment.id}`}>Reply</button>
+          <button className="press-effect" data-testid={`button-more-comment-${comment.id}`}>
             <MoreHorizontal className="h-4 w-4 text-muted-foreground" />
           </button>
         </div>
-
-        {/* Replies */}
-        {comment.replies && comment.replies.length > 0 && (
-          <div className="mt-2">
-            {!showReplies ? (
-              <button 
-                onClick={() => setShowReplies(true)}
-                className="flex items-center gap-1 text-xs text-primary font-medium press-effect"
-              >
-                <div className="w-6 h-px bg-muted-foreground/30" />
-                View {comment.replies.length} {comment.replies.length === 1 ? 'reply' : 'replies'}
-              </button>
-            ) : (
-              <div className="space-y-3 mt-3">
-                {comment.replies.map((reply) => (
-                  <CommentItem key={reply.id} comment={reply} isReply />
-                ))}
-                <button 
-                  onClick={() => setShowReplies(false)}
-                  className="flex items-center gap-1 text-xs text-muted-foreground font-medium press-effect"
-                >
-                  <ChevronUp className="h-3 w-3" />
-                  Hide replies
-                </button>
-              </div>
-            )}
-          </div>
-        )}
       </div>
     </div>
   );
@@ -154,32 +86,45 @@ function CommentItem({ comment, isReply = false }: { comment: Comment; isReply?:
 
 export function CommentsSheet({ isOpen, onClose, videoId, commentCount }: CommentsSheetProps) {
   const [newComment, setNewComment] = useState('');
-  const [comments, setComments] = useState(mockComments);
   const { user } = useAuth();
+  const queryClient = useQueryClient();
+
+  const { data: comments, isLoading, isError } = useQuery<ApiComment[]>({
+    queryKey: ['/api/videos', videoId, 'comments'],
+    queryFn: async () => {
+      const response = await api.get(`/videos/${videoId}/comments`);
+      return response.data;
+    },
+    enabled: isOpen,
+  });
+
+  const postCommentMutation = useMutation({
+    mutationFn: async (content: string) => {
+      const response = await api.post(`/videos/${videoId}/comments`, { content });
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ['/api/videos', videoId, 'comments'],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ['/api/videos'],
+      });
+      setNewComment('');
+    },
+  });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newComment.trim()) return;
-
-    const comment: Comment = {
-      id: Date.now().toString(),
-      user: {
-        name: 'You',
-        username: '@you',
-        avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100',
-        isVerified: false,
-      },
-      text: newComment,
-      likes: 0,
-      timestamp: 'Just now',
-      isLiked: false,
-    };
-
-    setComments([comment, ...comments]);
-    setNewComment('');
+    if (!newComment.trim() || !user) return;
+    postCommentMutation.mutate(newComment);
   };
 
   if (!isOpen) return null;
+
+  const userDisplayName = user?.displayName || user?.username || 'User';
+  const userAvatarUrl = user?.avatarUrl || undefined;
+  const userFallback = userDisplayName.charAt(0).toUpperCase();
 
   return (
     <div 
@@ -205,28 +150,44 @@ export function CommentsSheet({ isOpen, onClose, videoId, commentCount }: Commen
 
         {/* Comments List */}
         <div className="flex-1 overflow-y-auto px-4 py-4 space-y-5">
-          {comments.map((comment) => (
-            <CommentItem key={comment.id} comment={comment} />
-          ))}
+          {isLoading ? (
+            <div className="flex items-center justify-center h-full">
+              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            </div>
+          ) : isError || !comments ? (
+            <div className="flex items-center justify-center h-full text-muted-foreground">
+              Failed to load comments
+            </div>
+          ) : comments.length === 0 ? (
+            <div className="flex items-center justify-center h-full text-muted-foreground">
+              No comments yet
+            </div>
+          ) : (
+            comments.map((comment) => (
+              <CommentItem key={comment.id} comment={comment} />
+            ))
+          )}
         </div>
 
         {/* Comment Input */}
         <form onSubmit={handleSubmit} className="flex items-center gap-2 p-4 border-t pb-safe">
           <Avatar className="h-8 w-8 flex-shrink-0">
-            <AvatarImage src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100" />
-            <AvatarFallback>Y</AvatarFallback>
+            <AvatarImage src={userAvatarUrl} />
+            <AvatarFallback>{userFallback}</AvatarFallback>
           </Avatar>
           <Input
             value={newComment}
             onChange={(e) => setNewComment(e.target.value)}
             placeholder={user ? "Add a comment..." : "Sign in to comment"}
-            disabled={!user}
+            disabled={!user || postCommentMutation.isPending}
+            data-testid="input-comment"
             className="flex-1 h-10 rounded-full bg-secondary border-0"
           />
           <Button 
             type="submit" 
             size="icon" 
-            disabled={!newComment.trim() || !user}
+            disabled={!newComment.trim() || !user || postCommentMutation.isPending}
+            data-testid="button-submit-comment"
             className="h-10 w-10 rounded-full bg-primary"
           >
             <Send className="h-4 w-4" />
