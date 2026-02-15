@@ -1,6 +1,5 @@
-import React, { useState, useEffect, useRef } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { X, Gift, Send, MessageCircle, Gem, Crown, Sparkles, ChevronLeft, ChevronRight } from "lucide-react";
+import { useState, useEffect, useRef, useCallback } from "react";
+import { X, Gift, Send, MessageCircle, Sparkles, Video, VideoOff, Mic, MicOff, Loader2 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
@@ -11,13 +10,9 @@ import { Gift3DAnimation } from "./Gift3DAnimation";
 import { VSAnimation, LeaderCrown } from "./VSAnimation";
 import { CountdownTimer } from "./CountdownTimer";
 import { ScoreProgressBar } from "./ScoreProgressBar";
-
-interface TopGifter {
-  id: string;
-  avatar: string;
-  rank: number;
-  isVIP?: boolean;
-}
+import { useAgora } from "@/hooks/useAgora";
+import { useAuth } from "@/contexts/AuthContext";
+import api from "@/lib/api";
 
 interface ChatMessage {
   id: string;
@@ -43,14 +38,12 @@ interface PKBattleLiveRoomProps {
   onClose: () => void;
 }
 
-
 export function PKBattleLiveRoom({ battle, onClose }: PKBattleLiveRoomProps) {
+  const { user } = useAuth();
   const totalDuration = 240;
   const [timeLeft, setTimeLeft] = useState(totalDuration);
   const [showGiftPanel, setShowGiftPanel] = useState(false);
   const [inputMessage, setInputMessage] = useState("");
-  const [topGiftersP1, setTopGiftersP1] = useState<TopGifter[]>([]);
-  const [topGiftersP2, setTopGiftersP2] = useState<TopGifter[]>([]);
   const [messages, setMessages] = useState<ChatMessage[]>([
     { id: "system-1", user: "System", avatar: "", message: "PK Battle has started!" }
   ]);
@@ -62,11 +55,68 @@ export function PKBattleLiveRoom({ battle, onClose }: PKBattleLiveRoomProps) {
   const [flyingGifts, setFlyingGifts] = useState<FlyingGift[]>([]);
   const [showVSAnimation, setShowVSAnimation] = useState(true);
   const giftIdRef = useRef(0);
+  const p1VideoRef = useRef<HTMLDivElement>(null);
+  const p2VideoRef = useRef<HTMLDivElement>(null);
 
-  const totalScore = scores.p1 + scores.p2;
+  const isPlayer1 = user?.id?.toString() === battle.player1.id;
+  const isPlayer2 = user?.id?.toString() === battle.player2.id;
+  const isParticipant = isPlayer1 || isPlayer2;
+  const channelName = `pk-battle-${battle.id}`;
+
+  const {
+    localVideoTrack,
+    remoteUsers,
+    isJoined,
+    isPublishing,
+    error: agoraError,
+    isCameraOn,
+    isMicOn,
+    toggleCamera,
+    toggleMic,
+    leave,
+  } = useAgora({
+    channelName,
+    isHost: isParticipant,
+    enabled: !showVSAnimation,
+    mode: "pk",
+  });
+
+  useEffect(() => {
+    if (isParticipant && localVideoTrack) {
+      const targetRef = isPlayer1 ? p1VideoRef : p2VideoRef;
+      if (targetRef.current) {
+        targetRef.current.innerHTML = "";
+        localVideoTrack.play(targetRef.current);
+      }
+    }
+  }, [localVideoTrack, isParticipant, isPlayer1]);
+
+  useEffect(() => {
+    if (remoteUsers.length === 0) return;
+
+    if (isParticipant) {
+      const remoteUser = remoteUsers[0];
+      if (remoteUser?.videoTrack) {
+        const targetRef = isPlayer1 ? p2VideoRef : p1VideoRef;
+        if (targetRef.current) {
+          targetRef.current.innerHTML = "";
+          remoteUser.videoTrack.play(targetRef.current);
+        }
+      }
+    } else {
+      remoteUsers.forEach((remoteUser, index) => {
+        if (remoteUser.videoTrack) {
+          const targetRef = index === 0 ? p1VideoRef : p2VideoRef;
+          if (targetRef.current) {
+            targetRef.current.innerHTML = "";
+            remoteUser.videoTrack.play(targetRef.current);
+          }
+        }
+      });
+    }
+  }, [remoteUsers, isPlayer1, isParticipant]);
   const leader = scores.p1 > scores.p2 ? "p1" : scores.p2 > scores.p1 ? "p2" : null;
 
-  // Opening VS animation
   useEffect(() => {
     const timer = setTimeout(() => setShowVSAnimation(false), 2500);
     return () => clearTimeout(timer);
@@ -74,39 +124,33 @@ export function PKBattleLiveRoom({ battle, onClose }: PKBattleLiveRoomProps) {
 
   useEffect(() => {
     if (timeLeft <= 0) {
-      if (scores.p1 > scores.p2) {
-        setBattleResult("win");
-      } else if (scores.p2 > scores.p1) {
-        setBattleResult("lose");
-      } else {
-        setBattleResult("tie");
-      }
+      if (scores.p1 > scores.p2) setBattleResult("win");
+      else if (scores.p2 > scores.p1) setBattleResult("lose");
+      else setBattleResult("tie");
       setShowResult(true);
       return;
     }
-
-    const timer = setInterval(() => {
-      setTimeLeft((prev) => prev - 1);
-    }, 1000);
-
+    const timer = setInterval(() => setTimeLeft((prev) => prev - 1), 1000);
     return () => clearInterval(timer);
   }, [timeLeft, scores]);
 
+  const handleClose = useCallback(async () => {
+    await leave();
+    onClose();
+  }, [leave, onClose]);
 
   const handleSendMessage = () => {
     if (!inputMessage.trim()) return;
-    const newMessage: ChatMessage = {
+    setMessages(prev => [...prev, {
       id: Date.now().toString(),
       user: "You",
       avatar: "",
       message: inputMessage,
-    };
-    setMessages(prev => [...prev, newMessage]);
+    }]);
     setInputMessage("");
   };
 
   const handleGiftSend = (gift: { name: string; icon: string; price: number }) => {
-    // Add flying 3D gift animation
     const newGift: FlyingGift = {
       id: giftIdRef.current++,
       icon: gift.icon,
@@ -117,21 +161,25 @@ export function PKBattleLiveRoom({ battle, onClose }: PKBattleLiveRoomProps) {
     };
     setFlyingGifts(prev => [...prev, newGift]);
 
-    const giftMessage: ChatMessage = {
+    setMessages(prev => [...prev, {
       id: Date.now().toString(),
       user: "You",
       avatar: "",
       message: `sent ${gift.name} to ${selectedPlayer === "p1" ? battle.player1.name : battle.player2.name}`,
       giftName: gift.name,
       giftIcon: gift.icon,
-    };
-    setMessages(prev => [...prev, giftMessage]);
+    }]);
 
     setPreviousScores(scores);
     setScores(prev => ({
       ...prev,
       [selectedPlayer]: prev[selectedPlayer] + gift.price * 10,
     }));
+
+    api.post(`/pk-battles/${battle.id}/score`, {
+      player: selectedPlayer === "p1" ? "host" : "opponent",
+      points: gift.price * 10,
+    }).catch(() => {});
 
     setShowGiftPanel(false);
   };
@@ -140,286 +188,193 @@ export function PKBattleLiveRoom({ battle, onClose }: PKBattleLiveRoomProps) {
     setFlyingGifts(prev => prev.filter(g => g.id !== giftId));
   };
 
-  // Opening animation
   if (showVSAnimation) {
     return (
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        className="fixed inset-0 z-[100] bg-black flex items-center justify-center overflow-hidden"
-      >
-        {/* Background particles */}
-        {Array.from({ length: 30 }).map((_, i) => (
-          <motion.div
-            key={i}
-            initial={{ 
-              x: Math.random() * window.innerWidth, 
-              y: window.innerHeight + 50,
-              opacity: 0 
-            }}
-            animate={{ 
-              y: -50,
-              opacity: [0, 1, 0],
-            }}
-            transition={{ 
-              duration: 2 + Math.random() * 2,
-              delay: Math.random() * 2,
-              repeat: Infinity,
-            }}
-            className="absolute"
-          >
-            <Sparkles className="h-4 w-4 text-stream-gold" />
-          </motion.div>
-        ))}
-
-        {/* Players */}
+      <div className="fixed inset-0 z-[100] bg-black flex items-center justify-center overflow-hidden animate-fade-in">
         <div className="flex items-center gap-8">
-          {/* Player 1 */}
-          <motion.div
-            initial={{ x: -200, opacity: 0 }}
-            animate={{ x: 0, opacity: 1 }}
-            transition={{ delay: 0.3, type: "spring" }}
-            className="text-center"
-          >
+          <div className="text-center animate-fade-in-left">
             <Avatar className="h-24 w-24 ring-4 ring-stream-purple shadow-2xl shadow-stream-purple/50">
               <AvatarImage src={battle.player1.avatar} />
-              <AvatarFallback>{battle.player1.name[0]}</AvatarFallback>
+              <AvatarFallback className="text-white bg-stream-purple">{battle.player1.name[0]}</AvatarFallback>
             </Avatar>
-            <motion.p
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.5 }}
-              className="text-white font-bold mt-3"
-            >
-              {battle.player1.name.slice(0, 12)}
-            </motion.p>
-          </motion.div>
-
-          {/* VS */}
-          <motion.div
-            initial={{ scale: 0, rotate: -180 }}
-            animate={{ scale: 1, rotate: 0 }}
-            transition={{ delay: 0.5, type: "spring", stiffness: 200 }}
-          >
-            <VSAnimation intensity="high" />
-          </motion.div>
-
-          {/* Player 2 */}
-          <motion.div
-            initial={{ x: 200, opacity: 0 }}
-            animate={{ x: 0, opacity: 1 }}
-            transition={{ delay: 0.3, type: "spring" }}
-            className="text-center"
-          >
+            <p className="text-white font-bold mt-3">{battle.player1.name.slice(0, 12)}</p>
+          </div>
+          <VSAnimation intensity="high" />
+          <div className="text-center animate-fade-in-right">
             <Avatar className="h-24 w-24 ring-4 ring-stream-coral shadow-2xl shadow-stream-coral/50">
               <AvatarImage src={battle.player2.avatar} />
-              <AvatarFallback>{battle.player2.name[0]}</AvatarFallback>
+              <AvatarFallback className="text-white bg-stream-coral">{battle.player2.name[0]}</AvatarFallback>
             </Avatar>
-            <motion.p
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.5 }}
-              className="text-white font-bold mt-3"
-            >
-              {battle.player2.name.slice(0, 12)}
-            </motion.p>
-          </motion.div>
+            <p className="text-white font-bold mt-3">{battle.player2.name.slice(0, 12)}</p>
+          </div>
         </div>
-
-        {/* Battle Start Text */}
-        <motion.div
-          initial={{ scale: 0, y: 100 }}
-          animate={{ scale: 1, y: 80 }}
-          transition={{ delay: 1, type: "spring" }}
-          className="absolute"
-        >
-          <div className="px-8 py-3 rounded-full bg-gradient-to-r from-stream-purple via-stream-gold to-stream-coral">
+        <div className="absolute bottom-1/4">
+          <div className="px-8 py-3 rounded-full bg-gradient-to-r from-stream-purple via-stream-gold to-stream-coral animate-fade-in-up">
             <span className="text-2xl font-black text-white">BATTLE START!</span>
           </div>
-        </motion.div>
-      </motion.div>
+        </div>
+      </div>
     );
   }
 
+  const hasP1Video = isPlayer1
+    ? (isPublishing && isCameraOn)
+    : isParticipant
+      ? remoteUsers.some(u => u.videoTrack)
+      : (remoteUsers[0]?.videoTrack != null);
+  const hasP2Video = isPlayer2
+    ? (isPublishing && isCameraOn)
+    : isParticipant
+      ? remoteUsers.some(u => u.videoTrack)
+      : (remoteUsers[1]?.videoTrack != null);
+
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      className="fixed inset-0 z-[100] bg-black overflow-hidden"
-    >
-      {/* 3D Gift Animations */}
-      <AnimatePresence>
-        {flyingGifts.map((gift) => (
-          <Gift3DAnimation
-            key={gift.id}
-            gift={gift}
-            targetPlayer={gift.targetPlayer}
-            onComplete={() => removeGift(gift.id)}
-          />
-        ))}
-      </AnimatePresence>
+    <div className="fixed inset-0 z-[100] bg-black overflow-hidden animate-fade-in">
+      {flyingGifts.map((gift) => (
+        <Gift3DAnimation
+          key={gift.id}
+          gift={gift}
+          targetPlayer={gift.targetPlayer}
+          onComplete={() => removeGift(gift.id)}
+        />
+      ))}
 
       {/* Top Bar */}
-      <motion.div
-        initial={{ y: -50 }}
-        animate={{ y: 0 }}
-        className="absolute top-0 left-0 right-0 z-20 p-3 bg-gradient-to-b from-black/80 to-transparent"
-      >
+      <div className="absolute top-0 left-0 right-0 z-20 px-3 py-3 bg-gradient-to-b from-black/80 to-transparent">
         <div className="flex items-center justify-between">
-          {/* Host Info */}
           <div className="flex items-center gap-2">
-            <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }}>
-              <Avatar className="h-10 w-10 ring-2 ring-stream-purple">
-                <AvatarImage src={battle.player1.avatar} />
-                <AvatarFallback>{battle.player1.name[0]}</AvatarFallback>
-              </Avatar>
-            </motion.div>
-            <div>
-              <div className="flex items-center gap-1">
-                <span className="text-white font-medium text-sm">{battle.player1.name.split(/[✨🔥@]/)[0]}</span>
-                <Badge className="bg-stream-gold text-black text-[9px] px-1.5 border-0">
-                  ⚔️ 1320
-                </Badge>
-              </div>
-              <div className="flex items-center gap-1">
-                <motion.div
-                  animate={{ rotate: 360 }}
-                  transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-                >
-                  <Gem className="h-3 w-3 text-stream-gold" />
-                </motion.div>
-                <span className="text-stream-gold text-xs font-bold">29.30k</span>
-              </div>
+            <Avatar className="h-8 w-8 ring-2 ring-stream-purple">
+              <AvatarImage src={battle.player1.avatar} />
+              <AvatarFallback className="text-xs text-white bg-stream-purple">{battle.player1.name[0]}</AvatarFallback>
+            </Avatar>
+            <div className="bg-black/50 backdrop-blur-sm rounded-full px-2 py-1">
+              <span className="text-[11px] font-semibold text-white truncate max-w-[60px] block">{battle.player1.name.split(/[✨🔥@]/)[0]}</span>
             </div>
           </div>
 
-          {/* Top Viewers */}
-          <div className="flex items-center gap-1">
-            {topGiftersP1.slice(0, 4).map((gifter, i) => (
-              <motion.div
-                key={gifter.id}
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                transition={{ delay: i * 0.1 }}
-              >
-                <Avatar className={cn(
-                  "h-8 w-8 -ml-2 first:ml-0 ring-2 ring-black",
-                  gifter.isVIP && "ring-stream-gold"
-                )}>
-                  <AvatarImage src={gifter.avatar} />
-                  <AvatarFallback>G</AvatarFallback>
-                </Avatar>
-              </motion.div>
-            ))}
-            <Badge className="ml-1 bg-black/50 text-white border-0 text-[10px]">
-              +{battle.viewerCount}
-            </Badge>
-          </div>
+          <CountdownTimer timeLeft={timeLeft} totalTime={totalDuration} />
 
-          {/* Actions */}
           <div className="flex items-center gap-2">
-            <span className="text-white/70 text-xs">ID: 51179820</span>
-            <motion.button
-              whileHover={{ scale: 1.1 }}
-              whileTap={{ scale: 0.9 }}
-              onClick={onClose}
-              className="h-8 w-8 rounded-full bg-black/50 flex items-center justify-center"
+            <div className="bg-black/50 backdrop-blur-sm rounded-full px-2 py-1">
+              <span className="text-[11px] font-semibold text-white truncate max-w-[60px] block">{battle.player2.name.split(/[✨🔥@]/)[0]}</span>
+            </div>
+            <Avatar className="h-8 w-8 ring-2 ring-stream-coral">
+              <AvatarImage src={battle.player2.avatar} />
+              <AvatarFallback className="text-xs text-white bg-stream-coral">{battle.player2.name[0]}</AvatarFallback>
+            </Avatar>
+            <button
+              onClick={handleClose}
+              className="h-8 w-8 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center press-effect border border-white/10"
+              data-testid="button-close-pk"
             >
-              <X className="h-5 w-5 text-white" />
-            </motion.button>
+              <X className="h-4 w-4 text-white" />
+            </button>
           </div>
         </div>
-      </motion.div>
-
-      {/* Countdown Timer */}
-      <div className="absolute top-16 left-1/2 -translate-x-1/2 z-20">
-        <CountdownTimer timeLeft={timeLeft} totalTime={totalDuration} />
       </div>
 
-      {/* Split Screen Video */}
+      {/* Connection Status */}
+      {!isJoined && !agoraError && (
+        <div className="absolute inset-0 z-30 flex items-center justify-center">
+          <div className="flex flex-col items-center gap-3 bg-black/60 backdrop-blur-md rounded-2xl px-8 py-6">
+            <Loader2 className="h-8 w-8 text-white animate-spin" />
+            <span className="text-white text-sm font-medium">Connecting to battle...</span>
+          </div>
+        </div>
+      )}
+
+      {agoraError && (
+        <div className="absolute inset-0 z-30 flex items-center justify-center">
+          <div className="flex flex-col items-center gap-3 bg-black/60 backdrop-blur-md rounded-2xl px-8 py-6 max-w-xs text-center">
+            <VideoOff className="h-8 w-8 text-red-400" />
+            <span className="text-white text-sm font-medium">Connection Error</span>
+            <span className="text-white/50 text-xs">{agoraError}</span>
+          </div>
+        </div>
+      )}
+
+      {/* Split Screen Video Area */}
       <div className="flex h-[45vh] mt-14">
-        {/* Player 1 */}
-        <motion.div
-          whileTap={{ scale: 0.98 }}
+        {/* Player 1 Video */}
+        <div
           className={cn(
             "flex-1 relative overflow-hidden cursor-pointer transition-all",
             selectedPlayer === "p1" && "ring-4 ring-stream-purple ring-inset"
           )}
           onClick={() => setSelectedPlayer("p1")}
         >
-          <img
-            src={battle.player1.avatar}
-            alt={battle.player1.name}
-            className="h-full w-full object-cover"
+          <div
+            ref={p1VideoRef}
+            className="h-full w-full"
+            style={{ display: hasP1Video ? "block" : "none" }}
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+          {!hasP1Video && (
+            <div className="h-full w-full flex flex-col items-center justify-center bg-gradient-to-br from-stream-purple/30 to-black">
+              <Avatar className="h-20 w-20 ring-2 ring-stream-purple/50 mb-2">
+                <AvatarImage src={battle.player1.avatar} />
+                <AvatarFallback className="text-white bg-stream-purple">{battle.player1.name[0]}</AvatarFallback>
+              </Avatar>
+              <span className="text-white/60 text-xs">Waiting for video...</span>
+            </div>
+          )}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent pointer-events-none" />
 
-          {/* Leader Crown */}
           <div className="absolute top-3 left-3">
             <LeaderCrown isLeader={leader === "p1"} />
           </div>
 
-          {/* Selection indicator */}
-          <AnimatePresence>
-            {selectedPlayer === "p1" && (
-              <motion.div
-                initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.8 }}
-                className="absolute bottom-3 left-3"
-              >
-                <Badge className="bg-stream-purple text-white border-0">
-                  <Gift className="h-3 w-3 mr-1" />
-                  Gifting
-                </Badge>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </motion.div>
+          {selectedPlayer === "p1" && (
+            <div className="absolute bottom-3 left-3">
+              <Badge className="bg-stream-purple text-white border-0">
+                <Gift className="h-3 w-3 mr-1" />
+                Gifting
+              </Badge>
+            </div>
+          )}
+        </div>
 
         {/* Center VS */}
-        <div className="absolute left-1/2 top-1/4 -translate-x-1/2 z-10">
+        <div className="absolute left-1/2 top-[22%] -translate-x-1/2 z-10">
           <VSAnimation intensity={timeLeft <= 30 ? "high" : "medium"} />
         </div>
 
-        {/* Player 2 */}
-        <motion.div
-          whileTap={{ scale: 0.98 }}
+        {/* Player 2 Video */}
+        <div
           className={cn(
             "flex-1 relative overflow-hidden cursor-pointer transition-all",
             selectedPlayer === "p2" && "ring-4 ring-stream-coral ring-inset"
           )}
           onClick={() => setSelectedPlayer("p2")}
         >
-          <img
-            src={battle.player2.avatar}
-            alt={battle.player2.name}
-            className="h-full w-full object-cover"
+          <div
+            ref={p2VideoRef}
+            className="h-full w-full"
+            style={{ display: hasP2Video ? "block" : "none" }}
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+          {!hasP2Video && (
+            <div className="h-full w-full flex flex-col items-center justify-center bg-gradient-to-br from-stream-coral/30 to-black">
+              <Avatar className="h-20 w-20 ring-2 ring-stream-coral/50 mb-2">
+                <AvatarImage src={battle.player2.avatar} />
+                <AvatarFallback className="text-white bg-stream-coral">{battle.player2.name[0]}</AvatarFallback>
+              </Avatar>
+              <span className="text-white/60 text-xs">Waiting for video...</span>
+            </div>
+          )}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent pointer-events-none" />
 
-          {/* Leader Crown */}
           <div className="absolute top-3 right-3">
             <LeaderCrown isLeader={leader === "p2"} />
           </div>
 
-          {/* Selection indicator */}
-          <AnimatePresence>
-            {selectedPlayer === "p2" && (
-              <motion.div
-                initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.8 }}
-                className="absolute bottom-3 right-3"
-              >
-                <Badge className="bg-stream-coral text-white border-0">
-                  <Gift className="h-3 w-3 mr-1" />
-                  Gifting
-                </Badge>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </motion.div>
+          {selectedPlayer === "p2" && (
+            <div className="absolute bottom-3 right-3">
+              <Badge className="bg-stream-coral text-white border-0">
+                <Gift className="h-3 w-3 mr-1" />
+                Gifting
+              </Badge>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Score Progress Bar */}
@@ -432,170 +387,129 @@ export function PKBattleLiveRoom({ battle, onClose }: PKBattleLiveRoomProps) {
         previousP2Score={previousScores.p2}
       />
 
-      {/* Top Gifters Row */}
-      <div className="flex justify-between px-2 py-2 bg-gradient-to-r from-stream-purple/40 to-stream-coral/40">
-        <div className="flex items-center gap-1">
-          <ChevronLeft className="h-4 w-4 text-white/50" />
-          {topGiftersP1.map((gifter, i) => (
-            <motion.div
-              key={gifter.id}
-              whileHover={{ scale: 1.2, y: -5 }}
-              className="relative"
-            >
-              <Avatar className="h-9 w-9 ring-2 ring-white/30">
-                <AvatarImage src={gifter.avatar} />
-                <AvatarFallback>G</AvatarFallback>
-              </Avatar>
-              <motion.span
-                animate={{ scale: [1, 1.2, 1] }}
-                transition={{ duration: 1, repeat: Infinity, delay: i * 0.2 }}
-                className="absolute -bottom-1 left-1/2 -translate-x-1/2 bg-stream-gold text-black text-[8px] font-bold px-1.5 rounded"
-              >
-                {i + 1}
-              </motion.span>
-            </motion.div>
-          ))}
+      {/* Host Controls */}
+      {isParticipant && isJoined && (
+        <div className="flex justify-center gap-2 py-2 bg-black/40">
+          <button
+            onClick={toggleCamera}
+            className={cn(
+              "h-8 w-8 rounded-full flex items-center justify-center backdrop-blur-md border transition-colors",
+              isCameraOn ? "bg-white/15 border-white/20 text-white" : "bg-red-500/80 border-red-400/30 text-white"
+            )}
+            data-testid="button-pk-toggle-camera"
+          >
+            {isCameraOn ? <Video className="h-3.5 w-3.5" /> : <VideoOff className="h-3.5 w-3.5" />}
+          </button>
+          <button
+            onClick={toggleMic}
+            className={cn(
+              "h-8 w-8 rounded-full flex items-center justify-center backdrop-blur-md border transition-colors",
+              isMicOn ? "bg-white/15 border-white/20 text-white" : "bg-red-500/80 border-red-400/30 text-white"
+            )}
+            data-testid="button-pk-toggle-mic"
+          >
+            {isMicOn ? <Mic className="h-3.5 w-3.5" /> : <MicOff className="h-3.5 w-3.5" />}
+          </button>
+          <button
+            onClick={async () => {
+              await leave();
+              try {
+                const winnerId = scores.p1 >= scores.p2 ? battle.player1.id : battle.player2.id;
+                await api.post(`/pk-battles/${battle.id}/end`, { winnerId: parseInt(winnerId) });
+              } catch {}
+              onClose();
+            }}
+            className="px-3 py-1.5 rounded-full bg-red-500/90 backdrop-blur-sm text-white text-[11px] font-bold press-effect border border-red-400/30"
+            data-testid="button-end-pk"
+          >
+            End Battle
+          </button>
         </div>
+      )}
 
-        <div className="flex items-center gap-1">
-          {topGiftersP2.map((gifter, i) => (
-            <motion.div
-              key={gifter.id}
-              whileHover={{ scale: 1.2, y: -5 }}
-              className="relative"
-            >
-              <Avatar className="h-9 w-9 ring-2 ring-white/30">
-                <AvatarImage src={gifter.avatar} />
-                <AvatarFallback>G</AvatarFallback>
-              </Avatar>
-              <motion.span
-                animate={{ scale: [1, 1.2, 1] }}
-                transition={{ duration: 1, repeat: Infinity, delay: i * 0.2 }}
-                className="absolute -bottom-1 left-1/2 -translate-x-1/2 bg-stream-gold text-black text-[8px] font-bold px-1.5 rounded"
-              >
-                {i + 1}
-              </motion.span>
-            </motion.div>
-          ))}
-          <ChevronRight className="h-4 w-4 text-white/50" />
-        </div>
-      </div>
-
-      {/* Chat Section */}
-      <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-[#1a0a2e] via-[#1a0a2e] to-transparent">
-        <div className="px-4 py-2">
-          <p className="text-stream-cyan text-[11px] leading-relaxed">
-            Room name : Welcome to join the live. Any content related to porn, violence, gambling, illegal dealing will be banned.
-          </p>
-        </div>
-
-        <div className="px-4 pb-2">
-          <Badge className="bg-stream-purple/30 text-stream-cyan border-stream-purple/50 text-[10px]">
-            Announcement : Welcome to room
-          </Badge>
-        </div>
-
-        <div className="px-4 pb-2 max-h-28 overflow-y-auto">
-          <AnimatePresence>
-            {messages.slice(-6).map((msg, i) => (
-              <motion.div
+      {/* Chat + Input */}
+      <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black via-black/90 to-transparent">
+        <div className="px-3 pb-2 max-h-28 overflow-hidden">
+          {messages.slice(-6).map((msg, i) => {
+            const opacity = Math.max(0.4, 0.5 + (i / 6) * 0.5);
+            return (
+              <div
                 key={msg.id}
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: i * 0.05 }}
-                className="flex items-start gap-2 mb-1.5"
+                className="flex items-start gap-1.5 mb-1 animate-fade-in"
+                style={{ opacity }}
               >
-                <span className={cn(
-                  "text-xs font-medium",
-                  msg.isVIP ? "text-stream-gold" : "text-stream-cyan"
-                )}>
+                <span className={cn("text-[11px] font-semibold", msg.isVIP ? "text-stream-gold" : "text-stream-cyan")}>
                   {msg.user}
                 </span>
                 {msg.giftIcon ? (
-                  <motion.span
-                    initial={{ scale: 0 }}
-                    animate={{ scale: 1 }}
-                    className="text-xs text-white bg-stream-purple/30 px-2 py-0.5 rounded-full"
-                  >
-                    {msg.giftIcon} {msg.message}
-                  </motion.span>
-                ) : msg.isVIP && msg.message.includes("Friend Request") ? (
-                  <Badge className="bg-stream-gold/20 text-stream-gold border-stream-gold/30 text-[10px]">
+                  <span className="text-[11px] text-white/90 flex items-center gap-1">
                     {msg.message}
-                  </Badge>
+                    <Gift className="h-3 w-3 text-stream-gold" />
+                  </span>
                 ) : (
-                  <span className="text-xs text-white/80">{msg.message}</span>
+                  <span className="text-[11px] text-white/80">{msg.message}</span>
                 )}
-              </motion.div>
-            ))}
-          </AnimatePresence>
+              </div>
+            );
+          })}
         </div>
 
-        {/* Input Bar */}
-        <div className="flex items-center gap-3 px-4 pb-6 pt-2">
+        <div className="flex items-center gap-2 px-3 pb-6 pt-2">
           <div className="flex-1 relative">
-            <input
-              type="text"
-              value={inputMessage}
-              onChange={(e) => setInputMessage(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && handleSendMessage()}
-              placeholder="Type Something..."
-              className="w-full h-11 rounded-full bg-white/10 border border-white/20 px-4 text-sm text-white placeholder:text-white/40 focus:outline-none focus:border-stream-purple transition-all"
-            />
+            <div className="flex items-center h-10 rounded-full bg-white/10 backdrop-blur-md border border-white/10 px-3 gap-2">
+              <MessageCircle className="h-4 w-4 text-white/40" />
+              <input
+                type="text"
+                value={inputMessage}
+                onChange={(e) => setInputMessage(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handleSendMessage()}
+                placeholder="Say something..."
+                className="flex-1 bg-transparent text-[13px] text-white placeholder:text-white/35 focus:outline-none"
+                data-testid="input-pk-chat"
+              />
+              {inputMessage.trim() && (
+                <button
+                  onClick={handleSendMessage}
+                  className="h-7 w-7 rounded-full flex items-center justify-center bg-stream-purple text-white"
+                  data-testid="button-pk-send"
+                >
+                  <Send className="h-3.5 w-3.5" />
+                </button>
+              )}
+            </div>
           </div>
 
-          <motion.button
-            whileHover={{ scale: 1.1 }}
-            whileTap={{ scale: 0.9 }}
-            className="h-11 w-11 rounded-full bg-gradient-to-br from-yellow-400 to-orange-500 flex items-center justify-center shadow-lg shadow-orange-500/30"
-          >
-            <span className="text-lg">🤟</span>
-          </motion.button>
-
-          <motion.button
-            whileHover={{ scale: 1.1 }}
-            whileTap={{ scale: 0.9 }}
+          <button
             onClick={() => setShowGiftPanel(true)}
-            className="relative h-11 w-11 rounded-full bg-gradient-to-br from-pink-500 to-rose-600 flex items-center justify-center shadow-lg shadow-rose-500/30"
+            className="relative h-10 w-10 rounded-full flex items-center justify-center press-effect flex-shrink-0"
+            data-testid="button-pk-gift"
           >
-            <Gift className="h-5 w-5 text-white" />
-            <motion.div
-              animate={{ scale: [1, 1.3, 1] }}
-              transition={{ duration: 1, repeat: Infinity }}
-              className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-stream-gold flex items-center justify-center"
-            >
-              <Sparkles className="h-2.5 w-2.5 text-black" />
-            </motion.div>
-          </motion.button>
+            <div className="absolute inset-0 rounded-full bg-gradient-to-br from-amber-500 to-orange-600" />
+            <Gift className="h-4 w-4 text-white relative z-10" />
+          </button>
         </div>
       </div>
 
-      {/* Gift Panel */}
-      <AnimatePresence>
-        {showGiftPanel && (
-          <GiftPanel onClose={() => setShowGiftPanel(false)} onGiftSend={handleGiftSend} />
-        )}
-      </AnimatePresence>
+      {showGiftPanel && (
+        <GiftPanel onClose={() => setShowGiftPanel(false)} onGiftSend={handleGiftSend} />
+      )}
 
-      {/* Battle Result Modal */}
-      <AnimatePresence>
-        {showResult && battleResult && (
-          <PKBattleResultModal
-            result={battleResult}
-            winner={leader === "p1" ? battle.player1 : battle.player2}
-            loser={leader === "p1" ? battle.player2 : battle.player1}
-            winnerScore={leader === "p1" ? scores.p1 : scores.p2}
-            loserScore={leader === "p1" ? scores.p2 : scores.p1}
-            onClose={onClose}
-            onBattleAgain={() => {
-              setShowResult(false);
-              setTimeLeft(totalDuration);
-              setScores({ p1: 0, p2: 0 });
-              setPreviousScores({ p1: 0, p2: 0 });
-            }}
-          />
-        )}
-      </AnimatePresence>
-    </motion.div>
+      {showResult && battleResult && (
+        <PKBattleResultModal
+          result={battleResult}
+          winner={leader === "p1" ? battle.player1 : battle.player2}
+          loser={leader === "p1" ? battle.player2 : battle.player1}
+          winnerScore={leader === "p1" ? scores.p1 : scores.p2}
+          loserScore={leader === "p1" ? scores.p2 : scores.p1}
+          onClose={handleClose}
+          onBattleAgain={() => {
+            setShowResult(false);
+            setTimeLeft(totalDuration);
+            setScores({ p1: 0, p2: 0 });
+            setPreviousScores({ p1: 0, p2: 0 });
+          }}
+        />
+      )}
+    </div>
   );
 }

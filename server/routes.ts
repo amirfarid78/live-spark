@@ -3,6 +3,9 @@ import { createServer, type Server } from "http";
 import session from "express-session";
 import MemoryStore from "memorystore";
 import { storage } from "./storage";
+import { db } from "./db";
+import { pkBattles, partyRooms } from "@shared/schema";
+import { eq } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 import { registerObjectStorageRoutes } from "./replit_integrations/object_storage";
 import { verifyFirebaseToken } from "./firebase-admin";
@@ -570,6 +573,77 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const battle = await storage.joinPKBattle(battleId, userId);
       if (!battle) return res.status(404).json({ message: "Battle not found or already full" });
       res.json(battle);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.post("/api/pk-battles/:id/end", requireAuth, async (req, res) => {
+    try {
+      const battleId = parseInt(req.params.id);
+      const { winnerId } = req.body;
+      const battle = await db.update(pkBattles)
+        .set({
+          status: "ended",
+          endedAt: new Date(),
+          winnerId: winnerId || null,
+        })
+        .where(eq(pkBattles.id, battleId))
+        .returning();
+      res.json(battle[0] || null);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.post("/api/pk-battles/:id/score", requireAuth, async (req, res) => {
+    try {
+      const battleId = parseInt(req.params.id);
+      const { player, points } = req.body;
+      const battle = await db.select().from(pkBattles).where(eq(pkBattles.id, battleId)).limit(1);
+      if (!battle[0]) return res.status(404).json({ message: "Battle not found" });
+
+      const updateField = player === "host" ? { hostScore: (battle[0].hostScore || 0) + points } : { opponentScore: (battle[0].opponentScore || 0) + points };
+      const updated = await db.update(pkBattles).set(updateField).where(eq(pkBattles.id, battleId)).returning();
+      res.json(updated[0]);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.post("/api/party-rooms/:id/join", requireAuth, async (req, res) => {
+    try {
+      const roomId = parseInt(req.params.id);
+      const room = await storage.getPartyRoom(roomId);
+      if (!room) return res.status(404).json({ message: "Party room not found" });
+      await db.update(partyRooms).set({ viewerCount: (room.viewerCount || 0) + 1 }).where(eq(partyRooms.id, roomId));
+      res.json({ success: true, channelName: `party-${roomId}` });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.post("/api/party-rooms/:id/leave", requireAuth, async (req, res) => {
+    try {
+      const roomId = parseInt(req.params.id);
+      const room = await storage.getPartyRoom(roomId);
+      if (!room) return res.status(404).json({ message: "Party room not found" });
+      await db.update(partyRooms).set({ viewerCount: Math.max(0, (room.viewerCount || 0) - 1) }).where(eq(partyRooms.id, roomId));
+      res.json({ success: true });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.post("/api/party-rooms/:id/end", requireAuth, async (req, res) => {
+    try {
+      const roomId = parseInt(req.params.id);
+      const userId = (req.session as any).userId;
+      const room = await storage.getPartyRoom(roomId);
+      if (!room) return res.status(404).json({ message: "Party room not found" });
+      if (room.hostId !== userId) return res.status(403).json({ message: "Only the host can end the room" });
+      const updated = await db.update(partyRooms).set({ status: "ended" }).where(eq(partyRooms.id, roomId)).returning();
+      res.json(updated[0]);
     } catch (error: any) {
       res.status(500).json({ message: error.message });
     }

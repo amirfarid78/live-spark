@@ -4,17 +4,18 @@ import AgoraRTC, {
   ICameraVideoTrack,
   IMicrophoneAudioTrack,
   IAgoraRTCRemoteUser,
-  IRemoteVideoTrack,
-  IRemoteAudioTrack,
 } from "agora-rtc-sdk-ng";
 import api from "@/lib/api";
 
 const APP_ID = import.meta.env.VITE_AGORA_APP_ID;
 
+export type AgoraMode = "live" | "audio" | "pk";
+
 interface UseAgoraOptions {
   channelName: string;
   isHost: boolean;
   enabled?: boolean;
+  mode?: AgoraMode;
 }
 
 interface AgoraState {
@@ -28,7 +29,7 @@ interface AgoraState {
   isMicOn: boolean;
 }
 
-export function useAgora({ channelName, isHost, enabled = true }: UseAgoraOptions) {
+export function useAgora({ channelName, isHost, enabled = true, mode = "live" }: UseAgoraOptions) {
   const clientRef = useRef<IAgoraRTCClient | null>(null);
   const localVideoRef = useRef<ICameraVideoTrack | null>(null);
   const localAudioRef = useRef<IMicrophoneAudioTrack | null>(null);
@@ -81,14 +82,19 @@ export function useAgora({ channelName, isHost, enabled = true }: UseAgoraOption
 
     const init = async () => {
       try {
+        const isAudioOnly = mode === "audio";
+        const agoraMode = mode === "audio" ? "rtc" : "live";
         const role = isHost ? "host" : "audience";
+
         const client = AgoraRTC.createClient({
-          mode: "live",
+          mode: agoraMode,
           codec: "vp8",
         });
         clientRef.current = client;
 
-        await client.setClientRole(role);
+        if (agoraMode === "live") {
+          await client.setClientRole(role);
+        }
 
         client.on("user-published", async (user, mediaType) => {
           await client.subscribe(user, mediaType);
@@ -98,12 +104,11 @@ export function useAgora({ channelName, isHost, enabled = true }: UseAgoraOption
             remoteUsers: [...client.remoteUsers],
           }));
           if (mediaType === "audio") {
-            const remoteAudioTrack = user.audioTrack;
-            remoteAudioTrack?.play();
+            user.audioTrack?.play();
           }
         });
 
-        client.on("user-unpublished", (user, mediaType) => {
+        client.on("user-unpublished", () => {
           if (cancelled) return;
           setState(prev => ({
             ...prev,
@@ -131,38 +136,57 @@ export function useAgora({ channelName, isHost, enabled = true }: UseAgoraOption
         joinedRef.current = true;
 
         if (isHost) {
-          const [audioTrack, videoTrack] = await AgoraRTC.createMicrophoneAndCameraTracks(
-            {},
-            {
-              encoderConfig: {
-                width: 720,
-                height: 1280,
-                frameRate: 24,
-                bitrateMax: 1500,
-              },
+          if (isAudioOnly) {
+            const audioTrack = await AgoraRTC.createMicrophoneAudioTrack();
+            if (cancelled) {
+              audioTrack.close();
+              return;
             }
-          );
+            localAudioRef.current = audioTrack;
+            await client.publish([audioTrack]);
 
-          if (cancelled) {
-            audioTrack.close();
-            videoTrack.close();
-            return;
+            setState(prev => ({
+              ...prev,
+              localAudioTrack: audioTrack,
+              isJoined: true,
+              isPublishing: true,
+              isCameraOn: false,
+              isMicOn: true,
+            }));
+          } else {
+            const [audioTrack, videoTrack] = await AgoraRTC.createMicrophoneAndCameraTracks(
+              {},
+              {
+                encoderConfig: {
+                  width: mode === "pk" ? 480 : 720,
+                  height: mode === "pk" ? 640 : 1280,
+                  frameRate: 24,
+                  bitrateMax: mode === "pk" ? 800 : 1500,
+                },
+              }
+            );
+
+            if (cancelled) {
+              audioTrack.close();
+              videoTrack.close();
+              return;
+            }
+
+            localVideoRef.current = videoTrack;
+            localAudioRef.current = audioTrack;
+
+            await client.publish([audioTrack, videoTrack]);
+
+            setState(prev => ({
+              ...prev,
+              localVideoTrack: videoTrack,
+              localAudioTrack: audioTrack,
+              isJoined: true,
+              isPublishing: true,
+              isCameraOn: true,
+              isMicOn: true,
+            }));
           }
-
-          localVideoRef.current = videoTrack;
-          localAudioRef.current = audioTrack;
-
-          await client.publish([audioTrack, videoTrack]);
-
-          setState(prev => ({
-            ...prev,
-            localVideoTrack: videoTrack,
-            localAudioTrack: audioTrack,
-            isJoined: true,
-            isPublishing: true,
-            isCameraOn: true,
-            isMicOn: true,
-          }));
         } else {
           setState(prev => ({
             ...prev,
@@ -186,7 +210,7 @@ export function useAgora({ channelName, isHost, enabled = true }: UseAgoraOption
       cancelled = true;
       cleanup();
     };
-  }, [channelName, isHost, enabled, cleanup]);
+  }, [channelName, isHost, enabled, cleanup, mode]);
 
   const toggleCamera = useCallback(async () => {
     if (localVideoRef.current) {
@@ -208,10 +232,47 @@ export function useAgora({ channelName, isHost, enabled = true }: UseAgoraOption
     await cleanup();
   }, [cleanup]);
 
+  const publishAudio = useCallback(async () => {
+    if (!clientRef.current || !joinedRef.current) return;
+    try {
+      const audioTrack = await AgoraRTC.createMicrophoneAudioTrack();
+      localAudioRef.current = audioTrack;
+      await clientRef.current.publish([audioTrack]);
+      setState(prev => ({
+        ...prev,
+        localAudioTrack: audioTrack,
+        isPublishing: true,
+        isMicOn: true,
+      }));
+    } catch (err: any) {
+      console.error("Failed to publish audio:", err);
+    }
+  }, []);
+
+  const unpublishAudio = useCallback(async () => {
+    if (!clientRef.current || !localAudioRef.current) return;
+    try {
+      await clientRef.current.unpublish([localAudioRef.current]);
+      localAudioRef.current.stop();
+      localAudioRef.current.close();
+      localAudioRef.current = null;
+      setState(prev => ({
+        ...prev,
+        localAudioTrack: null,
+        isPublishing: false,
+        isMicOn: false,
+      }));
+    } catch (err: any) {
+      console.error("Failed to unpublish audio:", err);
+    }
+  }, []);
+
   return {
     ...state,
     toggleCamera,
     toggleMic,
     leave,
+    publishAudio,
+    unpublishAudio,
   };
 }
