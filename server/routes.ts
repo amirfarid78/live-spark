@@ -241,6 +241,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         userId,
         videoId: parseInt(req.params.id),
         content: req.body.content,
+        parentId: req.body.parentId || null,
       });
       res.status(201).json(comment);
     } catch (error: any) {

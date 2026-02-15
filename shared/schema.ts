@@ -105,14 +105,17 @@ export const videoComments = pgTable("video_comments", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   videoId: integer("video_id").notNull().references(() => videos.id, { onDelete: "cascade" }),
+  parentId: integer("parent_id"),
   content: text("content").notNull(),
   likesCount: integer("likes_count").default(0),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
-export const videoCommentsRelations = relations(videoComments, ({ one }) => ({
+export const videoCommentsRelations = relations(videoComments, ({ one, many }) => ({
   user: one(users, { fields: [videoComments.userId], references: [users.id] }),
   video: one(videos, { fields: [videoComments.videoId], references: [videos.id] }),
+  parent: one(videoComments, { fields: [videoComments.parentId], references: [videoComments.id], relationName: "commentReplies" }),
+  replies: many(videoComments, { relationName: "commentReplies" }),
 }));
 
 export const videoSaves = pgTable("video_saves", {

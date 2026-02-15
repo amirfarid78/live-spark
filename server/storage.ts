@@ -231,13 +231,14 @@ export class DatabaseStorage implements IStorage {
     const result = await db
       .select({
         id: videoComments.id, userId: videoComments.userId, videoId: videoComments.videoId,
+        parentId: videoComments.parentId,
         content: videoComments.content, likesCount: videoComments.likesCount, createdAt: videoComments.createdAt,
         user: { id: users.id, username: users.username, displayName: users.displayName, avatarUrl: users.avatarUrl },
       })
       .from(videoComments)
       .innerJoin(users, eq(videoComments.userId, users.id))
       .where(eq(videoComments.videoId, videoId))
-      .orderBy(desc(videoComments.createdAt));
+      .orderBy(videoComments.createdAt);
     return result as any;
   }
 

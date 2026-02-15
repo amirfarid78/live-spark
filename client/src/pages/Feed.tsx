@@ -98,26 +98,32 @@ function VideoCard({ video, isActive, onAuthRequired, isAuthenticated, onOpenCom
     if (isActive) {
       setIsPaused(false);
       videoEl.currentTime = 0;
-      videoEl.muted = false;
-      setIsMuted(false);
-      const tryPlay = () => {
-        videoEl.play().then(() => {
-          if (videoEl.muted) {
+      // Always start muted first - this is required by mobile browsers for autoplay
+      videoEl.muted = true;
+      setIsMuted(true);
+      
+      const playPromise = videoEl.play();
+      if (playPromise !== undefined) {
+        playPromise.then(() => {
+          // Successfully playing (muted). Now try to unmute if user has interacted.
+          if (userHasInteracted) {
             videoEl.muted = false;
             setIsMuted(false);
           }
         }).catch(() => {
-          videoEl.muted = true;
-          setIsMuted(true);
-          videoEl.play().catch(() => {});
+          // Even muted autoplay failed - wait for user interaction
+          const onInteract = () => {
+            videoEl.muted = true;
+            setIsMuted(true);
+            videoEl.play().catch(() => {});
+          };
+          window.addEventListener('touchstart', onInteract, { once: true });
+          window.addEventListener('click', onInteract, { once: true });
         });
-      };
-      if (userHasInteracted) {
-        tryPlay();
-      } else {
-        videoEl.muted = true;
-        setIsMuted(true);
-        videoEl.play().catch(() => {});
+      }
+
+      // Listen for future user interaction to unmute
+      if (!userHasInteracted) {
         const onInteract = () => {
           if (videoEl && !videoEl.paused) {
             videoEl.muted = false;
@@ -224,7 +230,7 @@ function VideoCard({ video, isActive, onAuthRequired, isAuthenticated, onOpenCom
             loop
             muted={isMuted}
             playsInline
-            preload="metadata"
+            preload="auto"
           />
         ) : (
           <img
