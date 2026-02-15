@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { Camera, Mic, Settings, Sparkles, Users, Swords, Music, MessageSquare, FlipHorizontal, Zap, Radio, X } from "lucide-react";
+import { useState } from "react";
+import { Camera, Mic, Settings, Sparkles, Users, Swords, Music, MessageSquare, FlipHorizontal, Zap, Radio, X, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils";
 
 interface GoLiveSheetProps {
   onClose: () => void;
-  onGoLive: (settings: LiveSettings) => void;
+  onGoLive: (settings: LiveSettings) => void | Promise<void>;
 }
 
 interface LiveSettings {
@@ -33,15 +33,23 @@ export function GoLiveSheet({ onClose, onGoLive }: GoLiveSheetProps) {
   const [allowGifts, setAllowGifts] = useState(true);
   const [enablePK, setEnablePK] = useState(false);
   const [isFrontCamera, setIsFrontCamera] = useState(true);
+  const [isStarting, setIsStarting] = useState(false);
 
-  const handleGoLive = () => {
-    onGoLive({
-      title: title || "Live Stream",
-      category: selectedCategory,
-      isPrivate,
-      allowGifts,
-      enablePK,
-    });
+  const handleGoLive = async () => {
+    setIsStarting(true);
+    try {
+      await onGoLive({
+        title: title || "Live Stream",
+        category: selectedCategory,
+        isPrivate,
+        allowGifts,
+        enablePK,
+      });
+    } catch {
+      // keep sheet open on error
+    } finally {
+      setIsStarting(false);
+    }
   };
 
   return (
@@ -166,10 +174,21 @@ export function GoLiveSheet({ onClose, onGoLive }: GoLiveSheetProps) {
         {/* Go Live Button */}
         <Button
           onClick={handleGoLive}
-          className="w-full h-14 rounded-2xl bg-gradient-live text-white font-bold text-lg shadow-xl shadow-stream-live/40 hover:opacity-90 press-effect"
+          disabled={isStarting}
+          className="w-full h-14 rounded-2xl bg-gradient-live text-white font-bold text-lg shadow-xl shadow-stream-live/40 hover:opacity-90 press-effect disabled:opacity-60"
+          data-testid="button-go-live"
         >
-          <Radio className="h-5 w-5 mr-2" />
-          Go Live
+          {isStarting ? (
+            <>
+              <Loader2 className="h-5 w-5 mr-2 animate-spin" />
+              Starting...
+            </>
+          ) : (
+            <>
+              <Radio className="h-5 w-5 mr-2" />
+              Go Live
+            </>
+          )}
         </Button>
       </div>
     </div>

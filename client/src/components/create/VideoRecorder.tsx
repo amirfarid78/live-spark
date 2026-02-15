@@ -28,6 +28,7 @@ export function VideoRecorder({ onVideoRecorded, onClose }: VideoRecorderProps) 
   const animationRef = useRef<number>(0);
   const timerIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const countdownRef = useRef<NodeJS.Timeout | null>(null);
+  const recordingTimeRef = useRef<number>(0);
 
   const [isRecording, setIsRecording] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
@@ -165,17 +166,21 @@ export function VideoRecorder({ onVideoRecorded, onClose }: VideoRecorderProps) 
 
     recorder.onstop = () => {
       const blob = new Blob(chunksRef.current, { type: mimeType });
-      onVideoRecorded(blob, recordingTime);
+      if (blob.size > 0) {
+        onVideoRecorded(blob, recordingTimeRef.current);
+      }
     };
 
     mediaRecorderRef.current = recorder;
     recorder.start(100);
     setIsRecording(true);
     setRecordingTime(0);
+    recordingTimeRef.current = 0;
 
     animationRef.current = requestAnimationFrame(renderFilteredFrame);
 
     timerIntervalRef.current = setInterval(() => {
+      recordingTimeRef.current += 1;
       setRecordingTime(prev => {
         if (prev >= MAX_DURATION) {
           stopRecording();
@@ -184,7 +189,7 @@ export function VideoRecorder({ onVideoRecorded, onClose }: VideoRecorderProps) 
         return prev + 1;
       });
     }, 1000);
-  }, [renderFilteredFrame, onVideoRecorded, recordingTime]);
+  }, [renderFilteredFrame, onVideoRecorded]);
 
   const stopRecording = useCallback(() => {
     if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {

@@ -159,6 +159,7 @@ export default function Live() {
   const [selectedPKBattle, setSelectedPKBattle] = useState<PKBattle | null>(null);
   const [showGoLive, setShowGoLive] = useState(false);
   const [showCreateParty, setShowCreateParty] = useState(false);
+  const [isHostingStream, setIsHostingStream] = useState(false);
 
   const { data: featuredStreamers = [], isLoading: isFeaturedLoading } = useQuery<FeaturedStreamer[]>({
     queryKey: ['/api/live/featured'],
@@ -226,14 +227,28 @@ export default function Live() {
 
   const handleGoLive = async (settings: any) => {
     try {
-      await api.post('/live/streams', {
+      const res = await api.post('/live/streams', {
         title: settings.title,
         category: settings.category,
         isPK: settings.enablePK,
       });
+      const stream = res.data;
       queryClient.invalidateQueries({ queryKey: ['/api/live/streams'] });
       queryClient.invalidateQueries({ queryKey: ['/api/live/featured'] });
       setShowGoLive(false);
+      setSelectedStream({
+        id: stream.id,
+        hostId: stream.hostId,
+        title: stream.title || settings.title || 'Live Stream',
+        host: user?.displayName || user?.username || 'You',
+        hostAvatar: user?.avatarUrl || '',
+        viewers: 0,
+        thumbnail: '',
+        isLive: true,
+        isPK: settings.enablePK || false,
+        category: settings.category || '',
+      });
+      setIsHostingStream(true);
     } catch (error) {
       console.error("Failed to start stream:", error);
     }
@@ -245,6 +260,7 @@ export default function Live() {
       queryClient.invalidateQueries({ queryKey: ['/api/live/streams'] });
       queryClient.invalidateQueries({ queryKey: ['/api/live/featured'] });
       setSelectedStream(null);
+      setIsHostingStream(false);
     } catch (error) {
       console.error("Failed to end stream:", error);
     }
@@ -425,8 +441,8 @@ export default function Live() {
           hostAvatar={selectedStream.hostAvatar}
           viewerCount={selectedStream.viewers}
           thumbnail={selectedStream.thumbnail}
-          isHost={user?.id === selectedStream.hostId}
-          onClose={() => setSelectedStream(null)}
+          isHost={isHostingStream || user?.id === selectedStream.hostId}
+          onClose={() => { setSelectedStream(null); setIsHostingStream(false); }}
           onEndStream={handleEndStream}
         />
       )}

@@ -134,16 +134,28 @@ export function LiveRoomViewer({ streamId, hostName, hostAvatar, viewerCount, th
     )}>
       {/* Video Background */}
       <div className="absolute inset-0">
-        <img
-          src={thumbnail}
-          alt={hostName}
-          className="h-full w-full object-cover animate-scale-in-slow"
-        />
+        {thumbnail ? (
+          <img
+            src={thumbnail}
+            alt={hostName}
+            className="h-full w-full object-cover animate-scale-in-slow"
+          />
+        ) : (
+          <div className="h-full w-full bg-gradient-to-br from-[#1a0533] via-[#12122a] to-[#0a1628] animate-scale-in-slow" />
+        )}
         <div className="absolute inset-0 bg-gradient-to-t from-[#0d0d1a] via-transparent to-[#0d0d1a]/60" />
         <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-transparent to-transparent" />
         <div className="absolute bottom-0 left-0 right-0 h-3/4 bg-gradient-to-t from-[#12122a] via-[#12122a]/50 to-transparent pointer-events-none" />
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_0%,rgba(0,0,0,0.3)_100%)]" />
       </div>
+
+      {/* Host Live Indicator */}
+      {isHost && (
+        <div className="absolute top-16 left-1/2 -translate-x-1/2 z-20 flex items-center gap-2 bg-red-600/90 backdrop-blur-sm rounded-full px-4 py-2">
+          <div className="h-2.5 w-2.5 rounded-full bg-white animate-pulse" />
+          <span className="text-white text-sm font-bold">You're Live</span>
+        </div>
+      )}
 
       {/* Flying Gift Animations */}
       {flyingGifts.map((gift) => (
