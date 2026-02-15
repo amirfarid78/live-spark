@@ -25,6 +25,7 @@ import Agency from "./pages/Agency";
 import StoreManagement from "./pages/StoreManagement";
 import Settings from "./pages/Settings";
 import Admin from "./pages/Admin";
+import UserProfile from "./pages/UserProfile";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -163,6 +164,11 @@ function AppContent() {
           } />
         </Route>
         
+        {/* User profile - with shell */}
+        <Route element={<AppShell showRightSidebar={false} />}>
+          <Route path="/user/:id" element={<UserProfile />} />
+        </Route>
+
         {/* Settings - no shell, full page */}
         <Route path="/settings" element={
           <ProtectedRoute>

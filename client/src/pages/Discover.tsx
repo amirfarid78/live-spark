@@ -45,6 +45,17 @@ export default function Discover() {
   const [followedUsers, setFollowedUsers] = useState<Set<number>>(new Set());
   const [pendingFollows, setPendingFollows] = useState<Set<number>>(new Set());
 
+  const debouncedSearch = searchQuery.trim();
+  const { data: searchResults = [], isLoading: searchLoading } = useQuery<any[]>({
+    queryKey: ["/api/users/search", debouncedSearch],
+    queryFn: async () => {
+      if (!debouncedSearch) return [];
+      const res = await api.get(`/users/search?q=${encodeURIComponent(debouncedSearch)}`);
+      return res.data;
+    },
+    enabled: debouncedSearch.length > 0,
+  });
+
   const { data: hashtagsData, isLoading: hashtagsLoading } = useQuery({
     queryKey: ["/api/hashtags/trending"],
     queryFn: async () => {
@@ -154,9 +165,40 @@ export default function Discover() {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 onFocus={() => setSearchFocused(true)}
-                onBlur={() => setSearchFocused(false)}
+                onBlur={() => setTimeout(() => setSearchFocused(false), 200)}
                 className="pl-12 h-12 bg-secondary/80 border-0 rounded-xl text-base font-medium placeholder:text-muted-foreground/70"
+                data-testid="input-search-discover-desktop"
               />
+              {debouncedSearch.length > 0 && (
+                <div className="absolute top-full left-0 right-0 mt-2 bg-card border border-border rounded-xl shadow-xl overflow-hidden z-50 max-h-80 overflow-y-auto">
+                  {searchLoading ? (
+                    <div className="p-4 flex items-center justify-center">
+                      <Skeleton className="h-8 w-8 rounded-full" />
+                    </div>
+                  ) : searchResults.length === 0 ? (
+                    <div className="p-4 text-center text-muted-foreground text-sm">No users found</div>
+                  ) : (
+                    searchResults.map((u: any) => (
+                      <button
+                        key={u.id}
+                        onClick={() => { setSearchQuery(""); navigate(`/user/${u.id}`); }}
+                        className="flex items-center gap-3 px-4 py-3 w-full hover-elevate transition-colors"
+                        data-testid={`search-desktop-user-${u.id}`}
+                      >
+                        <Avatar className="h-10 w-10">
+                          <AvatarImage src={u.avatarUrl} />
+                          <AvatarFallback>{(u.displayName || u.username || "U")[0]}</AvatarFallback>
+                        </Avatar>
+                        <div className="text-left flex-1 min-w-0">
+                          <span className="font-semibold text-sm truncate block">{u.displayName || u.username}</span>
+                          <span className="text-xs text-muted-foreground">@{u.username}</span>
+                        </div>
+                        <span className="text-xs text-muted-foreground">{formatNumber(u.followersCount || 0)} followers</span>
+                      </button>
+                    ))
+                  )}
+                </div>
+              )}
             </div>
           </div>
         </header>
@@ -296,7 +338,7 @@ export default function Discover() {
                             `stagger-${index + 1}`
                           )}
                         >
-                          <div className="relative">
+                          <button className="relative" onClick={() => navigate(`/user/${user.id}`)}>
                             <Avatar className={cn(
                               "h-14 w-14 ring-2 ring-offset-2 ring-offset-background",
                               user.isLive ? "ring-stream-live" : "ring-transparent"
@@ -309,8 +351,8 @@ export default function Discover() {
                                 LIVE
                               </span>
                             )}
-                          </div>
-                          <div className="flex-1 min-w-0">
+                          </button>
+                          <button className="flex-1 min-w-0 text-left" onClick={() => navigate(`/user/${user.id}`)}>
                             <div className="flex items-center gap-1.5">
                               <span className="font-bold text-[15px] truncate">{user.name}</span>
                               {user.isVerified && (
@@ -322,7 +364,7 @@ export default function Discover() {
                               )}
                             </div>
                             <p className="text-sm text-muted-foreground">{user.followers} followers</p>
-                          </div>
+                          </button>
                           <Button
                             size="sm"
                             data-testid={`button-follow-${user.id}`}
@@ -363,16 +405,83 @@ export default function Discover() {
           )}>
             <Search className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
             <Input
-              placeholder="Search"
+              placeholder="Search users, hashtags..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               onFocus={() => setSearchFocused(true)}
-              onBlur={() => setSearchFocused(false)}
+              onBlur={() => setTimeout(() => setSearchFocused(false), 200)}
               className="pl-12 h-12 bg-secondary/80 border-0 rounded-2xl text-base font-medium placeholder:text-muted-foreground/70"
+              data-testid="input-search-discover"
             />
+            {searchQuery.trim() && (
+              <button
+                onClick={() => setSearchQuery("")}
+                className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground"
+                data-testid="button-clear-search"
+              >
+                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+              </button>
+            )}
           </div>
         </div>
       </header>
+
+      {debouncedSearch.length > 0 ? (
+        <div className="flex-1 pb-24 overflow-y-auto">
+          <div className="px-4 py-3">
+            <h3 className="text-sm font-bold text-muted-foreground uppercase tracking-wider mb-3">Search Results</h3>
+            {searchLoading ? (
+              <div className="space-y-3">
+                {Array.from({ length: 4 }).map((_, i) => (
+                  <div key={i} className="flex items-center gap-3 p-3">
+                    <Skeleton className="h-12 w-12 rounded-full" />
+                    <div className="flex-1 space-y-2">
+                      <Skeleton className="h-4 w-28" />
+                      <Skeleton className="h-3 w-20" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : searchResults.length === 0 ? (
+              <div className="flex flex-col items-center py-12 text-muted-foreground">
+                <Search className="h-10 w-10 mb-3 opacity-40" />
+                <p className="font-medium">No results found</p>
+                <p className="text-sm mt-1">Try a different search term</p>
+              </div>
+            ) : (
+              <div className="space-y-1">
+                {searchResults.map((u: any) => (
+                  <button
+                    key={u.id}
+                    onClick={() => navigate(`/user/${u.id}`)}
+                    className="flex items-center gap-3 p-3 w-full rounded-xl hover-elevate transition-colors"
+                    data-testid={`search-result-user-${u.id}`}
+                  >
+                    <Avatar className="h-12 w-12">
+                      <AvatarImage src={u.avatarUrl} />
+                      <AvatarFallback>{(u.displayName || u.username || "U")[0]}</AvatarFallback>
+                    </Avatar>
+                    <div className="text-left flex-1 min-w-0">
+                      <div className="flex items-center gap-1.5">
+                        <span className="font-semibold truncate">{u.displayName || u.username}</span>
+                        {u.isVerified && (
+                          <div className="flex h-4 w-4 items-center justify-center rounded-full bg-primary shrink-0">
+                            <svg className="h-2.5 w-2.5 text-white" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                            </svg>
+                          </div>
+                        )}
+                      </div>
+                      <p className="text-sm text-muted-foreground">@{u.username}</p>
+                    </div>
+                    <span className="text-xs text-muted-foreground">{formatNumber(u.followersCount || 0)} followers</span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      ) : (
 
       <div className="flex-1 pb-24 overflow-y-auto">
         <section className="px-4 pt-5 pb-2">
@@ -457,7 +566,7 @@ export default function Discover() {
                     `stagger-${index + 1}`
                   )}
                 >
-                  <div className="relative">
+                  <button className="relative" onClick={() => navigate(`/user/${user.id}`)}>
                     <Avatar className={cn(
                       "h-14 w-14 ring-2 ring-offset-2 ring-offset-background",
                       user.isLive ? "ring-stream-live" : "ring-transparent"
@@ -470,8 +579,8 @@ export default function Discover() {
                         LIVE
                       </span>
                     )}
-                  </div>
-                  <div className="flex-1 min-w-0">
+                  </button>
+                  <button className="flex-1 min-w-0 text-left" onClick={() => navigate(`/user/${user.id}`)}>
                     <div className="flex items-center gap-1.5">
                       <span className="font-bold text-[15px] truncate">{user.name}</span>
                       {user.isVerified && (
@@ -483,7 +592,7 @@ export default function Discover() {
                       )}
                     </div>
                     <p className="text-sm text-muted-foreground">{user.username}</p>
-                  </div>
+                  </button>
                   <Button
                     size="sm"
                     data-testid={`button-follow-mobile-${user.id}`}
@@ -543,6 +652,7 @@ export default function Discover() {
           </div>
         </section>
       </div>
+      )}
     </div>
   );
 }

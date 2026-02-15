@@ -17,6 +17,7 @@ import api from "@/lib/api";
 
 interface Video {
   id: string;
+  userId: number;
   user: {
     name: string;
     username: string;
@@ -82,6 +83,7 @@ function VideoCard({ video, isActive, onAuthRequired, isAuthenticated, onOpenCom
   const [isMuted, setIsMuted] = useState(false);
   const [showHeart, setShowHeart] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
+  const feedNavigate = useNavigate();
 
   // Sync with prop changes
   useEffect(() => {
@@ -288,10 +290,12 @@ function VideoCard({ video, isActive, onAuthRequired, isAuthenticated, onOpenCom
       <div className="absolute right-2 bottom-32 flex flex-col items-center gap-3 z-10">
         {/* Profile */}
         <div className="relative mb-1">
-          <Avatar className="h-12 w-12 ring-[2.5px] ring-white shadow-xl">
-            <AvatarImage src={video.user.avatar} />
-            <AvatarFallback>{video.user.name[0]}</AvatarFallback>
-          </Avatar>
+          <button onClick={(e) => { e.stopPropagation(); if (video.userId) feedNavigate(`/user/${video.userId}`); }} data-testid={`avatar-user-${video.userId}`}>
+            <Avatar className="h-12 w-12 ring-[2.5px] ring-white shadow-xl">
+              <AvatarImage src={video.user.avatar} />
+              <AvatarFallback>{video.user.name[0]}</AvatarFallback>
+            </Avatar>
+          </button>
           <button
             onClick={() => handleAuthAction(() => setIsFollowing(!isFollowing))}
             className={cn(
@@ -366,7 +370,11 @@ function VideoCard({ video, isActive, onAuthRequired, isAuthenticated, onOpenCom
       {/* Bottom Info */}
       <div className="absolute bottom-20 left-3 right-16 z-10">
         <div className="flex items-center gap-2 mb-1.5">
-          <span className="font-bold text-white text-[15px]">{video.user.username}</span>
+          <button
+            onClick={(e) => { e.stopPropagation(); if (video.userId) feedNavigate(`/user/${video.userId}`); }}
+            className="font-bold text-white text-[15px] press-effect"
+            data-testid={`link-user-${video.userId}`}
+          >{video.user.username}</button>
           {video.user.isVerified && (
             <div className="flex h-4 w-4 items-center justify-center rounded-full bg-[#20D5EC]">
               <svg className="h-2.5 w-2.5 text-white" fill="currentColor" viewBox="0 0 20 20">
@@ -490,6 +498,7 @@ function DesktopVideoPlayer({
   const [isMuted, setIsMuted] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
+  const desktopNav = useNavigate();
 
   // Sync state when video changes
   useEffect(() => {
@@ -620,12 +629,12 @@ function DesktopVideoPlayer({
         {/* Bottom Info */}
         <div className="absolute bottom-0 left-0 right-0 p-4 z-10">
           {/* User Info */}
-          <div className="flex items-center gap-3 mb-3">
+          <button className="flex items-center gap-3 mb-3" onClick={() => video.userId && desktopNav(`/user/${video.userId}`)} data-testid={`desktop-user-${video.userId}`}>
             <Avatar className="h-11 w-11 ring-2 ring-white/50">
               <AvatarImage src={video.user.avatar} />
               <AvatarFallback>{video.user.name[0]}</AvatarFallback>
             </Avatar>
-            <div>
+            <div className="text-left">
               <div className="flex items-center gap-1.5">
                 <span className="font-bold text-white">{video.user.name}</span>
                 {video.user.isVerified && (
@@ -638,7 +647,7 @@ function DesktopVideoPlayer({
               </div>
               <span className="text-sm text-white/70">{video.user.username}</span>
             </div>
-          </div>
+          </button>
 
           {/* Description */}
           <p className="text-white text-sm mb-3 line-clamp-2">{video.description}</p>
@@ -792,6 +801,7 @@ export default function Feed() {
   // Map API data to Video format
   const videos: Video[] = (feedData?.items || feedData?.data || (Array.isArray(feedData) ? feedData : []))?.map((v: any) => ({
     id: String(v.id),
+    userId: v.userId || v.user_id || v.user?.id || 0,
     user: {
       name: v.user?.displayName || v.user?.display_name || v.user?.username || 'User',
       username: `@${v.user?.username || 'user'}`,

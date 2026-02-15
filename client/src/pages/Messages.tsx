@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Search, Edit, Image, Phone, Video, Send, Smile, Paperclip, MoreVertical, ArrowLeft, Loader2 } from "lucide-react";
+import { useLocation, useNavigate } from "react-router-dom";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -439,6 +440,7 @@ function ConversationList({ conversations, isLoading, onSelectChat, selectedChat
 
 export default function Messages() {
   const isMobile = useIsMobile();
+  const location = useLocation();
   const [selectedChat, setSelectedChat] = useState<MappedConversation | null>(null);
   const [newMessageOpen, setNewMessageOpen] = useState(false);
   const queryClient = useQueryClient();
@@ -450,6 +452,30 @@ export default function Messages() {
       return (res.data || []).map(mapConversation);
     },
   });
+
+  useEffect(() => {
+    const state = location.state as { chatId?: number; chatName?: string } | null;
+    if (state?.chatId && conversations.length > 0) {
+      const existing = conversations.find(c => c.id === state.chatId);
+      if (existing) {
+        setSelectedChat(existing);
+      } else {
+        setSelectedChat({
+          id: state.chatId,
+          name: state.chatName || "Chat",
+          avatar: "",
+          lastMessage: "",
+          time: "",
+          unread: 0,
+          online: false,
+          isVerified: false,
+          isGroup: false,
+          typing: false,
+        });
+      }
+      window.history.replaceState({}, document.title);
+    }
+  }, [location.state, conversations]);
 
   const startChatMutation = useMutation({
     mutationFn: async (targetId: number) => {
