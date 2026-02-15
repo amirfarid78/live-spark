@@ -51,6 +51,8 @@
     "@uppy/core": "^5.2.0",
     "@uppy/dashboard": "^5.1.1",
     "@uppy/react": "^5.2.0",
+    "agora-rtc-sdk-ng": "^4.24.2",
+    "agora-token": "^2.0.5",
     "axios": "^1.13.5",
     "bcryptjs": "^3.0.3",
     "class-variance-authority": "^0.7.1",
