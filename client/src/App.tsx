@@ -23,6 +23,8 @@ import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import Agency from "./pages/Agency";
 import StoreManagement from "./pages/StoreManagement";
+import Settings from "./pages/Settings";
+import Admin from "./pages/Admin";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -161,6 +163,20 @@ function AppContent() {
           } />
         </Route>
         
+        {/* Settings - no shell, full page */}
+        <Route path="/settings" element={
+          <ProtectedRoute>
+            <Settings />
+          </ProtectedRoute>
+        } />
+
+        {/* Admin panel - no shell, full page */}
+        <Route path="/admin" element={
+          <ProtectedRoute>
+            <Admin />
+          </ProtectedRoute>
+        } />
+
         {/* Shop product detail - no shell */}
         <Route path="/shop/product/:handle" element={<ProductDetail />} />
         

@@ -332,6 +332,41 @@ export type Message = typeof messages.$inferSelect;
 export type InsertMessage = typeof messages.$inferInsert;
 export type Agency = typeof agencies.$inferSelect;
 export type InsertAgency = typeof agencies.$inferInsert;
+export const userSettings = pgTable("user_settings", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }).unique(),
+  privateAccount: boolean("private_account").default(false),
+  allowComments: text("allow_comments").default("everyone"),
+  allowDuets: text("allow_duets").default("everyone"),
+  allowStitch: text("allow_stitch").default("everyone"),
+  allowMessages: text("allow_messages").default("everyone"),
+  suggestToOthers: boolean("suggest_to_others").default(true),
+  allowDownloads: boolean("allow_downloads").default(true),
+  pushNotifications: boolean("push_notifications").default(true),
+  liveNotifications: boolean("live_notifications").default(true),
+  messageNotifications: boolean("message_notifications").default(true),
+  commentNotifications: boolean("comment_notifications").default(true),
+  followerNotifications: boolean("follower_notifications").default(true),
+  likeNotifications: boolean("like_notifications").default(true),
+  mentionNotifications: boolean("mention_notifications").default(true),
+  videoQuality: text("video_quality").default("auto"),
+  autoplayVideos: boolean("autoplay_videos").default(true),
+  dataSaver: boolean("data_saver").default(false),
+  language: text("language").default("en"),
+  contentLanguages: text("content_languages").array().default(["en"]),
+  restrictedMode: boolean("restricted_mode").default(false),
+  screenTimeReminder: boolean("screen_time_reminder").default(false),
+  darkMode: text("dark_mode").default("system"),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const userSettingsRelations = relations(userSettings, ({ one }) => ({
+  user: one(users, { fields: [userSettings.userId], references: [users.id] }),
+}));
+
+export type UserSettings = typeof userSettings.$inferSelect;
+export type InsertUserSettings = typeof userSettings.$inferInsert;
+
 export type Gift = typeof gifts.$inferSelect;
 export type InsertGift = typeof gifts.$inferInsert;
 export type Campaign = typeof campaigns.$inferSelect;

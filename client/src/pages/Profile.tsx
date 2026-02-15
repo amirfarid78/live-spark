@@ -111,7 +111,7 @@ export default function Profile() {
             <Button variant="ghost" size="icon" className="h-10 w-10 rounded-xl press-effect" onClick={handleSignOut}>
               <LogOut className="h-5 w-5" />
             </Button>
-            <Button variant="ghost" size="icon" className="h-10 w-10 rounded-xl press-effect">
+            <Button variant="ghost" size="icon" className="h-10 w-10 rounded-xl press-effect" onClick={() => navigate("/settings")} data-testid="button-settings">
               <Settings className="h-5 w-5" />
             </Button>
           </div>

@@ -807,6 +807,129 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // ==================== SETTINGS ====================
+
+  app.get("/api/settings", requireAuth, async (req, res) => {
+    try {
+      const userId = (req.session as any).userId;
+      let settings = await storage.getUserSettings(userId);
+      if (!settings) {
+        settings = await storage.upsertUserSettings(userId, {});
+      }
+      res.json(settings);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.patch("/api/settings", requireAuth, async (req, res) => {
+    try {
+      const userId = (req.session as any).userId;
+      const allowedFields = [
+        "privateAccount", "allowComments", "allowDuets", "allowStitch", "allowMessages",
+        "suggestToOthers", "allowDownloads", "pushNotifications", "liveNotifications",
+        "messageNotifications", "commentNotifications", "followerNotifications",
+        "likeNotifications", "mentionNotifications", "videoQuality", "autoplayVideos",
+        "dataSaver", "language", "restrictedMode", "screenTimeReminder", "darkMode"
+      ];
+      const filtered: any = {};
+      for (const key of allowedFields) {
+        if (key in req.body) filtered[key] = req.body[key];
+      }
+      const settings = await storage.upsertUserSettings(userId, filtered);
+      res.json(settings);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // ==================== ADMIN ====================
+
+  function requireAdmin(req: any, res: any, next: any) {
+    const userId = req.session?.userId;
+    if (!userId) return res.status(401).json({ message: "Not authenticated" });
+    storage.getUserRoles(userId).then(roles => {
+      if (roles.includes("admin") || roles.includes("moderator")) {
+        next();
+      } else {
+        res.status(403).json({ message: "Admin access required" });
+      }
+    });
+  }
+
+  app.get("/api/admin/stats", requireAdmin, async (req, res) => {
+    try {
+      const stats = await storage.getAdminStats();
+      res.json(stats);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.get("/api/admin/users", requireAdmin, async (req, res) => {
+    try {
+      const limit = parseInt(req.query.limit as string) || 50;
+      const offset = parseInt(req.query.offset as string) || 0;
+      const allUsers = await storage.getAllUsers(limit, offset);
+      const sanitized = allUsers.map(({ password: _, ...u }) => u);
+      res.json(sanitized);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.patch("/api/admin/users/:id", requireAdmin, async (req, res) => {
+    try {
+      const userId = parseInt(req.params.id);
+      const { isVerified, level, coinsBalance, diamondsBalance, bio, displayName } = req.body;
+      const updates: any = {};
+      if (isVerified !== undefined) updates.isVerified = isVerified;
+      if (level) updates.level = level;
+      if (coinsBalance !== undefined) updates.coinsBalance = coinsBalance;
+      if (diamondsBalance !== undefined) updates.diamondsBalance = diamondsBalance;
+      if (bio !== undefined) updates.bio = bio;
+      if (displayName !== undefined) updates.displayName = displayName;
+      const user = await storage.updateUser(userId, updates);
+      if (!user) return res.status(404).json({ message: "User not found" });
+      const { password: _, ...safe } = user;
+      res.json(safe);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.post("/api/admin/users/:id/role", requireAdmin, async (req, res) => {
+    try {
+      const userId = parseInt(req.params.id);
+      const { role } = req.body;
+      if (!role) return res.status(400).json({ message: "role is required" });
+      await storage.setUserRole(userId, role);
+      res.json({ success: true });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.get("/api/admin/videos", requireAdmin, async (req, res) => {
+    try {
+      const limit = parseInt(req.query.limit as string) || 50;
+      const offset = parseInt(req.query.offset as string) || 0;
+      const allVideos = await storage.getAllVideos(limit, offset);
+      res.json(allVideos);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.delete("/api/admin/videos/:id", requireAdmin, async (req, res) => {
+    try {
+      await storage.deleteVideo(parseInt(req.params.id));
+      res.json({ success: true });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
   registerObjectStorageRoutes(app);
 
   const httpServer = createServer(app);

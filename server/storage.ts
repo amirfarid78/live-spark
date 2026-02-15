@@ -1,12 +1,13 @@
 import {
   users, videos, videoLikes, videoSaves, videoComments, followers, userRoles,
   hashtags, liveStreams, partyRooms, pkBattles, conversations, conversationMembers,
-  messages, agencies, gifts, giftTransactions, campaigns, walletTransactions,
+  messages, agencies, gifts, giftTransactions, campaigns, walletTransactions, userSettings,
   type User, type InsertUser, type Video, type InsertVideo, type VideoComment, type InsertVideoComment,
   type Hashtag, type InsertHashtag, type LiveStream, type InsertLiveStream,
   type PartyRoom, type InsertPartyRoom, type PKBattle, type InsertPKBattle,
   type Conversation, type Message, type InsertMessage,
   type Agency, type InsertAgency, type Gift, type Campaign, type InsertCampaign,
+  type UserSettings, type InsertUserSettings,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, sql, ilike, ne, inArray, asc, isNull } from "drizzle-orm";
@@ -82,6 +83,16 @@ export interface IStorage {
   getUserLikedVideos(userId: number, limit?: number, offset?: number): Promise<(Video & { user: Pick<User, "id" | "username" | "displayName" | "avatarUrl" | "isVerified"> })[]>;
   getUserSavedVideos(userId: number, limit?: number, offset?: number): Promise<(Video & { user: Pick<User, "id" | "username" | "displayName" | "avatarUrl" | "isVerified"> })[]>;
   sendGift(senderId: number, receiverId: number, giftId: number, quantity: number, contextType: string, contextId: number): Promise<any>;
+
+  getUserSettings(userId: number): Promise<UserSettings | undefined>;
+  upsertUserSettings(userId: number, settings: Partial<InsertUserSettings>): Promise<UserSettings>;
+
+  getUserRoles(userId: number): Promise<string[]>;
+  getAllUsers(limit?: number, offset?: number): Promise<User[]>;
+  getAllVideos(limit?: number, offset?: number): Promise<(Video & { user: Pick<User, "id" | "username" | "displayName" | "avatarUrl"> })[]>;
+  deleteVideo(videoId: number): Promise<void>;
+  setUserRole(userId: number, role: string): Promise<void>;
+  getAdminStats(): Promise<{ totalUsers: number; totalVideos: number; totalStreams: number; totalAgencies: number }>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -675,6 +686,75 @@ export class DatabaseStorage implements IStorage {
     await db.insert(walletTransactions).values({ userId: receiverId, type: "gift_received", amount: totalCost, currency: "diamonds", description: `Received ${gift[0].name} x${quantity}` });
 
     return txn;
+  }
+
+  async getUserSettings(userId: number): Promise<UserSettings | undefined> {
+    const [settings] = await db.select().from(userSettings).where(eq(userSettings.userId, userId));
+    return settings || undefined;
+  }
+
+  async upsertUserSettings(userId: number, updates: Partial<InsertUserSettings>): Promise<UserSettings> {
+    const existing = await this.getUserSettings(userId);
+    if (existing) {
+      const [updated] = await db.update(userSettings)
+        .set({ ...updates, updatedAt: new Date() })
+        .where(eq(userSettings.userId, userId))
+        .returning();
+      return updated;
+    }
+    const [created] = await db.insert(userSettings)
+      .values({ ...updates, userId })
+      .returning();
+    return created;
+  }
+
+  async getUserRoles(userId: number): Promise<string[]> {
+    const roles = await db.select({ role: userRoles.role }).from(userRoles).where(eq(userRoles.userId, userId));
+    return roles.map(r => r.role);
+  }
+
+  async getAllUsers(limit = 50, offset = 0): Promise<User[]> {
+    return db.select().from(users).orderBy(desc(users.createdAt)).limit(limit).offset(offset);
+  }
+
+  async getAllVideos(limit = 50, offset = 0): Promise<(Video & { user: Pick<User, "id" | "username" | "displayName" | "avatarUrl"> })[]> {
+    const result = await db.select({
+      id: videos.id, userId: videos.userId, description: videos.description,
+      videoUrl: videos.videoUrl, thumbnailUrl: videos.thumbnailUrl, songName: videos.songName,
+      hashtags: videos.hashtags, likesCount: videos.likesCount, commentsCount: videos.commentsCount,
+      sharesCount: videos.sharesCount, viewsCount: videos.viewsCount, isPublished: videos.isPublished,
+      createdAt: videos.createdAt,
+      user: { id: users.id, username: users.username, displayName: users.displayName, avatarUrl: users.avatarUrl },
+    })
+    .from(videos)
+    .innerJoin(users, eq(videos.userId, users.id))
+    .orderBy(desc(videos.createdAt))
+    .limit(limit).offset(offset);
+    return result as any;
+  }
+
+  async deleteVideo(videoId: number): Promise<void> {
+    await db.delete(videos).where(eq(videos.id, videoId));
+  }
+
+  async setUserRole(userId: number, role: string): Promise<void> {
+    const existing = await db.select().from(userRoles).where(and(eq(userRoles.userId, userId), eq(userRoles.role, role as any)));
+    if (existing.length === 0) {
+      await db.insert(userRoles).values({ userId, role: role as any });
+    }
+  }
+
+  async getAdminStats(): Promise<{ totalUsers: number; totalVideos: number; totalStreams: number; totalAgencies: number }> {
+    const [userCount] = await db.select({ count: sql<number>`count(*)::int` }).from(users);
+    const [videoCount] = await db.select({ count: sql<number>`count(*)::int` }).from(videos);
+    const [streamCount] = await db.select({ count: sql<number>`count(*)::int` }).from(liveStreams);
+    const [agencyCount] = await db.select({ count: sql<number>`count(*)::int` }).from(agencies);
+    return {
+      totalUsers: userCount.count,
+      totalVideos: videoCount.count,
+      totalStreams: streamCount.count,
+      totalAgencies: agencyCount.count,
+    };
   }
 }
 

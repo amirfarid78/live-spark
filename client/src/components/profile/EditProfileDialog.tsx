@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { X, Camera, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useProfile } from "@/hooks/useProfile";
+import { useUpload } from "@/hooks/use-upload";
 import { toast } from "@/hooks/use-toast";
 
 interface EditProfileDialogProps {
@@ -20,14 +21,46 @@ interface EditProfileDialogProps {
 
 export function EditProfileDialog({ isOpen, onClose, profile }: EditProfileDialogProps) {
   const { updateProfile } = useProfile();
+  const { uploadFile, isUploading, error: uploadError, progress } = useUpload();
   const [saving, setSaving] = useState(false);
   const [displayName, setDisplayName] = useState(profile?.displayName || "");
   const [username, setUsername] = useState(profile?.username || "");
   const [bio, setBio] = useState(profile?.bio || "");
+  const [avatarUrl, setAvatarUrl] = useState(profile?.avatarUrl || "");
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleCameraClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const result = await uploadFile(file);
+    if (!result) {
+      toast({ title: "Upload Failed", description: uploadError?.message || "Failed to upload image", variant: "destructive" });
+      return;
+    }
+
+    const newAvatarUrl = result.objectPath;
+    setAvatarUrl(newAvatarUrl);
+    
+    const { error } = await updateProfile({ avatarUrl: newAvatarUrl });
+    if (error) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: "Avatar Updated", description: "Your profile picture has been updated" });
+    }
+
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
 
   const handleSave = async () => {
     setSaving(true);
-    const { error } = await updateProfile({ displayName, username, bio });
+    const { error } = await updateProfile({ displayName, username, bio, avatarUrl });
     setSaving(false);
     
     if (error) {
@@ -62,13 +95,31 @@ export function EditProfileDialog({ isOpen, onClose, profile }: EditProfileDialo
       <div className="flex flex-col items-center py-6">
         <div className="relative">
           <Avatar className="h-24 w-24 ring-4 ring-primary/20">
-            <AvatarImage src={profile?.avatarUrl || ""} />
+            <AvatarImage src={avatarUrl || ""} />
             <AvatarFallback className="text-2xl">{(displayName || "U")[0].toUpperCase()}</AvatarFallback>
           </Avatar>
-          <button className="absolute bottom-0 right-0 flex h-8 w-8 items-center justify-center rounded-full bg-primary text-white shadow-lg">
-            <Camera className="h-4 w-4" />
+          <button 
+            onClick={handleCameraClick}
+            disabled={isUploading}
+            className="absolute bottom-0 right-0 flex h-8 w-8 items-center justify-center rounded-full bg-primary text-white shadow-lg disabled:opacity-50"
+            data-testid="button-upload-avatar"
+          >
+            {isUploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Camera className="h-4 w-4" />}
           </button>
+          <input 
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            onChange={handleFileSelect}
+            className="hidden"
+            data-testid="input-avatar-file"
+          />
         </div>
+        {isUploading && (
+          <div className="mt-2 text-xs text-muted-foreground" data-testid="text-upload-progress">
+            Uploading... {progress}%
+          </div>
+        )}
       </div>
 
       {/* Form */}

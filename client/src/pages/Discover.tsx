@@ -7,7 +7,10 @@ import { cn } from "@/lib/utils";
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
+import { toast } from "sonner";
 import api from "@/lib/api";
 
 const categories = [
@@ -34,8 +37,13 @@ function formatNumber(num: number): string {
 
 export default function Discover() {
   const isMobile = useIsMobile();
+  const navigate = useNavigate();
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
   const [searchQuery, setSearchQuery] = useState("");
   const [searchFocused, setSearchFocused] = useState(false);
+  const [followedUsers, setFollowedUsers] = useState<Set<number>>(new Set());
+  const [pendingFollows, setPendingFollows] = useState<Set<number>>(new Set());
 
   const { data: hashtagsData, isLoading: hashtagsLoading } = useQuery({
     queryKey: ["/api/hashtags/trending"],
@@ -60,6 +68,48 @@ export default function Discover() {
       return res.data;
     },
   });
+
+  const followMutation = useMutation({
+    mutationFn: async ({ userId, isFollowed }: { userId: number; isFollowed: boolean }) => {
+      setPendingFollows(prev => new Set(prev).add(userId));
+      if (isFollowed) {
+        await api.delete(`/users/${userId}/follow`);
+      } else {
+        await api.post(`/users/${userId}/follow`);
+      }
+    },
+    onSuccess: (_, { userId, isFollowed }) => {
+      setFollowedUsers((prev) => {
+        const next = new Set(prev);
+        if (isFollowed) {
+          next.delete(userId);
+        } else {
+          next.add(userId);
+        }
+        return next;
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/users/suggested"] });
+    },
+    onError: (err: any) => {
+      toast.error(err?.response?.data?.message || "Failed to update follow status");
+    },
+    onSettled: (_, __, { userId }) => {
+      setPendingFollows(prev => {
+        const next = new Set(prev);
+        next.delete(userId);
+        return next;
+      });
+    },
+  });
+
+  const handleFollowToggle = (userId: number) => {
+    if (!user) {
+      navigate("/login");
+      return;
+    }
+    const isFollowed = followedUsers.has(userId);
+    followMutation.mutate({ userId, isFollowed });
+  };
 
   const trendingHashtags = (hashtagsData || []).map((h: any, i: number) => ({
     tag: h.name || h.displayName,
@@ -273,8 +323,20 @@ export default function Discover() {
                             </div>
                             <p className="text-sm text-muted-foreground">{user.followers} followers</p>
                           </div>
-                          <Button size="sm" className="bg-stream-coral hover:bg-stream-coral/90 text-white rounded-lg font-semibold h-9 px-5">
-                            Follow
+                          <Button
+                            size="sm"
+                            data-testid={`button-follow-${user.id}`}
+                            onClick={() => handleFollowToggle(user.id)}
+                            disabled={pendingFollows.has(user.id)}
+                            variant={followedUsers.has(user.id) ? "outline" : "default"}
+                            className={cn(
+                              "rounded-lg font-semibold h-9 px-5",
+                              followedUsers.has(user.id)
+                                ? "border-stream-coral text-stream-coral"
+                                : "bg-stream-coral hover:bg-stream-coral/90 text-white"
+                            )}
+                          >
+                            {pendingFollows.has(user.id) ? "..." : followedUsers.has(user.id) ? "Following" : "Follow"}
                           </Button>
                         </div>
                       ))
@@ -422,8 +484,20 @@ export default function Discover() {
                     </div>
                     <p className="text-sm text-muted-foreground">{user.username}</p>
                   </div>
-                  <Button size="sm" className="bg-stream-coral hover:bg-stream-coral/90 text-white rounded-lg font-semibold h-9 px-5 shadow-lg shadow-stream-coral/20">
-                    Follow
+                  <Button
+                    size="sm"
+                    data-testid={`button-follow-mobile-${user.id}`}
+                    onClick={() => handleFollowToggle(user.id)}
+                    disabled={pendingFollows.has(user.id)}
+                    variant={followedUsers.has(user.id) ? "outline" : "default"}
+                    className={cn(
+                      "rounded-lg font-semibold h-9 px-5 shadow-lg",
+                      followedUsers.has(user.id)
+                        ? "border-stream-coral text-stream-coral shadow-none"
+                        : "bg-stream-coral hover:bg-stream-coral/90 text-white shadow-stream-coral/20"
+                    )}
+                  >
+                    {pendingFollows.has(user.id) ? "..." : followedUsers.has(user.id) ? "Following" : "Follow"}
                   </Button>
                 </div>
               ))

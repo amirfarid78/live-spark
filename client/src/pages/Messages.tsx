@@ -11,14 +11,6 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import api from "@/lib/api";
 
-const stories = [
-  { id: 0, name: "Your Story", avatar: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100", isYou: true, hasNew: false },
-  { id: 1, name: "Sarah", avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100", hasNew: true },
-  { id: 2, name: "Alex", avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100", hasNew: true },
-  { id: 3, name: "Luna", avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100", hasNew: true },
-  { id: 4, name: "Mike", avatar: "https://images.unsplash.com/photo-1556910103-1c02745aae4d?w=100", hasNew: false },
-];
-
 interface MappedConversation {
   id: number;
   name: string;
@@ -330,40 +322,6 @@ function ConversationList({ conversations, isLoading, onSelectChat, selectedChat
             data-testid="input-search-messages"
           />
         </div>
-      </div>
-
-      <div className="flex gap-4 overflow-x-auto px-4 py-4 hide-scrollbar border-b border-border/50">
-        {stories.map((story, index) => (
-          <div 
-            key={story.id} 
-            className={cn(
-              "flex flex-col items-center gap-1.5 animate-fade-in-up",
-              `stagger-${index + 1}`
-            )}
-          >
-            <div className="relative">
-              <Avatar className={cn(
-                "h-16 w-16 ring-[3px] ring-offset-2 ring-offset-background transition-all",
-                story.hasNew 
-                  ? "ring-gradient ring-stream-coral" 
-                  : story.isYou 
-                    ? "ring-border ring-dashed" 
-                    : "ring-border"
-              )}>
-                <AvatarImage src={story.avatar} />
-                <AvatarFallback>{story.name[0]}</AvatarFallback>
-              </Avatar>
-              {story.isYou && (
-                <div className="absolute -bottom-0.5 -right-0.5 flex h-6 w-6 items-center justify-center rounded-full bg-primary text-white shadow-lg ring-2 ring-background">
-                  <span className="text-lg font-bold">+</span>
-                </div>
-              )}
-            </div>
-            <span className="text-[11px] font-medium text-muted-foreground max-w-[60px] truncate">
-              {story.name}
-            </span>
-          </div>
-        ))}
       </div>
 
       <div className="px-4 py-2 border-b border-border/50">
