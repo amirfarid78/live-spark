@@ -1,10 +1,9 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { MainLayout } from "@/components/layout/MainLayout";
 import { AppShell } from "@/components/layout/AppShell";
 import { Onboarding } from "@/components/onboarding/Onboarding";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
@@ -77,51 +76,10 @@ function AuthRoute({ children }: { children: React.ReactNode }) {
 }
 
 function AppContent() {
-  // Sync cart with Shopify when user returns from checkout
   useCartSync();
-  // PWA update notification
-  const [waitingWorker, setWaitingWorker] = useState(null);
-  const [showUpdate, setShowUpdate] = useState(false);
-
-  useEffect(() => {
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.getRegistration().then(reg => {
-        if (reg && reg.waiting) {
-          setWaitingWorker(reg.waiting);
-          setShowUpdate(true);
-        }
-      });
-      navigator.serviceWorker.addEventListener('controllerchange', () => {
-        window.location.reload();
-      });
-      navigator.serviceWorker.addEventListener('updatefound', () => {
-        const reg = navigator.serviceWorker.ready;
-        reg.then(r => {
-          if (r.installing) {
-            r.installing.addEventListener('statechange', () => {
-              if (r.waiting) {
-                setWaitingWorker(r.waiting);
-                setShowUpdate(true);
-              }
-            });
-          }
-        });
-      });
-    }
-  }, []);
-
-  const handleUpdate = () => {
-    if (waitingWorker) {
-      waitingWorker.postMessage({ type: 'SKIP_WAITING' });
-    }
-    setShowUpdate(false);
-  };
 
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const { user, loading: authLoading } = useAuth();
-  const [deferredPrompt, setDeferredPrompt] = useState(null);
-  const [showInstall, setShowInstall] = useState(false);
 
   useEffect(() => {
     const hasCompletedOnboarding = localStorage.getItem("streamverse_onboarding_complete");
@@ -129,31 +87,11 @@ function AppContent() {
       setShowOnboarding(true);
     }
     setIsLoading(false);
-
-    // Listen for beforeinstallprompt event
-    const handler = (e) => {
-      e.preventDefault();
-      setDeferredPrompt(e);
-      setShowInstall(true);
-    };
-    window.addEventListener('beforeinstallprompt', handler);
-    return () => window.removeEventListener('beforeinstallprompt', handler);
   }, []);
 
   const handleOnboardingComplete = () => {
     localStorage.setItem("streamverse_onboarding_complete", "true");
     setShowOnboarding(false);
-  };
-
-  const handleInstallClick = async () => {
-    if (deferredPrompt) {
-      deferredPrompt.prompt();
-      const { outcome } = await deferredPrompt.userChoice;
-      if (outcome === 'accepted') {
-        setShowInstall(false);
-      }
-      setDeferredPrompt(null);
-    }
   };
 
   // Show loading while checking initial state
@@ -180,37 +118,6 @@ function AppContent() {
 
   return (
     <BrowserRouter>
-      {/* PWA Update Notification */}
-      {showUpdate && (
-        <div style={{
-          position: 'fixed',
-          bottom: 90,
-          right: 24,
-          zIndex: 1001,
-          background: '#18181B',
-          color: '#fff',
-          borderRadius: 16,
-          padding: '16px 24px',
-          boxShadow: '0 4px 16px rgba(124,58,237,0.15)',
-          fontWeight: 600,
-        }}>
-          <span style={{marginRight: 16}}>A new version is available.</span>
-          <button
-            onClick={handleUpdate}
-            style={{
-              background: 'linear-gradient(90deg,#7C3AED,#F97316)',
-              color: '#fff',
-              border: 'none',
-              borderRadius: 12,
-              padding: '8px 16px',
-              fontWeight: 700,
-              cursor: 'pointer',
-            }}
-          >
-            Update Now
-          </button>
-        </div>
-      )}
       <Routes>
         {/* Auth routes - redirect to app if logged in */}
         <Route path="/login" element={
@@ -271,30 +178,6 @@ function AppContent() {
         
         <Route path="*" element={<NotFound />} />
       </Routes>
-      {/* Floating Install PWA Button */}
-      {showInstall && (
-        <button
-          onClick={handleInstallClick}
-          style={{
-            position: 'fixed',
-            bottom: 24,
-            right: 24,
-            zIndex: 1000,
-            background: 'linear-gradient(90deg,#7C3AED,#F97316)',
-            color: '#fff',
-            border: 'none',
-            borderRadius: 16,
-            padding: '12px 24px',
-            fontWeight: 700,
-            fontSize: 18,
-            boxShadow: '0 4px 16px rgba(124,58,237,0.15)',
-            cursor: 'pointer',
-            transition: 'background 0.2s',
-          }}
-        >
-          Install StreamVerse App
-        </button>
-      )}
     </BrowserRouter>
   );
 }
