@@ -72,7 +72,7 @@ function VideoCard({ video, isActive, onAuthRequired, isAuthenticated, onOpenCom
   const [likesCount, setLikesCount] = useState(video.likesCount);
   const [isFollowing, setIsFollowing] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
-  const [isMuted, setIsMuted] = useState(true);
+  const [isMuted, setIsMuted] = useState(false);
   const [showHeart, setShowHeart] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
 
@@ -88,23 +88,31 @@ function VideoCard({ video, isActive, onAuthRequired, isAuthenticated, onOpenCom
     const videoEl = videoRef.current;
     if (!videoEl) return;
 
-    if (isActive && !isPaused) {
+    if (isActive) {
+      setIsPaused(false);
+      videoEl.currentTime = 0;
       videoEl.play().catch(() => {
-        // Autoplay might be blocked, set muted and try again
         videoEl.muted = true;
+        setIsMuted(true);
         videoEl.play().catch(() => {});
       });
     } else {
       videoEl.pause();
-    }
-  }, [isActive, isPaused]);
-
-  // Reset video when becoming active
-  useEffect(() => {
-    if (isActive && videoRef.current) {
-      videoRef.current.currentTime = 0;
+      videoEl.currentTime = 0;
     }
   }, [isActive]);
+
+  // Handle tap-to-pause/resume
+  useEffect(() => {
+    const videoEl = videoRef.current;
+    if (!videoEl || !isActive) return;
+
+    if (isPaused) {
+      videoEl.pause();
+    } else {
+      videoEl.play().catch(() => {});
+    }
+  }, [isPaused, isActive]);
 
   const handleAuthAction = (action: () => void) => {
     if (!isAuthenticated) {
@@ -301,7 +309,7 @@ function VideoCard({ video, isActive, onAuthRequired, isAuthenticated, onOpenCom
       </div>
 
       {/* Bottom Info */}
-      <div className="absolute bottom-24 left-3 right-16 z-10">
+      <div className="absolute bottom-20 left-3 right-16 z-10">
         <div className="flex items-center gap-2 mb-1.5">
           <span className="font-bold text-white text-[15px]">{video.user.username}</span>
           {video.user.isVerified && (
@@ -424,7 +432,7 @@ function DesktopVideoPlayer({
   const [isLiked, setIsLiked] = useState(video.isLiked);
   const [isSaved, setIsSaved] = useState(video.isSaved);
   const [likesCount, setLikesCount] = useState(video.likesCount);
-  const [isMuted, setIsMuted] = useState(true);
+  const [isMuted, setIsMuted] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
 
@@ -1081,7 +1089,7 @@ export default function Feed() {
       </div>
 
       {/* Video Feed */}
-      <div ref={containerRef} className="h-full w-full overflow-y-scroll snap-y snap-mandatory hide-scrollbar" style={{ scrollSnapType: 'y mandatory' }}>
+      <div ref={containerRef} className="h-full w-full overflow-y-scroll snap-y snap-mandatory hide-scrollbar overscroll-y-contain" style={{ scrollSnapType: 'y mandatory', WebkitOverflowScrolling: 'touch' }}>
         {videos.map((video, index) => (
           <div 
             key={video.id} 

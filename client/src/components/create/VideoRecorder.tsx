@@ -233,8 +233,6 @@ export function VideoRecorder({ onVideoRecorded, onClose }: VideoRecorderProps) 
     return `${m}:${s.toString().padStart(2, "0")}`;
   };
 
-  const progressPercent = (recordingTime / MAX_DURATION) * 100;
-
   if (cameraError) {
     return (
       <div className="fixed inset-0 z-50 bg-black flex flex-col items-center justify-center p-6" data-testid="camera-error">
@@ -265,7 +263,18 @@ export function VideoRecorder({ onVideoRecorded, onClose }: VideoRecorderProps) 
     <div className="fixed inset-0 z-50 bg-black flex flex-col" data-testid="video-recorder">
       <canvas ref={canvasRef} className="hidden" />
 
-      <div className="absolute top-0 left-0 right-0 z-30 p-4 flex items-center justify-between">
+      {isRecording && (
+        <div className="absolute top-0 left-0 right-0 z-30">
+          <div className="h-1 bg-white/20 w-full">
+            <div 
+              className="h-full bg-stream-coral transition-all duration-1000 ease-linear"
+              style={{ width: `${(recordingTime / MAX_DURATION) * 100}%` }}
+            />
+          </div>
+        </div>
+      )}
+
+      <div className="absolute top-0 left-0 right-0 z-30 p-4 pt-3 flex items-center justify-between">
         <Button
           size="icon"
           variant="ghost"
@@ -278,96 +287,89 @@ export function VideoRecorder({ onVideoRecorded, onClose }: VideoRecorderProps) 
 
         <div className="flex items-center gap-2">
           {isRecording && (
-            <div className="flex items-center gap-2 bg-red-500/80 px-3 py-1.5 rounded-full backdrop-blur-sm">
-              <div className="h-2 w-2 rounded-full bg-white animate-pulse" />
+            <div className="flex items-center gap-2 bg-black/50 px-3 py-1.5 rounded-full backdrop-blur-sm">
+              <div className="h-2 w-2 rounded-full bg-stream-coral animate-pulse" />
               <span className="text-white text-sm font-mono font-semibold">{formatTime(recordingTime)}</span>
             </div>
           )}
         </div>
 
-        <div className="flex items-center gap-1">
-          <Button
-            size="icon"
-            variant="ghost"
-            onClick={() => setFlashEnabled(!flashEnabled)}
-            className="text-white bg-black/30 backdrop-blur-sm rounded-full"
-            data-testid="button-flash"
-          >
-            {flashEnabled ? <Zap className="h-5 w-5 text-yellow-400" /> : <ZapOff className="h-5 w-5" />}
-          </Button>
-        </div>
+        <div className="w-9" />
       </div>
 
-      {isRecording && (
-        <div className="absolute top-16 left-4 right-4 z-30">
-          <div className="h-1 bg-white/20 rounded-full overflow-hidden">
-            <div
-              className="h-full bg-gradient-to-r from-red-500 to-pink-500 rounded-full transition-all duration-1000"
-              style={{ width: `${progressPercent}%` }}
-            />
-          </div>
-        </div>
-      )}
-
-      <div className="absolute right-4 top-24 z-30 flex flex-col gap-4">
+      <div className="absolute right-3 top-20 z-30 flex flex-col items-center gap-1 bg-black/30 backdrop-blur-md rounded-full py-3 px-1.5">
         <button
           onClick={handleFlipCamera}
-          className="flex flex-col items-center gap-1"
+          className="flex flex-col items-center gap-0.5 py-1.5"
           data-testid="button-flip-camera"
         >
-          <div className="h-10 w-10 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center">
+          <div className="h-10 w-10 rounded-full flex items-center justify-center">
             <SwitchCamera className="h-5 w-5 text-white" />
           </div>
-          <span className="text-[10px] text-white/80">Flip</span>
+          <span className="text-[10px] text-white/70">Flip</span>
+        </button>
+
+        <button
+          onClick={() => setFlashEnabled(!flashEnabled)}
+          className="flex flex-col items-center gap-0.5 py-1.5"
+          data-testid="button-flash"
+        >
+          <div className={cn(
+            "h-10 w-10 rounded-full flex items-center justify-center",
+            flashEnabled && "bg-white/20"
+          )}>
+            {flashEnabled ? <Zap className="h-5 w-5 text-yellow-400" /> : <ZapOff className="h-5 w-5 text-white" />}
+          </div>
+          <span className="text-[10px] text-white/70">{flashEnabled ? "On" : "Off"}</span>
         </button>
 
         <button
           onClick={() => { setShowSpeedPanel(!showSpeedPanel); setShowTimerPanel(false); setShowFilters(false); }}
-          className="flex flex-col items-center gap-1"
+          className="flex flex-col items-center gap-0.5 py-1.5"
           data-testid="button-speed"
         >
           <div className={cn(
-            "h-10 w-10 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center",
-            selectedSpeed !== 1 && "ring-2 ring-primary"
+            "h-10 w-10 rounded-full flex items-center justify-center",
+            selectedSpeed !== 1 && "bg-white/20"
           )}>
             <Gauge className="h-5 w-5 text-white" />
           </div>
-          <span className="text-[10px] text-white/80">{SPEED_LABELS[selectedSpeed]}</span>
+          <span className="text-[10px] text-white/70">{SPEED_LABELS[selectedSpeed]}</span>
         </button>
 
         <button
           onClick={() => { setShowTimerPanel(!showTimerPanel); setShowSpeedPanel(false); setShowFilters(false); }}
-          className="flex flex-col items-center gap-1"
+          className="flex flex-col items-center gap-0.5 py-1.5"
           data-testid="button-timer"
         >
           <div className={cn(
-            "h-10 w-10 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center",
-            selectedTimer > 0 && "ring-2 ring-primary"
+            "h-10 w-10 rounded-full flex items-center justify-center",
+            selectedTimer > 0 && "bg-white/20"
           )}>
             <Timer className="h-5 w-5 text-white" />
           </div>
-          <span className="text-[10px] text-white/80">{selectedTimer > 0 ? `${selectedTimer}s` : "Off"}</span>
+          <span className="text-[10px] text-white/70">{selectedTimer > 0 ? `${selectedTimer}s` : "Timer"}</span>
         </button>
 
         <button
           onClick={() => { setShowFilters(!showFilters); setShowSpeedPanel(false); setShowTimerPanel(false); }}
-          className="flex flex-col items-center gap-1"
+          className="flex flex-col items-center gap-0.5 py-1.5"
           data-testid="button-filters"
         >
           <div className={cn(
-            "h-10 w-10 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center",
-            activeFilter !== "none" && "ring-2 ring-primary"
+            "h-10 w-10 rounded-full flex items-center justify-center",
+            activeFilter !== "none" && "bg-white/20"
           )}>
             <Sparkles className="h-5 w-5 text-white" />
           </div>
-          <span className="text-[10px] text-white/80">Filters</span>
+          <span className="text-[10px] text-white/70">Filters</span>
         </button>
 
-        <button className="flex flex-col items-center gap-1" data-testid="button-music">
-          <div className="h-10 w-10 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center">
+        <button className="flex flex-col items-center gap-0.5 py-1.5" data-testid="button-music">
+          <div className="h-10 w-10 rounded-full flex items-center justify-center">
             <Music className="h-5 w-5 text-white" />
           </div>
-          <span className="text-[10px] text-white/80">Music</span>
+          <span className="text-[10px] text-white/70">Music</span>
         </button>
       </div>
 
@@ -429,23 +431,28 @@ export function VideoRecorder({ onVideoRecorded, onClose }: VideoRecorderProps) 
       </div>
 
       {showFilters && (
-        <div className="absolute bottom-32 left-0 right-0 z-40 px-2">
-          <div className="flex gap-2 overflow-x-auto pb-2 hide-scrollbar">
+        <div className="absolute bottom-28 left-0 right-0 z-40 px-3">
+          <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide" style={{ scrollbarWidth: 'none' }}>
             {filters.map(filter => (
               <button
                 key={filter.id}
                 onClick={() => setActiveFilter(filter.id)}
-                className={cn(
-                  "flex-shrink-0 flex flex-col items-center gap-1 p-2 rounded-xl transition-all",
-                  activeFilter === filter.id ? "bg-primary/30 ring-2 ring-primary" : "bg-black/40"
-                )}
+                className="flex-shrink-0 flex flex-col items-center gap-1.5"
                 data-testid={`button-filter-${filter.id}`}
               >
-                <div
-                  className="h-12 w-12 rounded-lg bg-gradient-to-br from-purple-500 to-pink-500 overflow-hidden"
-                  style={{ filter: filter.css || "none" }}
-                />
-                <span className="text-[10px] text-white font-medium">{filter.label}</span>
+                <div className={cn(
+                  "h-14 w-14 rounded-full overflow-hidden border-2 transition-all duration-200",
+                  activeFilter === filter.id ? "border-stream-coral scale-110" : "border-transparent"
+                )}>
+                  <div
+                    className="h-full w-full bg-gradient-to-br from-purple-500 to-pink-500"
+                    style={{ filter: filter.css || "none" }}
+                  />
+                </div>
+                <span className={cn(
+                  "text-[10px] font-medium transition-colors",
+                  activeFilter === filter.id ? "text-stream-coral" : "text-white/70"
+                )}>{filter.label}</span>
               </button>
             ))}
           </div>
@@ -454,7 +461,23 @@ export function VideoRecorder({ onVideoRecorded, onClose }: VideoRecorderProps) 
 
       {countdown !== null && (
         <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/60">
-          <span className="text-8xl font-bold text-white animate-ping">{countdown}</span>
+          <span 
+            key={countdown}
+            className="text-[120px] font-black text-white drop-shadow-2xl"
+            style={{
+              animation: 'countdown-scale 1s ease-out forwards',
+            }}
+          >
+            {countdown}
+          </span>
+          <style>{`
+            @keyframes countdown-scale {
+              0% { transform: scale(0.5); opacity: 0; }
+              30% { transform: scale(1.2); opacity: 1; }
+              60% { transform: scale(1); opacity: 1; }
+              100% { transform: scale(0.8); opacity: 0; }
+            }
+          `}</style>
         </div>
       )}
 
@@ -469,20 +492,23 @@ export function VideoRecorder({ onVideoRecorded, onClose }: VideoRecorderProps) 
 
         <button
           onClick={handleRecordPress}
-          className="relative"
+          className="relative flex items-center justify-center"
           data-testid="button-record"
         >
           <div className={cn(
-            "h-20 w-20 rounded-full border-4 flex items-center justify-center transition-all",
-            isRecording ? "border-red-500" : "border-white"
+            "h-[72px] w-[72px] rounded-full border-[4px] flex items-center justify-center transition-all duration-300",
+            isRecording ? "border-stream-coral" : "border-white"
           )}>
             <div className={cn(
-              "transition-all",
-              isRecording
-                ? "h-7 w-7 rounded-md bg-red-500"
-                : "h-16 w-16 rounded-full bg-red-500"
+              "transition-all duration-300",
+              isRecording 
+                ? "h-6 w-6 rounded-md bg-stream-coral" 
+                : "h-[56px] w-[56px] rounded-full bg-stream-coral"
             )} />
           </div>
+          {isRecording && (
+            <div className="absolute inset-0 rounded-full border-4 border-stream-coral/50 animate-ping" />
+          )}
         </button>
 
         <button

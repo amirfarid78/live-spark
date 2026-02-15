@@ -1,12 +1,12 @@
 import { NavLink, useLocation } from "react-router-dom";
-import { Search, Plus, MessageCircle, User, Home, Radio, ShoppingBag } from "lucide-react";
+import { Search, Plus, MessageCircle, User, Home } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const navItems = [
   { path: "/", icon: Home, label: "Home", activeIcon: true },
-  { path: "/shop", icon: ShoppingBag, label: "Shop" },
+  { path: "/discover", icon: Search, label: "Discover" },
   { path: "/create", icon: Plus, label: "", isCreate: true },
-  { path: "/live", icon: Radio, label: "Live" },
+  { path: "/messages", icon: MessageCircle, label: "Inbox" },
   { path: "/profile", icon: User, label: "Profile", isProfile: true },
 ];
 
