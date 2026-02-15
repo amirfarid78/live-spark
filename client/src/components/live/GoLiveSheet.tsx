@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Camera, Mic, Settings, Sparkles, Users, Swords, Music, MessageSquare, FlipHorizontal, Zap, Radio, X, Loader2 } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { Camera, Mic, Settings, Sparkles, Users, Swords, Music, MessageSquare, FlipHorizontal, Zap, Radio, X, Loader2, VideoOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -34,9 +34,47 @@ export function GoLiveSheet({ onClose, onGoLive }: GoLiveSheetProps) {
   const [enablePK, setEnablePK] = useState(false);
   const [isFrontCamera, setIsFrontCamera] = useState(true);
   const [isStarting, setIsStarting] = useState(false);
+  const [cameraError, setCameraError] = useState(false);
+  const videoPreviewRef = useRef<HTMLVideoElement>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    const startCamera = async () => {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: isFrontCamera ? "user" : "environment", width: 720, height: 1280 },
+          audio: false,
+        });
+        if (cancelled) {
+          stream.getTracks().forEach(t => t.stop());
+          return;
+        }
+        streamRef.current = stream;
+        if (videoPreviewRef.current) {
+          videoPreviewRef.current.srcObject = stream;
+        }
+        setCameraError(false);
+      } catch {
+        if (!cancelled) setCameraError(true);
+      }
+    };
+    startCamera();
+    return () => {
+      cancelled = true;
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach(t => t.stop());
+        streamRef.current = null;
+      }
+    };
+  }, [isFrontCamera]);
 
   const handleGoLive = async () => {
     setIsStarting(true);
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(t => t.stop());
+      streamRef.current = null;
+    }
     try {
       await onGoLive({
         title: title || "Live Stream",
@@ -54,16 +92,28 @@ export function GoLiveSheet({ onClose, onGoLive }: GoLiveSheetProps) {
 
   return (
     <div className="fixed inset-0 z-50 bg-black">
-      {/* Camera Preview (Mock) */}
+      {/* Camera Preview */}
       <div className="absolute inset-0">
-        <div className="h-full w-full bg-gradient-to-br from-muted to-muted/50 flex items-center justify-center">
-          <div className="text-center">
-            <div className="h-20 w-20 rounded-full bg-muted-foreground/20 flex items-center justify-center mx-auto mb-4">
-              <Camera className="h-10 w-10 text-muted-foreground/50" />
+        {cameraError ? (
+          <div className="h-full w-full bg-gradient-to-br from-[#1a0533] via-[#12122a] to-[#0a1628] flex items-center justify-center">
+            <div className="text-center">
+              <div className="h-20 w-20 rounded-full bg-white/10 flex items-center justify-center mx-auto mb-4">
+                <VideoOff className="h-10 w-10 text-white/40" />
+              </div>
+              <p className="text-white/60 text-sm">Camera access denied</p>
+              <p className="text-white/40 text-xs mt-1">Allow camera access to preview</p>
             </div>
-            <p className="text-muted-foreground text-sm">Camera preview</p>
           </div>
-        </div>
+        ) : (
+          <video
+            ref={videoPreviewRef}
+            autoPlay
+            playsInline
+            muted
+            className="h-full w-full object-cover"
+            style={{ transform: isFrontCamera ? "scaleX(-1)" : "none" }}
+          />
+        )}
       </div>
 
       {/* Top Controls */}

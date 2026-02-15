@@ -39,3 +39,8 @@ outputType = "webview"
 [[ports]]
 localPort = 5000
 externalPort = 80
+
+[userenv]
+
+[userenv.shared]
+VITE_AGORA_APP_ID = "b5f55bcb854348f79418d43b32fc6f9b"

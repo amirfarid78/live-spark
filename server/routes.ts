@@ -456,6 +456,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.post("/api/live/agora-token", requireAuth, async (req, res) => {
+    try {
+      const { RtcTokenBuilder, RtcRole } = await import("agora-token");
+      const appId = process.env.AGORA_APP_ID;
+      const appCertificate = process.env.AGORA_APP_CERTIFICATE;
+      if (!appId || !appCertificate) {
+        return res.status(500).json({ message: "Agora credentials not configured" });
+      }
+      const { channelName, uid, role } = req.body;
+      if (!channelName) {
+        return res.status(400).json({ message: "channelName is required" });
+      }
+      const agoraRole = role === "publisher" ? RtcRole.PUBLISHER : RtcRole.SUBSCRIBER;
+      const expirationTimeInSeconds = 3600;
+      const currentTimestamp = Math.floor(Date.now() / 1000);
+      const privilegeExpiredTs = currentTimestamp + expirationTimeInSeconds;
+      const token = RtcTokenBuilder.buildTokenWithUid(
+        appId,
+        appCertificate,
+        channelName,
+        uid || 0,
+        agoraRole,
+        expirationTimeInSeconds,
+        privilegeExpiredTs
+      );
+      res.json({ token, appId, channelName, uid: uid || 0 });
+    } catch (error: any) {
+      console.error("Agora token error:", error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
   app.post("/api/live/streams/:id/end", requireAuth, async (req, res) => {
     try {
       const userId = (req.session as any).userId;

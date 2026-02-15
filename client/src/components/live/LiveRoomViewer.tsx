@@ -1,11 +1,12 @@
-import React, { useState, useEffect, useRef } from "react";
-import { Heart, Gift, Send, Sparkles, MessageCircle } from "lucide-react";
+import { useState, useEffect, useRef, useCallback } from "react";
+import { Heart, Gift, Send, Sparkles, MessageCircle, Video, VideoOff, Mic, MicOff, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { GiftPanel } from "./GiftPanel";
 import { LiveChatSection } from "./LiveChatSection";
 import { LiveTopBar } from "./LiveTopBar";
 import { LiveOpeningAnimation } from "./LiveOpeningAnimation";
 import { LiveGiftAnimation } from "./LiveGiftAnimation";
+import { useAgora } from "@/hooks/useAgora";
 
 interface LiveRoomViewerProps {
   streamId: string;
@@ -43,7 +44,6 @@ const topViewers: { id: string; avatar: string; isVIP: boolean; level: number }[
 export function LiveRoomViewer({ streamId, hostName, hostAvatar, viewerCount, thumbnail, isHost, onClose, onEndStream }: LiveRoomViewerProps) {
   const [showOpeningAnimation, setShowOpeningAnimation] = useState(true);
   const [isLoaded, setIsLoaded] = useState(false);
-  const [isMuted, setIsMuted] = useState(false);
   const [showGiftPanel, setShowGiftPanel] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([
     { id: "system-1", user: "System", avatar: "", message: "Welcome to the live room!", isSystem: true }
@@ -54,6 +54,43 @@ export function LiveRoomViewer({ streamId, hostName, hostAvatar, viewerCount, th
   const [isFocused, setIsFocused] = useState(false);
   const heartIdRef = useRef(0);
   const giftIdRef = useRef(0);
+  const localVideoRef = useRef<HTMLDivElement>(null);
+  const remoteVideoRef = useRef<HTMLDivElement>(null);
+
+  const channelName = `stream-${streamId}`;
+
+  const {
+    localVideoTrack,
+    remoteUsers,
+    isJoined,
+    isPublishing,
+    error: agoraError,
+    isCameraOn,
+    isMicOn,
+    toggleCamera,
+    toggleMic,
+    leave,
+  } = useAgora({
+    channelName,
+    isHost: !!isHost,
+    enabled: !showOpeningAnimation,
+  });
+
+  useEffect(() => {
+    if (localVideoTrack && localVideoRef.current) {
+      localVideoTrack.play(localVideoRef.current);
+    }
+  }, [localVideoTrack]);
+
+  useEffect(() => {
+    if (!isHost && remoteUsers.length > 0 && remoteVideoRef.current) {
+      const hostUser = remoteUsers[0];
+      if (hostUser.videoTrack) {
+        remoteVideoRef.current.innerHTML = "";
+        hostUser.videoTrack.play(remoteVideoRef.current);
+      }
+    }
+  }, [remoteUsers, isHost]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -62,6 +99,16 @@ export function LiveRoomViewer({ streamId, hostName, hostAvatar, viewerCount, th
     }, 2000);
     return () => clearTimeout(timer);
   }, []);
+
+  const handleClose = useCallback(async () => {
+    await leave();
+    onClose();
+  }, [leave, onClose]);
+
+  const handleEndStream = useCallback(async (id: string) => {
+    await leave();
+    onEndStream?.(id);
+  }, [leave, onEndStream]);
 
   const handleLike = () => {
     const colors = ["#FF6B6B", "#FF85A2", "#FFB6C1", "#FF69B4", "#FF1493"];
@@ -89,7 +136,6 @@ export function LiveRoomViewer({ streamId, hostName, hostAvatar, viewerCount, th
   };
 
   const handleGiftSend = (gift: { name: string; icon: string; price: number }) => {
-    // Add flying gift animation
     const newGift: FlyingGift = {
       id: giftIdRef.current++,
       icon: gift.icon,
@@ -97,13 +143,11 @@ export function LiveRoomViewer({ streamId, hostName, hostAvatar, viewerCount, th
       sender: "You",
     };
     setFlyingGifts(prev => [...prev, newGift]);
-    
-    // Remove after animation
+
     setTimeout(() => {
       setFlyingGifts(prev => prev.filter(g => g.id !== newGift.id));
     }, 3500);
 
-    // Add chat message
     const giftMessage: ChatMessage = {
       id: Date.now().toString(),
       user: "You",
@@ -127,33 +171,100 @@ export function LiveRoomViewer({ streamId, hostName, hostAvatar, viewerCount, th
     );
   }
 
+  const hasRemoteVideo = !isHost && remoteUsers.length > 0 && remoteUsers[0]?.videoTrack;
+  const showVideo = isHost ? (isPublishing && isCameraOn) : hasRemoteVideo;
+
   return (
     <div className={cn(
       "fixed inset-0 z-[100] bg-black overflow-hidden transition-opacity duration-500",
       isLoaded ? "opacity-100" : "opacity-0"
     )}>
-      {/* Video Background */}
+      {/* Video Layer - Real Agora Video */}
       <div className="absolute inset-0">
-        {thumbnail ? (
-          <img
-            src={thumbnail}
-            alt={hostName}
-            className="h-full w-full object-cover animate-scale-in-slow"
+        {isHost && (
+          <div
+            ref={localVideoRef}
+            className="h-full w-full object-cover"
+            style={{ display: isPublishing && isCameraOn ? "block" : "none" }}
           />
-        ) : (
-          <div className="h-full w-full bg-gradient-to-br from-[#1a0533] via-[#12122a] to-[#0a1628] animate-scale-in-slow" />
         )}
-        <div className="absolute inset-0 bg-gradient-to-t from-[#0d0d1a] via-transparent to-[#0d0d1a]/60" />
-        <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-transparent to-transparent" />
+
+        {!isHost && (
+          <div
+            ref={remoteVideoRef}
+            className="h-full w-full object-cover"
+            style={{ display: hasRemoteVideo ? "block" : "none" }}
+          />
+        )}
+
+        {!showVideo && (
+          <>
+            {thumbnail ? (
+              <img
+                src={thumbnail}
+                alt={hostName}
+                className="h-full w-full object-cover animate-scale-in-slow"
+              />
+            ) : (
+              <div className="h-full w-full bg-gradient-to-br from-[#1a0533] via-[#12122a] to-[#0a1628] animate-scale-in-slow" />
+            )}
+          </>
+        )}
+
+        <div className="absolute inset-0 bg-gradient-to-t from-[#0d0d1a] via-transparent to-[#0d0d1a]/60 pointer-events-none" />
+        <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-transparent to-transparent pointer-events-none" />
         <div className="absolute bottom-0 left-0 right-0 h-3/4 bg-gradient-to-t from-[#12122a] via-[#12122a]/50 to-transparent pointer-events-none" />
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_0%,rgba(0,0,0,0.3)_100%)]" />
       </div>
 
-      {/* Host Live Indicator */}
-      {isHost && (
-        <div className="absolute top-16 left-1/2 -translate-x-1/2 z-20 flex items-center gap-2 bg-red-600/90 backdrop-blur-sm rounded-full px-4 py-2">
-          <div className="h-2.5 w-2.5 rounded-full bg-white animate-pulse" />
-          <span className="text-white text-sm font-bold">You're Live</span>
+      {/* Connection Status */}
+      {!isJoined && !agoraError && (
+        <div className="absolute inset-0 z-30 flex items-center justify-center">
+          <div className="flex flex-col items-center gap-3 bg-black/60 backdrop-blur-md rounded-2xl px-8 py-6">
+            <Loader2 className="h-8 w-8 text-white animate-spin" />
+            <span className="text-white text-sm font-medium">
+              {isHost ? "Starting your stream..." : "Connecting to stream..."}
+            </span>
+          </div>
+        </div>
+      )}
+
+      {agoraError && (
+        <div className="absolute inset-0 z-30 flex items-center justify-center">
+          <div className="flex flex-col items-center gap-3 bg-black/60 backdrop-blur-md rounded-2xl px-8 py-6 max-w-xs text-center">
+            <VideoOff className="h-8 w-8 text-red-400" />
+            <span className="text-white text-sm font-medium">Stream Connection Error</span>
+            <span className="text-white/60 text-xs">{agoraError}</span>
+          </div>
+        </div>
+      )}
+
+      {/* Host Live Indicator + Controls */}
+      {isHost && isJoined && (
+        <div className="absolute top-16 left-1/2 -translate-x-1/2 z-20 flex items-center gap-3">
+          <div className="flex items-center gap-2 bg-red-600/90 backdrop-blur-sm rounded-full px-4 py-2">
+            <div className="h-2.5 w-2.5 rounded-full bg-white animate-pulse" />
+            <span className="text-white text-sm font-bold">You're Live</span>
+          </div>
+          <button
+            onClick={toggleCamera}
+            className={cn(
+              "h-9 w-9 rounded-full flex items-center justify-center backdrop-blur-sm",
+              isCameraOn ? "bg-white/20" : "bg-red-500/80"
+            )}
+            data-testid="button-toggle-camera"
+          >
+            {isCameraOn ? <Video className="h-4 w-4 text-white" /> : <VideoOff className="h-4 w-4 text-white" />}
+          </button>
+          <button
+            onClick={toggleMic}
+            className={cn(
+              "h-9 w-9 rounded-full flex items-center justify-center backdrop-blur-sm",
+              isMicOn ? "bg-white/20" : "bg-red-500/80"
+            )}
+            data-testid="button-toggle-mic"
+          >
+            {isMicOn ? <Mic className="h-4 w-4 text-white" /> : <MicOff className="h-4 w-4 text-white" />}
+          </button>
         </div>
       )}
 
@@ -184,15 +295,15 @@ export function LiveRoomViewer({ streamId, hostName, hostAvatar, viewerCount, th
         hostAvatar={hostAvatar}
         viewerCount={viewerCount}
         topViewers={topViewers}
-        isMuted={isMuted}
-        onMuteToggle={() => setIsMuted(!isMuted)}
-        onClose={onClose}
+        isMuted={false}
+        onMuteToggle={() => {}}
+        onClose={handleClose}
       />
 
       {isHost && onEndStream && (
         <div className="absolute top-16 right-3 z-20">
           <button
-            onClick={() => onEndStream(streamId)}
+            onClick={() => handleEndStream(streamId)}
             className="px-4 py-2 rounded-full bg-red-600/90 text-white text-xs font-semibold backdrop-blur-sm press-effect"
             data-testid="button-end-stream"
           >
@@ -203,25 +314,20 @@ export function LiveRoomViewer({ streamId, hostName, hostAvatar, viewerCount, th
 
       {/* Bottom Section */}
       <div className="absolute bottom-0 left-0 right-0 z-10">
-        {/* Room Announcement */}
         <div className="px-4 mb-2 animate-fade-in-up stagger-1">
           <p className="text-[11px] text-stream-cyan leading-relaxed">
             Room name : Welcome to join the live. Any content related to violence, gambling, illegal dealing will be banned.
           </p>
         </div>
 
-        {/* Chat Messages */}
         <LiveChatSection messages={messages} />
 
-        {/* Premium Bottom Input Bar */}
         <div className="px-3 pb-6 pt-4" style={{ background: 'linear-gradient(to top, rgba(10, 10, 20, 0.98) 0%, rgba(10, 10, 20, 0.9) 50%, transparent 100%)' }}>
           <div className="flex items-center gap-3">
-            {/* Modern Visible Input */}
             <div className={cn(
               "flex-1 relative transition-all duration-300",
               isFocused && "scale-[1.02]"
             )}>
-              {/* Glow effect when focused */}
               {isFocused && (
                 <div className="absolute -inset-1 bg-gradient-to-r from-stream-purple/30 via-stream-coral/30 to-stream-purple/30 rounded-full blur-md animate-pulse" />
               )}
@@ -233,7 +339,6 @@ export function LiveRoomViewer({ streamId, hostName, hostAvatar, viewerCount, th
                   ? "border-stream-purple/60 shadow-lg shadow-stream-purple/20" 
                   : "border-white/20 hover:border-white/30"
               )}>
-                {/* Icon */}
                 <div className="pl-4 pr-2">
                   <MessageCircle className={cn(
                     "h-5 w-5 transition-colors",
@@ -241,7 +346,6 @@ export function LiveRoomViewer({ streamId, hostName, hostAvatar, viewerCount, th
                   )} />
                 </div>
                 
-                {/* Input */}
                 <input
                   type="text"
                   value={inputMessage}
@@ -251,9 +355,9 @@ export function LiveRoomViewer({ streamId, hostName, hostAvatar, viewerCount, th
                   onKeyDown={(e) => e.key === "Enter" && handleSendMessage()}
                   placeholder="Type Something..."
                   className="flex-1 h-full bg-transparent text-sm text-white placeholder:text-white/40 focus:outline-none pr-3"
+                  data-testid="input-live-chat"
                 />
                 
-                {/* Send Button inside input */}
                 <button 
                   onClick={handleSendMessage}
                   className={cn(
@@ -262,39 +366,33 @@ export function LiveRoomViewer({ streamId, hostName, hostAvatar, viewerCount, th
                       ? "bg-gradient-to-br from-stream-purple to-stream-coral text-white shadow-md" 
                       : "bg-white/10 text-white/40"
                   )}
+                  data-testid="button-send-message"
                 >
                   <Send className="h-4 w-4" />
                 </button>
               </div>
             </div>
 
-            {/* Heart/Like Button */}
             <button
               onClick={handleLike}
               className="relative h-12 w-12 rounded-full flex items-center justify-center press-effect group"
+              data-testid="button-like"
             >
-              {/* Gradient background */}
               <div className="absolute inset-0 rounded-full bg-gradient-to-br from-pink-400 via-pink-500 to-rose-600 shadow-lg shadow-pink-500/40" />
-              {/* Shine effect */}
               <div className="absolute inset-0 rounded-full bg-gradient-to-t from-transparent via-white/10 to-white/30" />
-              {/* Ring */}
               <div className="absolute inset-0 rounded-full ring-2 ring-pink-300/40 ring-offset-1 ring-offset-transparent" />
-              <span className="text-xl relative z-10">🤟</span>
+              <Heart className="h-5 w-5 text-white fill-white relative z-10" />
             </button>
 
-            {/* Gift Button */}
             <button
               onClick={() => setShowGiftPanel(true)}
               className="relative h-12 w-12 rounded-full flex items-center justify-center press-effect group"
+              data-testid="button-gift"
             >
-              {/* Gradient background */}
               <div className="absolute inset-0 rounded-full bg-gradient-to-br from-red-400 via-rose-500 to-pink-600 shadow-lg shadow-rose-500/40" />
-              {/* Shine effect */}
               <div className="absolute inset-0 rounded-full bg-gradient-to-t from-transparent via-white/10 to-white/30" />
-              {/* Ring */}
               <div className="absolute inset-0 rounded-full ring-2 ring-rose-300/40 ring-offset-1 ring-offset-transparent" />
               <Gift className="h-5 w-5 text-white relative z-10" />
-              {/* Notification badge */}
               <div className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-gradient-to-br from-yellow-300 to-orange-500 flex items-center justify-center shadow-lg shadow-yellow-400/50 animate-bounce">
                 <Sparkles className="h-3 w-3 text-white" />
               </div>
@@ -303,7 +401,6 @@ export function LiveRoomViewer({ streamId, hostName, hostAvatar, viewerCount, th
         </div>
       </div>
 
-      {/* Gift Panel */}
       {showGiftPanel && (
         <GiftPanel onClose={() => setShowGiftPanel(false)} onGiftSend={handleGiftSend} />
       )}
