@@ -4,6 +4,7 @@ import session from "express-session";
 import MemoryStore from "memorystore";
 import { storage } from "./storage";
 import bcrypt from "bcryptjs";
+import { registerObjectStorageRoutes } from "./replit_integrations/object_storage";
 
 const SessionStore = MemoryStore(session);
 
@@ -666,6 +667,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: error.message });
     }
   });
+
+  registerObjectStorageRoutes(app);
 
   const httpServer = createServer(app);
   return httpServer;
