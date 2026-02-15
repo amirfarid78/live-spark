@@ -1,5 +1,5 @@
-import React, { useState, useRef, useEffect } from "react";
-import { Heart, MessageCircle, Share2, Bookmark, Music2, Plus, Search, Radio, Users, MapPin, Sparkles, Play, Volume2, VolumeX, MoreHorizontal, Home, User, LogIn, TrendingUp, ChevronRight, ChevronUp, ChevronDown, Gift } from "lucide-react";
+import React, { useState, useRef, useEffect, useCallback } from "react";
+import { Heart, MessageCircle, Share2, Bookmark, Music2, Plus, Search, Radio, Users, MapPin, Sparkles, Play, Volume2, VolumeX, MoreHorizontal, User, LogIn, TrendingUp, ChevronRight, ChevronUp, ChevronDown, Gift, Download } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -9,10 +9,12 @@ import { useAuth } from "@/contexts/AuthContext";
 import { CommentsSheet } from "@/components/video/CommentsSheet";
 import { ShareSheet } from "@/components/video/ShareSheet";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useVideoFeed, useVideoLike, useVideoSave } from "@/hooks/useApi";
+import { toast } from "@/hooks/use-toast";
 import logo from "@/assets/logo.png";
 
 interface Video {
-  id: number;
+  id: string;
   user: {
     name: string;
     username: string;
@@ -22,71 +24,20 @@ interface Video {
   description: string;
   song: string;
   likes: string;
+  likesCount: number;
   comments: string;
+  commentsCount: number;
   shares: string;
+  sharesCount: number;
   thumbnail: string;
+  videoUrl: string;
   isLive?: boolean;
   hashtags?: string[];
+  isLiked: boolean;
+  isSaved: boolean;
 }
 
-const mockVideos: Video[] = [
-  {
-    id: 1,
-    user: { name: "Sarah M.", username: "@sarahm", avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100", isVerified: true },
-    description: "Late night vibes only 🌙✨ Follow for more!",
-    song: "Original Sound - Sarah M.",
-    likes: "124.5K",
-    comments: "2,341",
-    shares: "892",
-    thumbnail: "https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?w=600&h=1000&fit=crop",
-    hashtags: ["nightlife", "vibes"],
-  },
-  {
-    id: 2,
-    user: { name: "Alex Chen", username: "@alexchen", avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100", isVerified: true },
-    description: "This beat is 🔥🔥🔥",
-    song: "Midnight Groove - DJ Alex",
-    likes: "89.2K",
-    comments: "1,567",
-    shares: "445",
-    thumbnail: "https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=600&h=1000&fit=crop",
-    hashtags: ["music", "producer"],
-  },
-  {
-    id: 3,
-    user: { name: "Luna Dance", username: "@lunadance", avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100", isVerified: false },
-    description: "New choreography just dropped 💃 What do you think?",
-    song: "Dance With Me - Luna",
-    likes: "256.8K",
-    comments: "5,892",
-    shares: "1,234",
-    thumbnail: "https://images.unsplash.com/photo-1504609773096-104ff2c73ba4?w=600&h=1000&fit=crop",
-    hashtags: ["dance", "tutorial"],
-  },
-  {
-    id: 4,
-    user: { name: "Chef Mike", username: "@chefmike", avatar: "https://images.unsplash.com/photo-1556910103-1c02745aae4d?w=100", isVerified: true },
-    description: "5-minute pasta recipe that will blow your mind 🍝",
-    song: "Cooking Vibes - Lofi Beats",
-    likes: "67.3K",
-    comments: "3,421",
-    shares: "2,156",
-    thumbnail: "https://images.unsplash.com/photo-1556910103-1c02745aae4d?w=600&h=1000&fit=crop",
-    hashtags: ["cooking", "recipe"],
-  },
-  {
-    id: 5,
-    user: { name: "ProGamer", username: "@progamer", avatar: "https://images.unsplash.com/photo-1542751371-adc38448a05e?w=100", isVerified: true },
-    description: "Insane clutch in ranked! 🎮🔥",
-    song: "Gaming Anthem - Beat Drop",
-    likes: "342.1K",
-    comments: "8,234",
-    shares: "3,567",
-    thumbnail: "https://images.unsplash.com/photo-1542751371-adc38448a05e?w=600&h=1000&fit=crop",
-    isLive: true,
-    hashtags: ["gaming", "esports"],
-  },
-];
+
 
 const feedTabs = [
   { id: "following", label: "Following" },
@@ -94,22 +45,63 @@ const feedTabs = [
   { id: "live", label: "LIVE", isLive: true },
 ];
 
+function formatCount(n: number): string {
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
+  if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K`;
+  return String(n);
+}
+
 interface VideoCardProps {
   video: Video;
   isActive: boolean;
   onAuthRequired: () => void;
   isAuthenticated: boolean;
-  onOpenComments: (videoId: number, commentCount: string) => void;
-  onOpenShare: (videoId: number) => void;
+  onOpenComments: (videoId: string, commentCount: string) => void;
+  onOpenShare: (videoId: string) => void;
+  onLike: (videoId: string) => void;
+  onSave: (videoId: string) => void;
+  onDownload: (videoUrl: string, videoId: string) => void;
 }
 
-function VideoCard({ video, isActive, onAuthRequired, isAuthenticated, onOpenComments, onOpenShare }: VideoCardProps) {
-  const [isLiked, setIsLiked] = useState(false);
-  const [isSaved, setIsSaved] = useState(false);
+function VideoCard({ video, isActive, onAuthRequired, isAuthenticated, onOpenComments, onOpenShare, onLike, onSave, onDownload }: VideoCardProps) {
+  const [isLiked, setIsLiked] = useState(video.isLiked);
+  const [isSaved, setIsSaved] = useState(video.isSaved);
+  const [likesCount, setLikesCount] = useState(video.likesCount);
   const [isFollowing, setIsFollowing] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
   const [isMuted, setIsMuted] = useState(true);
   const [showHeart, setShowHeart] = useState(false);
+  const videoRef = useRef<HTMLVideoElement>(null);
+
+  // Sync with prop changes
+  useEffect(() => {
+    setIsLiked(video.isLiked);
+    setIsSaved(video.isSaved);
+    setLikesCount(video.likesCount);
+  }, [video.isLiked, video.isSaved, video.likesCount]);
+
+  // Auto-play/pause based on active state
+  useEffect(() => {
+    const videoEl = videoRef.current;
+    if (!videoEl) return;
+
+    if (isActive && !isPaused) {
+      videoEl.play().catch(() => {
+        // Autoplay might be blocked, set muted and try again
+        videoEl.muted = true;
+        videoEl.play().catch(() => {});
+      });
+    } else {
+      videoEl.pause();
+    }
+  }, [isActive, isPaused]);
+
+  // Reset video when becoming active
+  useEffect(() => {
+    if (isActive && videoRef.current) {
+      videoRef.current.currentTime = 0;
+    }
+  }, [isActive]);
 
   const handleAuthAction = (action: () => void) => {
     if (!isAuthenticated) {
@@ -119,6 +111,27 @@ function VideoCard({ video, isActive, onAuthRequired, isAuthenticated, onOpenCom
     }
   };
 
+  const handleLike = () => {
+    if (!isAuthenticated) {
+      onAuthRequired();
+      return;
+    }
+    // Optimistic update
+    setIsLiked(!isLiked);
+    setLikesCount(isLiked ? likesCount - 1 : likesCount + 1);
+    onLike(video.id);
+  };
+
+  const handleSave = () => {
+    if (!isAuthenticated) {
+      onAuthRequired();
+      return;
+    }
+    // Optimistic update
+    setIsSaved(!isSaved);
+    onSave(video.id);
+  };
+
   const handleDoubleTap = () => {
     if (!isAuthenticated) {
       onAuthRequired();
@@ -126,8 +139,21 @@ function VideoCard({ video, isActive, onAuthRequired, isAuthenticated, onOpenCom
     }
     if (!isLiked) {
       setIsLiked(true);
+      setLikesCount(likesCount + 1);
       setShowHeart(true);
+      onLike(video.id);
       setTimeout(() => setShowHeart(false), 800);
+    }
+  };
+
+  const togglePlayPause = () => {
+    setIsPaused(!isPaused);
+  };
+
+  const toggleMute = () => {
+    setIsMuted(!isMuted);
+    if (videoRef.current) {
+      videoRef.current.muted = !isMuted;
     }
   };
 
@@ -136,14 +162,27 @@ function VideoCard({ video, isActive, onAuthRequired, isAuthenticated, onOpenCom
       {/* Video/Image Background */}
       <div 
         className="absolute inset-0 cursor-pointer"
-        onClick={() => setIsPaused(!isPaused)}
+        onClick={togglePlayPause}
         onDoubleClick={handleDoubleTap}
       >
-        <img
-          src={video.thumbnail}
-          alt={video.description}
-          className="h-full w-full object-cover"
-        />
+        {video.videoUrl ? (
+          <video
+            ref={videoRef}
+            src={video.videoUrl}
+            poster={video.thumbnail}
+            className="h-full w-full object-cover"
+            loop
+            muted={isMuted}
+            playsInline
+            preload="metadata"
+          />
+        ) : (
+          <img
+            src={video.thumbnail}
+            alt={video.description}
+            className="h-full w-full object-cover"
+          />
+        )}
         
         {/* Double tap heart animation */}
         {showHeart && (
@@ -199,11 +238,11 @@ function VideoCard({ video, isActive, onAuthRequired, isAuthenticated, onOpenCom
         </div>
 
         {/* Like */}
-        <button onClick={() => handleAuthAction(() => setIsLiked(!isLiked))} className="flex flex-col items-center gap-0.5 press-effect">
+        <button onClick={handleLike} className="flex flex-col items-center gap-0.5 press-effect">
           <div className="flex h-11 w-11 items-center justify-center">
             <Heart className={cn("h-8 w-8 transition-all", isLiked ? "text-stream-coral fill-stream-coral scale-110" : "text-white drop-shadow-lg")} />
           </div>
-          <span className="text-[11px] font-semibold text-white">{video.likes}</span>
+          <span className="text-[11px] font-semibold text-white">{formatCount(likesCount)}</span>
         </button>
 
         {/* Comment */}
@@ -215,7 +254,7 @@ function VideoCard({ video, isActive, onAuthRequired, isAuthenticated, onOpenCom
         </button>
 
         {/* Bookmark */}
-        <button onClick={() => handleAuthAction(() => setIsSaved(!isSaved))} className="flex flex-col items-center gap-0.5 press-effect">
+        <button onClick={handleSave} className="flex flex-col items-center gap-0.5 press-effect">
           <div className="flex h-11 w-11 items-center justify-center">
             <Bookmark className={cn("h-7 w-7 transition-all", isSaved ? "text-stream-gold fill-stream-gold" : "text-white drop-shadow-lg")} />
           </div>
@@ -228,6 +267,15 @@ function VideoCard({ video, isActive, onAuthRequired, isAuthenticated, onOpenCom
           </div>
           <span className="text-[11px] font-semibold text-white">{video.shares}</span>
         </button>
+
+        {/* Download */}
+        {video.videoUrl && (
+          <button onClick={() => onDownload(video.videoUrl, video.id)} className="flex flex-col items-center gap-0.5 press-effect">
+            <div className="flex h-11 w-11 items-center justify-center">
+              <Download className="h-7 w-7 text-white drop-shadow-lg" />
+            </div>
+          </button>
+        )}
 
         {/* Spinning Music Disc */}
         <div className="relative h-10 w-10 mt-2">
@@ -270,7 +318,7 @@ function VideoCard({ video, isActive, onAuthRequired, isAuthenticated, onOpenCom
             <Radio className="h-6 w-6 text-white drop-shadow-lg" />
           </Link>
           <div className="flex items-center gap-2">
-            <button onClick={() => setIsMuted(!isMuted)} className="flex h-9 w-9 items-center justify-center rounded-full bg-black/20 backdrop-blur-sm press-effect">
+            <button onClick={toggleMute} className="flex h-9 w-9 items-center justify-center rounded-full bg-black/20 backdrop-blur-sm press-effect">
               {isMuted ? <VolumeX className="h-5 w-5 text-white" /> : <Volume2 className="h-5 w-5 text-white" />}
             </button>
             <button className="flex h-9 w-9 items-center justify-center rounded-full bg-black/20 backdrop-blur-sm press-effect">
@@ -343,21 +391,70 @@ function DesktopVideoPlayer({
   onOpenComments,
   onOpenShare,
   onAuthRequired,
-  isAuthenticated 
+  isAuthenticated,
+  onLike,
+  onSave,
+  onDownload
 }: {
   video: Video;
   onPrev: () => void;
   onNext: () => void;
   hasPrev: boolean;
   hasNext: boolean;
-  onOpenComments: (videoId: number, commentCount: string) => void;
-  onOpenShare: (videoId: number) => void;
+  onOpenComments: (videoId: string, commentCount: string) => void;
+  onOpenShare: (videoId: string) => void;
   onAuthRequired: () => void;
   isAuthenticated: boolean;
+  onLike: (videoId: string) => void;
+  onSave: (videoId: string) => void;
+  onDownload: (videoUrl: string, videoId: string) => void;
 }) {
-  const [isLiked, setIsLiked] = useState(false);
+  const [isLiked, setIsLiked] = useState(video.isLiked);
+  const [isSaved, setIsSaved] = useState(video.isSaved);
+  const [likesCount, setLikesCount] = useState(video.likesCount);
   const [isMuted, setIsMuted] = useState(true);
   const [isPaused, setIsPaused] = useState(false);
+  const videoRef = useRef<HTMLVideoElement>(null);
+
+  // Sync state when video changes
+  useEffect(() => {
+    setIsLiked(video.isLiked);
+    setIsSaved(video.isSaved);
+    setLikesCount(video.likesCount);
+  }, [video.id, video.isLiked, video.isSaved, video.likesCount]);
+
+  // Auto-play when video changes
+  useEffect(() => {
+    const videoEl = videoRef.current;
+    if (!videoEl) return;
+
+    videoEl.currentTime = 0;
+    if (!isPaused) {
+      videoEl.play().catch(() => {
+        videoEl.muted = true;
+        videoEl.play().catch(() => {});
+      });
+    }
+  }, [video.id]);
+
+  // Handle play/pause
+  useEffect(() => {
+    const videoEl = videoRef.current;
+    if (!videoEl) return;
+
+    if (isPaused) {
+      videoEl.pause();
+    } else {
+      videoEl.play().catch(() => {});
+    }
+  }, [isPaused]);
+
+  // Handle mute
+  useEffect(() => {
+    if (videoRef.current) {
+      videoRef.current.muted = isMuted;
+    }
+  }, [isMuted]);
 
   const handleAuthAction = (action: () => void) => {
     if (!isAuthenticated) {
@@ -365,6 +462,25 @@ function DesktopVideoPlayer({
     } else {
       action();
     }
+  };
+
+  const handleLike = () => {
+    if (!isAuthenticated) {
+      onAuthRequired();
+      return;
+    }
+    setIsLiked(!isLiked);
+    setLikesCount(isLiked ? likesCount - 1 : likesCount + 1);
+    onLike(video.id);
+  };
+
+  const handleSave = () => {
+    if (!isAuthenticated) {
+      onAuthRequired();
+      return;
+    }
+    setIsSaved(!isSaved);
+    onSave(video.id);
   };
 
   return (
@@ -384,11 +500,24 @@ function DesktopVideoPlayer({
           className="absolute inset-0 cursor-pointer"
           onClick={() => setIsPaused(!isPaused)}
         >
-          <img
-            src={video.thumbnail}
-            alt={video.description}
-            className="h-full w-full object-cover"
-          />
+          {video.videoUrl ? (
+            <video
+              ref={videoRef}
+              src={video.videoUrl}
+              poster={video.thumbnail}
+              className="h-full w-full object-cover"
+              loop
+              muted={isMuted}
+              playsInline
+              autoPlay
+            />
+          ) : (
+            <img
+              src={video.thumbnail}
+              alt={video.description}
+              className="h-full w-full object-cover"
+            />
+          )}
           
           {/* Pause indicator */}
           {isPaused && (
@@ -466,7 +595,7 @@ function DesktopVideoPlayer({
 
         {/* Like */}
         <button 
-          onClick={() => handleAuthAction(() => setIsLiked(!isLiked))}
+          onClick={handleLike}
           className="flex flex-col items-center gap-1 group"
         >
           <div className={cn(
@@ -475,7 +604,7 @@ function DesktopVideoPlayer({
           )}>
             <Heart className={cn("h-6 w-6", isLiked ? "text-white fill-white" : "text-muted-foreground")} />
           </div>
-          <span className="text-xs text-muted-foreground">{video.likes}</span>
+          <span className="text-xs text-muted-foreground">{formatCount(likesCount)}</span>
         </button>
 
         {/* Comment */}
@@ -489,6 +618,19 @@ function DesktopVideoPlayer({
           <span className="text-xs text-muted-foreground">{video.comments}</span>
         </button>
 
+        {/* Save */}
+        <button 
+          onClick={handleSave}
+          className="flex flex-col items-center gap-1 group"
+        >
+          <div className={cn(
+            "flex h-12 w-12 items-center justify-center rounded-full transition-all group-hover:scale-110",
+            isSaved ? "bg-stream-gold" : "bg-secondary"
+          )}>
+            <Bookmark className={cn("h-6 w-6", isSaved ? "text-white fill-white" : "text-muted-foreground")} />
+          </div>
+        </button>
+
         {/* Share */}
         <button 
           onClick={() => onOpenShare(video.id)}
@@ -498,6 +640,18 @@ function DesktopVideoPlayer({
             <Share2 className="h-6 w-6 text-muted-foreground" />
           </div>
         </button>
+
+        {/* Download */}
+        {video.videoUrl && (
+          <button 
+            onClick={() => onDownload(video.videoUrl, video.id)}
+            className="flex flex-col items-center gap-1 group"
+          >
+            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-secondary transition-transform group-hover:scale-110">
+              <Download className="h-6 w-6 text-muted-foreground" />
+            </div>
+          </button>
+        )}
 
         {/* User Avatar */}
         <Avatar className="h-12 w-12 ring-2 ring-primary/50 cursor-pointer hover:scale-110 transition-transform">
@@ -544,22 +698,152 @@ export default function Feed() {
   const [showAuthPrompt, setShowAuthPrompt] = useState(false);
   const [commentsOpen, setCommentsOpen] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
-  const [selectedVideoId, setSelectedVideoId] = useState<number>(0);
+  const [selectedVideoId, setSelectedVideoId] = useState<string>("");
   const [selectedCommentCount, setSelectedCommentCount] = useState("");
   const containerRef = useRef<HTMLDivElement>(null);
+  const videoRefs = useRef<Map<number, HTMLDivElement>>(new Map());
   const navigate = useNavigate();
   const { user } = useAuth();
 
-  const handleOpenComments = (videoId: number, commentCount: string) => {
+  // API hooks
+  const { data: feedData, isLoading: feedLoading, refetch: refetchFeed } = useVideoFeed(1);
+  const likeMutation = useVideoLike();
+  const saveMutation = useVideoSave();
+
+  // Map API data to Video format
+  const videos: Video[] = (feedData?.items || feedData?.data || (Array.isArray(feedData) ? feedData : []))?.map((v: any) => ({
+    id: String(v.id),
+    user: {
+      name: v.user?.display_name || v.user?.username || 'User',
+      username: `@${v.user?.username || 'user'}`,
+      avatar: v.user?.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${v.user_id}`,
+      isVerified: v.user?.is_verified || false,
+    },
+    description: v.description || v.caption || '',
+    song: v.music_name || v.music_title || 'Original Sound',
+    likes: formatCount(v.likes_count || 0),
+    likesCount: v.likes_count || 0,
+    comments: formatCount(v.comments_count || 0),
+    commentsCount: v.comments_count || 0,
+    shares: formatCount(v.shares_count || 0),
+    sharesCount: v.shares_count || 0,
+    thumbnail: v.thumbnail_url || '',
+    videoUrl: v.video_url || '',
+    isLive: false,
+    hashtags: v.hashtags || [],
+    isLiked: v.is_liked || false,
+    isSaved: v.is_saved || false,
+  })) ?? [];
+
+  // Handle like
+  const handleLike = useCallback((videoId: string) => {
+    likeMutation.mutate(videoId, {
+      onError: () => {
+        toast({
+          title: "Error",
+          description: "Failed to update like. Please try again.",
+          variant: "destructive",
+        });
+      },
+    });
+  }, [likeMutation]);
+
+  // Handle save
+  const handleSave = useCallback((videoId: string) => {
+    saveMutation.mutate(videoId, {
+      onSuccess: (data: any) => {
+        toast({
+          title: data?.saved ? "Saved" : "Removed",
+          description: data?.saved ? "Video saved to your collection" : "Video removed from saved",
+        });
+      },
+      onError: () => {
+        toast({
+          title: "Error",
+          description: "Failed to save video. Please try again.",
+          variant: "destructive",
+        });
+      },
+    });
+  }, [saveMutation]);
+
+  // Handle download
+  const handleDownload = useCallback(async (videoUrl: string, videoId: string) => {
+    if (!videoUrl) {
+      toast({
+        title: "Error",
+        description: "Video not available for download",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      toast({ title: "Downloading...", description: "Your video is being downloaded" });
+      
+      // Fetch the video
+      const response = await fetch(videoUrl);
+      const blob = await response.blob();
+      
+      // Create download link
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `livespark-${videoId}.mp4`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      
+      toast({ title: "Downloaded!", description: "Video saved to your device" });
+    } catch (error) {
+      toast({
+        title: "Download failed",
+        description: "Unable to download video. Try again later.",
+        variant: "destructive",
+      });
+    }
+  }, []);
+
+  const handleOpenComments = (videoId: string, commentCount: string) => {
     setSelectedVideoId(videoId);
     setSelectedCommentCount(commentCount);
     setCommentsOpen(true);
   };
 
-  const handleOpenShare = (videoId: number) => {
+  const handleOpenShare = (videoId: string) => {
     setSelectedVideoId(videoId);
     setShareOpen(true);
   };
+
+  // IntersectionObserver to detect which video is in view
+  useEffect(() => {
+    if (!isMobile) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting && entry.intersectionRatio > 0.5) {
+            const index = Number(entry.target.getAttribute('data-index'));
+            if (!isNaN(index)) {
+              setActiveIndex(index);
+            }
+          }
+        });
+      },
+      {
+        root: containerRef.current,
+        threshold: 0.5,
+      }
+    );
+
+    // Observe all video containers
+    videoRefs.current.forEach((el) => {
+      if (el) observer.observe(el);
+    });
+
+    return () => observer.disconnect();
+  }, [isMobile, videoRefs.current.size]);
 
   const handlePrevVideo = () => {
     if (activeIndex > 0) {
@@ -568,7 +852,7 @@ export default function Feed() {
   };
 
   const handleNextVideo = () => {
-    if (activeIndex < mockVideos.length - 1) {
+    if (activeIndex < videos.length - 1) {
       setActiveIndex(activeIndex + 1);
     }
   };
@@ -606,7 +890,29 @@ export default function Feed() {
 
   // Desktop Layout
   if (!isMobile) {
-    const currentVideo = mockVideos[activeIndex];
+    if (feedLoading) {
+      return (
+        <div className="h-screen bg-background flex items-center justify-center">
+          <div className="animate-pulse flex flex-col items-center gap-4">
+            <div className="h-16 w-16 rounded-full bg-muted" />
+            <div className="h-4 w-32 rounded bg-muted" />
+          </div>
+        </div>
+      );
+    }
+
+    if (videos.length === 0) {
+      return (
+        <div className="h-screen bg-background flex items-center justify-center">
+          <div className="text-center">
+            <p className="text-xl font-semibold mb-2">No videos yet</p>
+            <p className="text-muted-foreground">Be the first to create content!</p>
+          </div>
+        </div>
+      );
+    }
+
+    const currentVideo = videos[activeIndex];
 
     return (
       <div className="h-screen bg-background flex flex-col overflow-hidden">
@@ -614,7 +920,7 @@ export default function Feed() {
         <CommentsSheet 
           isOpen={commentsOpen} 
           onClose={() => setCommentsOpen(false)}
-          videoId={selectedVideoId}
+          videoId={Number(selectedVideoId) || 0}
           commentCount={selectedCommentCount}
         />
 
@@ -622,7 +928,7 @@ export default function Feed() {
         <ShareSheet 
           isOpen={shareOpen}
           onClose={() => setShareOpen(false)}
-          videoId={selectedVideoId}
+          videoId={Number(selectedVideoId) || 0}
         />
 
         {/* Auth Prompt Modal */}
@@ -635,11 +941,14 @@ export default function Feed() {
             onPrev={handlePrevVideo}
             onNext={handleNextVideo}
             hasPrev={activeIndex > 0}
-            hasNext={activeIndex < mockVideos.length - 1}
+            hasNext={activeIndex < videos.length - 1}
             onOpenComments={handleOpenComments}
             onOpenShare={handleOpenShare}
             onAuthRequired={() => setShowAuthPrompt(true)}
             isAuthenticated={!!user}
+            onLike={handleLike}
+            onSave={handleSave}
+            onDownload={handleDownload}
           />
         </div>
 
@@ -666,7 +975,7 @@ export default function Feed() {
       <CommentsSheet 
         isOpen={commentsOpen} 
         onClose={() => setCommentsOpen(false)}
-        videoId={selectedVideoId}
+        videoId={Number(selectedVideoId) || 0}
         commentCount={selectedCommentCount}
       />
 
@@ -674,7 +983,7 @@ export default function Feed() {
       <ShareSheet 
         isOpen={shareOpen}
         onClose={() => setShareOpen(false)}
-        videoId={selectedVideoId}
+        videoId={Number(selectedVideoId) || 0}
       />
 
       {/* Auth Prompt Modal */}
@@ -714,8 +1023,16 @@ export default function Feed() {
 
       {/* Video Feed */}
       <div ref={containerRef} className="h-full w-full overflow-y-scroll snap-y snap-mandatory hide-scrollbar" style={{ scrollSnapType: 'y mandatory' }}>
-        {mockVideos.map((video, index) => (
-          <div key={video.id} className="h-screen w-full">
+        {videos.map((video, index) => (
+          <div 
+            key={video.id} 
+            className="h-screen w-full"
+            data-index={index}
+            ref={(el) => {
+              if (el) videoRefs.current.set(index, el);
+              else videoRefs.current.delete(index);
+            }}
+          >
             <VideoCard 
               video={video} 
               isActive={index === activeIndex}
@@ -723,58 +1040,14 @@ export default function Feed() {
               isAuthenticated={!!user}
               onOpenComments={handleOpenComments}
               onOpenShare={handleOpenShare}
+              onLike={handleLike}
+              onSave={handleSave}
+              onDownload={handleDownload}
             />
           </div>
         ))}
       </div>
 
-      {/* Bottom Navigation - TikTok Style */}
-      <div className="absolute bottom-0 left-0 right-0 z-30">
-        <div className="relative bg-black border-t border-white/5">
-          <div className="flex items-center justify-around h-[50px] pb-safe">
-            <Link to="/" className="flex-1 flex flex-col items-center justify-center gap-0.5 py-2 press-effect">
-              <Home className="h-6 w-6 text-white" fill="white" />
-              <span className="text-[10px] font-semibold text-white">Home</span>
-            </Link>
-            
-            <Link to="/discover" className="flex-1 flex flex-col items-center justify-center gap-0.5 py-2 press-effect">
-              <Search className="h-6 w-6 text-white/60" />
-              <span className="text-[10px] font-medium text-white/60">Discover</span>
-            </Link>
-
-            <Link to="/create" className="flex items-center justify-center py-2 px-4">
-              <div className="relative">
-                <div className="absolute inset-0 flex rounded-lg overflow-hidden">
-                  <div className="w-1/2 bg-stream-cyan" />
-                  <div className="w-1/2 bg-stream-coral" />
-                </div>
-                <div className="relative flex h-8 w-12 items-center justify-center bg-white rounded-lg m-[2px]">
-                  <Plus className="h-5 w-5 text-black" strokeWidth={2.5} />
-                </div>
-              </div>
-            </Link>
-
-            <Link to="/messages" className="flex-1 flex flex-col items-center justify-center gap-0.5 py-2 press-effect relative">
-              <MessageCircle className="h-6 w-6 text-white/60" />
-              <span className="text-[10px] font-medium text-white/60">Inbox</span>
-              <span className="absolute top-1 right-1/4 flex h-4 min-w-4 items-center justify-center rounded-full bg-stream-coral text-[9px] font-bold text-white px-1">
-                3
-              </span>
-            </Link>
-
-            <Link to="/profile" className="flex-1 flex flex-col items-center justify-center gap-0.5 py-2 press-effect">
-              <div className="h-6 w-6 rounded-full overflow-hidden ring-1 ring-white/50">
-                <img 
-                  src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=50" 
-                  alt="" 
-                  className="h-full w-full object-cover" 
-                />
-              </div>
-              <span className="text-[10px] font-medium text-white/60">Profile</span>
-            </Link>
-          </div>
-        </div>
-      </div>
     </div>
   );
 }
