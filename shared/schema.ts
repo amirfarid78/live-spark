@@ -15,8 +15,10 @@ export const currencyTypeEnum = pgEnum("currency_type", ["coins", "diamonds"]);
 
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
+  firebaseUid: text("firebase_uid").unique(),
   email: text("email").notNull().unique(),
   password: text("password").notNull(),
+  phoneNumber: text("phone_number"),
   username: text("username").unique(),
   displayName: text("display_name"),
   bio: text("bio"),

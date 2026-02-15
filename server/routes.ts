@@ -5,6 +5,7 @@ import MemoryStore from "memorystore";
 import { storage } from "./storage";
 import bcrypt from "bcryptjs";
 import { registerObjectStorageRoutes } from "./replit_integrations/object_storage";
+import { verifyFirebaseToken } from "./firebase-admin";
 
 const SessionStore = MemoryStore(session);
 
@@ -96,6 +97,52 @@ export async function registerRoutes(app: Express): Promise<Server> {
     req.session.destroy(() => {
       res.json({ message: "Logged out" });
     });
+  });
+
+  app.post("/api/auth/firebase", async (req, res) => {
+    try {
+      const { idToken, displayName: clientDisplayName, username: clientUsername } = req.body;
+      if (!idToken) {
+        return res.status(400).json({ message: "Firebase ID token is required" });
+      }
+
+      const decoded = await verifyFirebaseToken(idToken);
+      if (!decoded) {
+        return res.status(401).json({ message: "Invalid or expired Firebase token" });
+      }
+
+      const firebaseUid = decoded.uid;
+      const email = decoded.email || null;
+      const phoneNumber = decoded.phone_number || null;
+
+      let user = await storage.getUserByFirebaseUid(firebaseUid);
+
+      if (!user) {
+        const userEmail = email || `${phoneNumber?.replace(/\+/g, "")}@phone.snaplive.app`;
+        const existing = await storage.getUserByEmail(userEmail);
+        if (existing) {
+          user = await storage.updateUser(existing.id, { firebaseUid, phoneNumber: phoneNumber || existing.phoneNumber });
+          user = user!;
+        } else {
+          const generatedUsername = clientUsername || (clientDisplayName ? clientDisplayName.toLowerCase().replace(/\s+/g, "_") : `user_${firebaseUid.slice(0, 8)}`);
+          user = await storage.createUser({
+            email: userEmail,
+            password: "firebase_auth",
+            firebaseUid,
+            phoneNumber,
+            username: generatedUsername,
+            displayName: clientDisplayName || generatedUsername,
+          });
+        }
+      }
+
+      (req.session as any).userId = user.id;
+      const { password: _, ...userWithoutPassword } = user;
+      res.json({ user: userWithoutPassword });
+    } catch (error: any) {
+      console.error("Firebase auth error:", error);
+      res.status(500).json({ message: error.message });
+    }
   });
 
   app.get("/api/auth/me", async (req, res) => {

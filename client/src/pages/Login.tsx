@@ -1,6 +1,7 @@
-import React, { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import { auth, RecaptchaVerifier, signInWithPhoneNumber, type ConfirmationResult } from "@/lib/firebase";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "@/hooks/use-toast";
@@ -10,18 +11,136 @@ import {
   Mail, 
   Smartphone, 
   User, 
-  Check
+  Check,
+  ArrowLeft,
+  Loader2
 } from "lucide-react";
 import logo from "@/assets/logo.png";
 
+type LoginMode = "options" | "email" | "phone" | "otp";
+
 export default function Login() {
-  const [showEmailLogin, setShowEmailLogin] = useState(false);
+  const [mode, setMode] = useState<LoginMode>("options");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [phoneNumber, setPhoneNumber] = useState("");
+  const [otpCode, setOtpCode] = useState(["", "", "", "", "", ""]);
   const [loading, setLoading] = useState(false);
   const [agreedToTerms, setAgreedToTerms] = useState(false);
-  const { signIn } = useAuth();
+  const [confirmationResult, setConfirmationResult] = useState<ConfirmationResult | null>(null);
+  const [countdown, setCountdown] = useState(0);
+
+  const otpRefs = useRef<(HTMLInputElement | null)[]>([]);
+  const recaptchaRef = useRef<HTMLDivElement>(null);
+  const recaptchaVerifier = useRef<any>(null);
+
+  const { signIn, signInWithPhone } = useAuth();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    if (countdown > 0) {
+      const timer = setTimeout(() => setCountdown(countdown - 1), 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [countdown]);
+
+  const setupRecaptcha = () => {
+    if (!recaptchaVerifier.current && recaptchaRef.current) {
+      recaptchaVerifier.current = new RecaptchaVerifier(auth, recaptchaRef.current, {
+        size: "invisible",
+        callback: () => {},
+      });
+    }
+  };
+
+  const handleSendOTP = async () => {
+    if (!phoneNumber || phoneNumber.length < 10) {
+      toast({ title: "Error", description: "Please enter a valid phone number", variant: "destructive" });
+      return;
+    }
+
+    setLoading(true);
+    try {
+      setupRecaptcha();
+      const formattedPhone = phoneNumber.startsWith("+") ? phoneNumber : `+${phoneNumber}`;
+      const result = await signInWithPhoneNumber(auth, formattedPhone, recaptchaVerifier.current);
+      setConfirmationResult(result);
+      setMode("otp");
+      setCountdown(60);
+      toast({ title: "OTP Sent", description: `Verification code sent to ${formattedPhone}` });
+    } catch (err: any) {
+      console.error("OTP send error:", err);
+      const message = err.code === "auth/invalid-phone-number"
+        ? "Invalid phone number format. Use country code (e.g. +1234567890)"
+        : err.code === "auth/too-many-requests"
+        ? "Too many attempts. Please try again later"
+        : "Failed to send OTP. Please try again";
+      toast({ title: "Error", description: message, variant: "destructive" });
+      recaptchaVerifier.current = null;
+    }
+    setLoading(false);
+  };
+
+  const handleVerifyOTP = async () => {
+    const code = otpCode.join("");
+    if (code.length !== 6) {
+      toast({ title: "Error", description: "Please enter the 6-digit code", variant: "destructive" });
+      return;
+    }
+
+    if (!confirmationResult) {
+      toast({ title: "Error", description: "Please request a new code", variant: "destructive" });
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const credential = await confirmationResult.confirm(code);
+      const { error } = await signInWithPhone(credential.user);
+      if (error) {
+        toast({ title: "Error", description: error.message, variant: "destructive" });
+      } else {
+        toast({ title: "Welcome!", description: "You've successfully logged in" });
+        navigate("/");
+      }
+    } catch (err: any) {
+      const message = err.code === "auth/invalid-verification-code"
+        ? "Invalid verification code"
+        : "Verification failed. Please try again";
+      toast({ title: "Error", description: message, variant: "destructive" });
+    }
+    setLoading(false);
+  };
+
+  const handleOtpChange = (index: number, value: string) => {
+    if (!/^\d*$/.test(value)) return;
+    const newOtp = [...otpCode];
+    newOtp[index] = value.slice(-1);
+    setOtpCode(newOtp);
+
+    if (value && index < 5) {
+      otpRefs.current[index + 1]?.focus();
+    }
+  };
+
+  const handleOtpKeyDown = (index: number, e: React.KeyboardEvent) => {
+    if (e.key === "Backspace" && !otpCode[index] && index > 0) {
+      otpRefs.current[index - 1]?.focus();
+    }
+  };
+
+  const handleOtpPaste = (e: React.ClipboardEvent) => {
+    e.preventDefault();
+    const paste = e.clipboardData.getData("text").replace(/\D/g, "").slice(0, 6);
+    const newOtp = [...otpCode];
+    for (let i = 0; i < paste.length; i++) {
+      newOtp[i] = paste[i];
+    }
+    setOtpCode(newOtp);
+    if (paste.length > 0) {
+      otpRefs.current[Math.min(paste.length, 5)]?.focus();
+    }
+  };
 
   const handleEmailLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -48,7 +167,8 @@ export default function Login() {
 
   return (
     <div className="min-h-screen relative flex flex-col overflow-hidden">
-      {/* Background Image with Overlay */}
+      <div ref={recaptchaRef} id="recaptcha-container" />
+
       <div 
         className="absolute inset-0 bg-cover bg-center bg-no-repeat"
         style={{
@@ -58,16 +178,16 @@ export default function Login() {
         <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-black/20 to-black/60" />
       </div>
 
-      {/* Support Button */}
       <div className="absolute top-4 right-4 z-20 pt-safe">
-        <button className="h-12 w-12 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center press-effect">
+        <button 
+          data-testid="button-support"
+          className="h-12 w-12 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center press-effect"
+        >
           <Headphones className="h-6 w-6 text-white" />
         </button>
       </div>
 
-      {/* Content */}
       <div className="relative z-10 flex-1 flex flex-col justify-between pt-safe pb-safe">
-        {/* Logo Section */}
         <div className="px-6 pt-16 md:pt-20 lg:pt-24">
           <div className="flex items-center gap-3 animate-fade-in">
             <img 
@@ -86,19 +206,17 @@ export default function Login() {
           </div>
         </div>
 
-        {/* Login Options */}
         <div className="px-4 md:px-6 lg:px-8 pb-6 md:pb-10 max-w-md mx-auto w-full">
-          {!showEmailLogin ? (
+          {mode === "options" && (
             <div className="space-y-3 animate-fade-in-up">
-              {/* Latest Login Badge */}
               <div className="flex justify-end mb-2">
                 <span className="px-4 py-1.5 rounded-full bg-primary text-primary-foreground text-xs font-medium">
                   Latest Login
                 </span>
               </div>
 
-              {/* Google Login */}
               <Button
+                data-testid="button-google-login"
                 onClick={() => handleSocialLogin("Google")}
                 className="w-full h-14 rounded-full bg-white hover:bg-white/95 text-gray-700 font-medium shadow-lg press-effect"
               >
@@ -111,8 +229,8 @@ export default function Login() {
                 Log in with Google
               </Button>
 
-              {/* Apple Login */}
               <Button
+                data-testid="button-apple-login"
                 onClick={() => handleSocialLogin("Apple")}
                 className="w-full h-14 rounded-full bg-white hover:bg-white/95 text-gray-700 font-medium shadow-lg press-effect"
               >
@@ -122,39 +240,40 @@ export default function Login() {
                 Log in with Apple
               </Button>
 
-              {/* More Login Methods Divider */}
               <div className="flex items-center gap-4 py-4">
                 <div className="flex-1 h-px bg-white/30" />
                 <span className="text-white/70 text-sm">More Login Methods</span>
                 <div className="flex-1 h-px bg-white/30" />
               </div>
 
-              {/* Additional Login Methods */}
               <div className="flex justify-center gap-6">
                 <button 
-                  onClick={() => handleSocialLogin("Phone")}
+                  data-testid="button-phone-login"
+                  onClick={() => setMode("phone")}
                   className="h-14 w-14 rounded-full bg-white shadow-lg flex items-center justify-center press-effect"
                 >
                   <Smartphone className="h-6 w-6 text-gray-700" />
                 </button>
                 <button 
+                  data-testid="button-guest-login"
                   onClick={() => handleSocialLogin("Guest")}
                   className="h-14 w-14 rounded-full bg-white shadow-lg flex items-center justify-center press-effect"
                 >
                   <User className="h-6 w-6 text-gray-700" />
                 </button>
                 <button 
-                  onClick={() => setShowEmailLogin(true)}
+                  data-testid="button-email-login"
+                  onClick={() => setMode("email")}
                   className="h-14 w-14 rounded-full bg-white shadow-lg flex items-center justify-center press-effect"
                 >
                   <Mail className="h-6 w-6 text-gray-700" />
                 </button>
               </div>
 
-              {/* Terms Agreement */}
               <div className="flex items-start gap-3 pt-6">
                 <button
                   type="button"
+                  data-testid="button-agree-terms"
                   onClick={() => setAgreedToTerms(!agreedToTerms)}
                   className={cn(
                     "h-5 w-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 mt-0.5 transition-colors",
@@ -173,7 +292,6 @@ export default function Login() {
                 </span>
               </div>
 
-              {/* Sign Up Link */}
               <p className="text-center pt-4 text-white/90">
                 Don't have an account?{" "}
                 <Link to="/signup" className="text-primary font-semibold underline">
@@ -181,22 +299,25 @@ export default function Login() {
                 </Link>
               </p>
             </div>
-          ) : (
-            /* Email Login Form */
+          )}
+
+          {mode === "email" && (
             <div className="animate-fade-in-up">
               <div className="bg-white/95 backdrop-blur-xl rounded-3xl p-6 shadow-2xl">
                 <button 
-                  onClick={() => setShowEmailLogin(false)}
+                  data-testid="button-back-options"
+                  onClick={() => setMode("options")}
                   className="text-sm text-primary mb-4 flex items-center gap-1"
                 >
-                  ← Back to options
+                  <ArrowLeft className="h-4 w-4" /> Back to options
                 </button>
                 
-                <h2 className="text-xl font-bold text-gray-900 mb-4">Login with Email</h2>
+                <h2 className="text-xl font-bold text-gray-900 mb-4" data-testid="text-email-title">Login with Email</h2>
                 
                 <form onSubmit={handleEmailLogin} className="space-y-4">
                   <div>
                     <Input
+                      data-testid="input-email"
                       type="email"
                       placeholder="Email address"
                       value={email}
@@ -206,6 +327,7 @@ export default function Login() {
                   </div>
                   <div>
                     <Input
+                      data-testid="input-password"
                       type="password"
                       placeholder="Password"
                       value={password}
@@ -221,13 +343,115 @@ export default function Login() {
                   </div>
 
                   <Button
+                    data-testid="button-submit-email"
                     type="submit"
                     disabled={loading}
                     className="w-full h-12 rounded-xl bg-gradient-primary hover:opacity-90 text-white font-semibold"
                   >
-                    {loading ? "Signing in..." : "Sign In"}
+                    {loading ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Signing in...</> : "Sign In"}
                   </Button>
                 </form>
+              </div>
+            </div>
+          )}
+
+          {mode === "phone" && (
+            <div className="animate-fade-in-up">
+              <div className="bg-white/95 backdrop-blur-xl rounded-3xl p-6 shadow-2xl">
+                <button 
+                  data-testid="button-back-options-phone"
+                  onClick={() => setMode("options")}
+                  className="text-sm text-primary mb-4 flex items-center gap-1"
+                >
+                  <ArrowLeft className="h-4 w-4" /> Back to options
+                </button>
+                
+                <h2 className="text-xl font-bold text-gray-900 mb-2" data-testid="text-phone-title">Login with Phone</h2>
+                <p className="text-gray-500 text-sm mb-4">We'll send a verification code to your phone number</p>
+                
+                <div className="space-y-4">
+                  <div>
+                    <Input
+                      data-testid="input-phone"
+                      type="tel"
+                      placeholder="+1 234 567 8900"
+                      value={phoneNumber}
+                      onChange={(e) => setPhoneNumber(e.target.value)}
+                      className="h-12 rounded-xl bg-gray-100 border-0 text-gray-900 placeholder:text-gray-500 text-lg"
+                    />
+                    <p className="text-xs text-gray-400 mt-1">Include country code (e.g. +1 for US, +92 for PK)</p>
+                  </div>
+
+                  <Button
+                    data-testid="button-send-otp"
+                    onClick={handleSendOTP}
+                    disabled={loading || !phoneNumber}
+                    className="w-full h-12 rounded-xl bg-gradient-primary hover:opacity-90 text-white font-semibold"
+                  >
+                    {loading ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Sending...</> : "Send Verification Code"}
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {mode === "otp" && (
+            <div className="animate-fade-in-up">
+              <div className="bg-white/95 backdrop-blur-xl rounded-3xl p-6 shadow-2xl">
+                <button 
+                  data-testid="button-back-phone"
+                  onClick={() => { setMode("phone"); setOtpCode(["", "", "", "", "", ""]); }}
+                  className="text-sm text-primary mb-4 flex items-center gap-1"
+                >
+                  <ArrowLeft className="h-4 w-4" /> Change number
+                </button>
+                
+                <h2 className="text-xl font-bold text-gray-900 mb-2" data-testid="text-otp-title">Enter Verification Code</h2>
+                <p className="text-gray-500 text-sm mb-6">
+                  Code sent to <span className="font-medium text-gray-700">{phoneNumber}</span>
+                </p>
+                
+                <div className="flex justify-center gap-2 mb-6" onPaste={handleOtpPaste}>
+                  {otpCode.map((digit, index) => (
+                    <input
+                      key={index}
+                      ref={(el) => { otpRefs.current[index] = el; }}
+                      data-testid={`input-otp-${index}`}
+                      type="text"
+                      inputMode="numeric"
+                      maxLength={1}
+                      value={digit}
+                      onChange={(e) => handleOtpChange(index, e.target.value)}
+                      onKeyDown={(e) => handleOtpKeyDown(index, e)}
+                      className="w-12 h-14 text-center text-xl font-bold rounded-xl bg-gray-100 border-2 border-transparent focus:border-primary focus:outline-none text-gray-900 transition-colors"
+                    />
+                  ))}
+                </div>
+
+                <Button
+                  data-testid="button-verify-otp"
+                  onClick={handleVerifyOTP}
+                  disabled={loading || otpCode.join("").length !== 6}
+                  className="w-full h-12 rounded-xl bg-gradient-primary hover:opacity-90 text-white font-semibold"
+                >
+                  {loading ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Verifying...</> : "Verify & Sign In"}
+                </Button>
+
+                <div className="text-center mt-4">
+                  {countdown > 0 ? (
+                    <p className="text-gray-500 text-sm">
+                      Resend code in <span className="font-medium text-primary">{countdown}s</span>
+                    </p>
+                  ) : (
+                    <button 
+                      data-testid="button-resend-otp"
+                      onClick={handleSendOTP}
+                      className="text-primary text-sm font-medium"
+                    >
+                      Resend Code
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
           )}
