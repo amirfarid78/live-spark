@@ -110,10 +110,11 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getSuggestedUsers(userId: number, limit = 10): Promise<User[]> {
-    return db.select().from(users)
-      .where(ne(users.id, userId))
-      .orderBy(desc(users.followersCount))
-      .limit(limit);
+    const query = db.select().from(users);
+    if (userId && userId > 0) {
+      return query.where(ne(users.id, userId)).orderBy(desc(users.followersCount)).limit(limit);
+    }
+    return query.orderBy(desc(users.followersCount)).limit(limit);
   }
 
   async getUserVideos(userId: number, limit = 20, offset = 0): Promise<Video[]> {

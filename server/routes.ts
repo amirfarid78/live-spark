@@ -545,6 +545,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.post("/api/agencies", requireAuth, async (req, res) => {
+    try {
+      const userId = (req.session as any).userId;
+      const { agency_name, description, experience, creator_count, contact_email, contact_phone, instagram, tiktok } = req.body;
+      const agency = await storage.createAgency({
+        ownerId: userId,
+        name: agency_name || "Unnamed Agency",
+        description: description || "",
+        commissionRate: 10,
+        status: "pending",
+      });
+      res.status(201).json(agency);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
   app.get("/api/agencies", async (req, res) => {
     try {
       const limit = parseInt(req.query.limit as string) || 20;
