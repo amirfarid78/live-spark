@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 
-import { api } from "@/lib/api";
+import api from "@/lib/api";
 
 const formatNumber = (num: number) => {
   if (num >= 1000000) return `${(num / 1000000).toFixed(1)}M`;
@@ -24,7 +24,7 @@ export default function HashtagPage() {
   // Fetch hashtag details with videos
   const { data: hashtagData, isLoading } = useQuery({
     queryKey: ['hashtag', name],
-    queryFn: () => api.get(`/hashtags/name/${name}/videos`),
+    queryFn: () => api.get(`/hashtags/name/${name}/videos`).then(res => res.data),
     enabled: !!name,
   });
 

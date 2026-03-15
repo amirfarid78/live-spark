@@ -4,8 +4,8 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "tsx server/index.ts",
-    "build": "vite build && esbuild server/index.ts --platform=node --packages=external --bundle --format=cjs --outfile=dist/index.cjs",
+    "dev": "vite --host 0.0.0.0",
+    "build": "vite build",
     "db:push": "drizzle-kit push",
     "lint": "eslint .",
     "test": "vitest run",
