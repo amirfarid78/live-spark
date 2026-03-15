@@ -24,7 +24,7 @@ export default function HashtagPage() {
   // Fetch hashtag details with videos
   const { data: hashtagData, isLoading } = useQuery({
     queryKey: ['hashtag', name],
-    queryFn: () => api.get(`/hashtags/name/${name}/videos`),
+    queryFn: () => api.get(`/hashtags/name/${name}/videos`).then(res => res.data),
     enabled: !!name,
   });
 
